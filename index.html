@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>LI SHUAI — Independent Visual Designer</title>
+<meta name="description" content="LI SHUAI 独立视觉设计师 · 专注品牌视觉、电商视觉、商业视频与AI视觉表达" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Climate+Crisis&family=Fira+Sans:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Lexend:wght@100..900&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg-primary: #111111;
+    --bg-secondary: #151515;
+    --bg-light: #F4F4F1;
+    --bg-light-alt: #EAEAE7;
+    --text-primary: #FFFFFF;
+    --text-dark: #111111;
+    --text-muted: #777777;
+    --accent: #CCFF00;
+    --line-dark: rgba(255, 255, 255, 0.15);
+    --line-light: rgba(0, 0, 0, 0.15);
+
+    --margin: 56px;
+    --grid-gap: 24px;
+
+    --font-en: 'Fira Sans', 'Helvetica Neue', Arial, sans-serif;
+    --font-display: 'Lexend', 'Fira Sans', sans-serif;
+    --font-impact: 'Climate Crisis', 'Lexend', sans-serif;
+    --font-cn: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font-en);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+    cursor: none;
+  }
+  @media (pointer: coarse) {
+    body { cursor: auto; }
+  }
+
+  ::selection { background: var(--accent); color: var(--text-dark); }
+
+  a { color: inherit; text-decoration: none; }
+
+  /* ---------- Custom cursor ---------- */
+  .cursor {
+    position: fixed; top: 0; left: 0; z-index: 9999;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--accent); pointer-events: none;
+    mix-blend-mode: difference;
+    transform: translate(-50%, -50%) scale(1);
+    transition: width 0.35s cubic-bezier(.16,1,.3,1), height 0.35s cubic-bezier(.16,1,.3,1), background 0.35s, mix-blend-mode 0.35s;
+  }
+  .cursor.view {
+    width: 90px; height: 90px;
+    background: var(--accent);
+    mix-blend-mode: normal;
+  }
+  .cursor.view::after {
+    content: 'VIEW'; position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--text-dark); font-size: 12px; font-weight: 700; letter-spacing: 0.06em;
+  }
+  .cursor.play {
+    width: 90px; height: 90px;
+    background: var(--accent);
+    mix-blend-mode: normal;
+  }
+  .cursor.play::after {
+    content: 'PLAY'; position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--text-dark); font-size: 12px; font-weight: 700; letter-spacing: 0.06em;
+  }
+  @media (pointer: coarse) { .cursor { display: none; } }
+
+  /* ---------- Layout helpers ---------- */
+  .page { max-width: 1440px; margin: 0 auto; padding: 0 var(--margin); }
+  .section { padding-top: 120px; padding-bottom: 120px; }
+  .section--light { background: var(--bg-light); color: var(--text-dark); }
+  .section--dark { background: var(--bg-primary); color: var(--text-primary); }
+  .section--secondary { background: var(--bg-secondary); color: var(--text-primary); }
+
+  .eyebrow {
+    font-size: 14px; font-weight: 600; letter-spacing: 0.04em;
+    color: var(--text-muted); text-transform: uppercase;
+  }
+  .index-num {
+    font-size: 18px; color: var(--text-muted); font-weight: 400;
+  }
+  .section-head {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    margin-bottom: 80px;
+  }
+  .section-head__title {
+    font-family: var(--font-display);
+    font-size: 56px; font-weight: 700; line-height: 1.05; letter-spacing: -0.03em;
+  }
+  .section-head__title .en {
+    display: block; font-family: var(--font-en);
+    font-size: 14px; font-weight: 600; letter-spacing: 0.04em;
+    color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;
+  }
+
+  /* ---------- Navbar ---------- */
+  .nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    height: 80px; display: flex; align-items: center;
+    padding: 0 var(--margin);
+    border-bottom: 1px solid transparent;
+    transition: background 0.35s ease, border-color 0.35s ease;
+    background: rgba(17, 17, 17, 0);
+  }
+  .nav.scrolled {
+    background: rgba(17, 17, 17, 0.85);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--line-dark);
+  }
+  .nav__inner {
+    width: 100%; max-width: 1440px; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .nav__brand .name { font-size: 18px; font-weight: 700; letter-spacing: 0.02em; }
+  .nav__brand .role { font-size: 10px; font-weight: 500; color: var(--text-muted); letter-spacing: 0.08em; margin-top: 2px; }
+  .nav__links { display: flex; gap: 40px; }
+  .nav__links a {
+    font-size: 13px; font-weight: 500; letter-spacing: 0.04em;
+    position: relative; padding: 4px 0;
+  }
+  .nav__links a::after {
+    content: ''; position: absolute; left: 0; bottom: 0; height: 1px; width: 0;
+    background: var(--accent); transition: width 0.3s ease;
+  }
+  .nav__links a:hover::after, .nav__links a.active::after { width: 100%; }
+  .nav__links a.active { color: var(--accent); }
+  .nav__menu {
+    display: none; font-size: 13px; font-weight: 500; letter-spacing: 0.04em;
+    cursor: pointer; align-items: center; gap: 8px;
+  }
+  .nav__menu .plus { font-weight: 300; font-size: 18px; }
+
+  /* mobile menu overlay */
+  .menu-overlay {
+    position: fixed; inset: 0; z-index: 99; background: var(--bg-primary);
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 0 var(--margin); gap: 24px;
+    transform: translateY(-100%); transition: transform 0.4s cubic-bezier(.16,1,.3,1);
+  }
+  .menu-overlay.open { transform: translateY(0); }
+  .menu-overlay a { font-size: 40px; font-weight: 700; font-family: var(--font-en); }
+  .menu-overlay a:hover { color: var(--accent); }
+
+  /* ---------- Hero ---------- */
+  .hero { padding-top: 200px; padding-bottom: 80px; }
+  .hero__top {
+    display: grid; grid-template-columns: 1fr auto; gap: 40px; align-items: start;
+  }
+  .hero__title { line-height: 0.95; }
+  .hero__title .line {
+    font-family: var(--font-display);
+    font-size: clamp(56px, 9vw, 120px); font-weight: 700; letter-spacing: -0.04em;
+    display: block;
+    opacity: 0; transform: translateY(40px);
+    clip-path: inset(100% 0 0 0);
+  }
+  .hero__title .line.revealed {
+    animation: heroReveal 1.1s cubic-bezier(.16,1,.3,1) forwards;
+  }
+  .hero__title .line.muted { color: var(--text-muted); }
+  /* hero gooey 标题：底色品牌白/灰，内部动效品牌绿 */
+  .hero__title-svg {
+    width: min(100%, calc(5.5 * clamp(56px, 9vw, 120px)));
+    height: auto; display: block; overflow: visible;
+    opacity: 0; transform: translateY(40px);
+    animation: heroTitleIn 1.05s cubic-bezier(.16,1,.3,1) .2s forwards;
+  }
+  @keyframes heroTitleIn { to { opacity: 1; transform: none; } }
+  @keyframes heroReveal {
+    to { opacity: 1; transform: none; clip-path: inset(0 0 0 0); }
+  }
+  .hero__visual { display: flex; flex-direction: column; align-items: center; padding-top: 20px; }
+  @property --reveal-r { syntax: '<length>'; inherits: false; initial-value: 0px; }
+  .hero__circle {
+    width: 360px; height: 360px; max-width: 100%; border-radius: 50%;
+    position: relative; overflow: hidden;
+    border: 1px solid var(--line-dark);
+    cursor: none;
+    transition: transform 0.8s cubic-bezier(.16,1,.3,1);
+    isolation: isolate;
+  }
+  /* 默认：纯绿色实心圆，完全无人物（呼应最初版本） */
+  .hero__base {
+    position: absolute; inset: 0;
+    background: var(--accent);
+    transition: transform 0.8s cubic-bezier(.16,1,.3,1);
+  }
+  /* 悬停：沿鼠标轨迹画蛇形丝带(clip-path path，无模糊)擦出真实彩色照片，边缘清晰有机 */
+  .hero__reveal {
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+    clip-path: inset(100%);
+    pointer-events: none;
+    will-change: clip-path;
+  }
+  /* 跟随鼠标的绿色光标圆点（呼应参考 pen 的 #88f901）*/
+  .hero__lens {
+    position: absolute; width: 20px; height: 20px; border-radius: 50%;
+    background: #88f901; left: var(--mx,50%); top: var(--my,50%);
+    transform: translate(-50%,-50%) scale(0);
+    opacity: 0; pointer-events: none; z-index: 5;
+    transition: opacity .25s ease, transform .25s ease;
+  }
+  .hero__circle:hover .hero__lens { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+  .hero__circle::after {
+    content: ''; position: absolute; inset: 0; border-radius: 50%;
+    box-shadow: inset 0 0 60px rgba(0,0,0,0.45); pointer-events: none; z-index: 3;
+  }
+  .hero__circle:hover { transform: scale(1.03); }
+  .hero__name {
+    position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
+    font-size: 13px; font-weight: 600; color: var(--text-primary);
+    letter-spacing: 0.06em; z-index: 4;
+    background: rgba(17,17,17,0.6); padding: 6px 14px; border-radius: 999px;
+    backdrop-filter: blur(4px); pointer-events: none;
+  }
+  .hero__bottom {
+    display: grid; grid-template-columns: 480px 1fr auto; gap: 40px;
+    align-items: end; margin-top: 80px;
+  }
+  .hero__tagline .lead { font-size: 24px; font-weight: 500; }
+  .hero__tagline .sub { font-size: 16px; color: var(--text-muted); margin-top: 12px; font-family: var(--font-cn); }
+  .hero__meta { text-align: right; }
+  .hero__meta div { font-size: 14px; color: var(--text-muted); }
+  .hero__meta div + div { margin-top: 8px; }
+  .hero__scroll { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .hero__scroll span { font-size: 11px; font-weight: 500; color: var(--text-muted); letter-spacing: 0.1em; writing-mode: vertical-rl; }
+  .hero__scroll .bar { width: 1px; height: 40px; background: var(--text-muted); position: relative; overflow: hidden; }
+  .hero__scroll .bar::after {
+    content: ''; position: absolute; top: -40px; left: 0; width: 1px; height: 40px;
+    background: var(--accent); animation: scrollDrop 1.8s ease-in-out infinite;
+  }
+  @keyframes scrollDrop { 0% { top: -40px; } 60%,100% { top: 40px; } }
+
+  /* ---------- Selected Works — Card Picker / Snap Scroll ---------- */
+  /* Mobile-first: horizontal draggable track, snap to card, parallax on page scroll */
+  .works__marquee {
+    position: relative; width: 100vw; margin-left: calc(-1 * var(--margin));
+    overflow-x: auto; overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none; -ms-overflow-style: none;
+    padding: 2px 0; margin-bottom: 24px;
+    cursor: grab;
+  }
+  .works__marquee::-webkit-scrollbar { display: none; }
+  .works__marquee:active { cursor: grabbing; }
+  .works__marquee.dragging { scroll-snap-type: none; cursor: grabbing; }
+  .works__track {
+    display: flex; gap: var(--grid-gap); width: max-content;
+    padding: 0 var(--margin);
+    will-change: transform;
+    transition: transform 0.1s linear;
+  }
+  .works__marquee--row2 .works__track { padding-left: calc(var(--margin) + 12vw); }
+
+  .work-card {
+    flex: 0 0 auto; width: 80vw;
+    background: var(--bg-secondary); overflow: hidden; cursor: pointer;
+    display: flex; flex-direction: column;
+    transition: transform 0.5s cubic-bezier(.16,1,.3,1);
+    will-change: transform;
+    scroll-snap-align: center;
+    scroll-snap-stop: always;
+  }
+
+  .work-card__media {
+    flex: 1; background: var(--bg-primary); position: relative;
+    height: 46vw; min-height: 260px; max-height: 420px;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--line-dark); overflow: hidden;
+  }
+  .work-card__media::before {
+    content: ''; position: absolute; inset: 24px;
+    border: 1px dashed rgba(255,255,255,0.08); z-index: 2; pointer-events: none;
+  }
+  .work-card__video, .work-card__img {
+    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+    transition: transform 1s cubic-bezier(.16,1,.3,1), opacity 0.6s ease;
+    transform: scale(1.001);
+  }
+  .work-card__video { opacity: 0; }
+  .work-card:hover .work-card__video { opacity: 1; transform: scale(1.07); }
+  .work-card:hover .work-card__img { transform: scale(1.07); }
+  .work-card__placeholder {
+    position: relative; z-index: 1;
+    font-size: clamp(32px, 4vw, 64px); font-weight: 700; color: rgba(255,255,255,0.12);
+    text-transform: uppercase; letter-spacing: -0.02em; text-align: center;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+  }
+  .work-card:hover .work-card__placeholder { opacity: 0; }
+
+  /* hover mask / overlay */
+  .work-card__overlay {
+    position: absolute; inset: 0; z-index: 3;
+    display: flex; flex-direction: column; justify-content: flex-end;
+    padding: 28px 32px 32px;
+    background: linear-gradient(to top, rgba(17,17,17,0.94) 0%, rgba(17,17,17,0.45) 42%, rgba(17,17,17,0) 100%);
+    opacity: 0; transform: translateY(10px);
+    transition: opacity 0.55s cubic-bezier(.16,1,.3,1), transform 0.55s cubic-bezier(.16,1,.3,1);
+    pointer-events: none;
+  }
+  .work-card:hover .work-card__overlay { opacity: 1; transform: none; }
+  .work-card__desc {
+    font-size: 15px; line-height: 1.55; color: rgba(255,255,255,0.82);
+    font-family: var(--font-cn); margin-bottom: 18px;
+    max-width: 42ch;
+  }
+  .work-card__cta {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-size: 13px; font-weight: 600; letter-spacing: 0.06em; color: var(--accent);
+  }
+  .work-card__cta .arrow { transition: transform 0.35s ease; }
+  .work-card:hover .work-card__cta .arrow { transform: translateX(6px); }
+  .work-card__info {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 24px 32px;
+  }
+  .work-card__name .t { font-size: 22px; font-weight: 700; font-family: var(--font-cn); transition: color 0.35s; }
+  .work-card__name .c { font-size: 12px; color: var(--text-muted); margin-top: 4px; letter-spacing: 0.04em; transition: color 0.35s; }
+  .work-card:hover .work-card__name .t { color: var(--accent); }
+  .work-card:hover .work-card__name .c { color: var(--text-primary); }
+  .work-card__num { font-size: 48px; font-weight: 700; color: var(--text-muted); line-height: 1; transition: color 0.35s; }
+  .work-card:hover .work-card__num { color: var(--accent); }
+
+  /* Row labels */
+  .works__row-label {
+    display: flex; align-items: center; gap: 16px;
+    margin-bottom: 20px; font-size: 13px; font-weight: 600;
+    letter-spacing: 0.06em; color: var(--text-muted); text-transform: uppercase;
+  }
+  .works__row-label::after {
+    content: ''; flex: 1; height: 1px; background: var(--line-light);
+  }
+
+  /* Touch: overlay always visible, placeholder hidden */
+  .work-card__overlay { opacity: 1; transform: none; padding: 22px 22px 24px; }
+  .work-card__placeholder { opacity: 0; }
+
+  /* ---------- Disciplines ---------- */
+  .disciplines__rows { display: flex; flex-direction: column; gap: 0; }
+  .disciplines__row { display: flex; gap: 40px; flex-wrap: wrap; }
+  .disciplines__row + .disciplines__row { margin-top: 8px; }
+  .discipline {
+    font-size: clamp(40px, 6vw, 80px); font-weight: 700; line-height: 0.95;
+    letter-spacing: -0.02em; color: var(--text-muted);
+  }
+  .discipline.bright { color: var(--text-primary); }
+  .discipline.accent { color: var(--accent); }
+  .disciplines__line { height: 1px; background: var(--line-dark); margin: 40px 0; }
+  .disciplines__desc { font-size: 18px; color: var(--text-muted); font-family: var(--font-cn); }
+
+  /* ---------- Services ---------- */
+  .service {
+    display: grid; grid-template-columns: 80px 1fr 40px; gap: 40px; align-items: center;
+    padding: 32px 0; transition: padding-left 0.35s ease;
+  }
+  .service + .service { border-top: 1px solid var(--line-light); }
+  .service:hover { padding-left: 16px; }
+  .service__num { font-size: 24px; font-weight: 700; color: var(--accent); }
+  .service__title { font-size: 32px; font-weight: 600; font-family: var(--font-en); }
+  .service__cn { font-size: 16px; color: var(--text-muted); font-family: var(--font-cn); margin-top: 4px; }
+  .service__arrow { font-size: 32px; font-weight: 300; color: var(--text-muted); text-align: right; transition: transform 0.35s ease; }
+  .service:hover .service__arrow { transform: translateX(8px); color: var(--text-dark); }
+
+  /* ---------- Experience ---------- */
+  .exp__item {
+    display: grid; grid-template-columns: 200px 1fr; gap: 40px;
+    padding: 32px 0; align-items: baseline;
+  }
+  .exp__item + .exp__item { border-top: 1px solid var(--line-dark); }
+  .exp__year { font-size: 72px; font-weight: 700; line-height: 1; }
+  .exp__year.muted { color: var(--text-muted); }
+  .exp__year.bright { color: var(--text-primary); }
+  .exp__year.accent { color: var(--accent); }
+  .exp__desc { font-size: 18px; font-family: var(--font-cn); color: var(--text-muted); align-self: center; }
+
+  /* ---------- About ---------- */
+  .about__grid { display: grid; grid-template-columns: 400px 1fr; gap: 80px; }
+  .about__left .eyebrow { margin-bottom: 8px; display: block; }
+  .about__left .big { font-size: 56px; font-weight: 700; font-family: var(--font-cn); line-height: 1.05; }
+  .about__right .p1 { font-size: 24px; line-height: 1.6; font-family: var(--font-cn); }
+  .about__right .p2 { font-size: 18px; line-height: 1.7; color: var(--text-muted); font-family: var(--font-cn); margin-top: 24px; }
+  .about__stats { display: flex; gap: 24px; margin-top: 40px; flex-wrap: wrap; }
+  .stat .num { font-size: 48px; font-weight: 700; color: var(--text-dark); line-height: 1; }
+  .stat .label { font-size: 12px; font-weight: 500; color: var(--text-muted); letter-spacing: 0.04em; margin-top: 8px; }
+
+  .music-card {
+    margin-top: 48px; padding-top: 48px; border-top: 1px solid var(--line-light);
+    display: grid; grid-template-columns: 180px 1fr; gap: 40px; align-items: center;
+  }
+  .music-card__cover { width: 180px; height: 180px; border-radius: 4px; overflow: hidden; position: relative; }
+  .music-card__cover img { width: 100%; height: 100%; object-fit: cover; }
+  .music-card__cover::after {
+    content: '▶'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.35); color: var(--text-primary); font-size: 28px; opacity: 0; transition: opacity 0.35s;
+  }
+  .music-card__cover:hover::after { opacity: 1; }
+  .music-card__title { font-size: 28px; font-weight: 700; font-family: var(--font-cn); }
+  .music-card__meta { font-size: 14px; color: var(--text-muted); margin-top: 6px; letter-spacing: 0.04em; }
+  .music-card__desc { font-size: 18px; color: var(--text-muted); font-family: var(--font-cn); margin-top: 16px; line-height: 1.6; }
+  .music-card audio { width: 100%; margin-top: 20px; filter: invert(1); height: 36px; }
+
+  /* ---------- Selected Project ---------- */
+  .sp__head { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px; }
+  .sp__head .big { font-size: 56px; font-weight: 700; font-family: var(--font-cn); }
+  .sp__view { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .sp__view .arrow { font-size: 18px; font-weight: 300; }
+  .sp__view:hover .arrow { transform: translateX(6px); display: inline-block; transition: transform 0.3s ease; }
+  .sp__hero {
+    height: 700px; background: var(--bg-primary); border: 1px solid var(--line-dark);
+    display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;
+  }
+  .sp__hero video, .sp__hero img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .sp__hero .overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; z-index: 2; }
+  .sp__hero .overlay span { font-size: 14px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.04em; }
+  .sp__info { display: grid; grid-template-columns: 400px 1fr; gap: 80px; margin-top: 40px; }
+  .sp__info .num { font-size: 80px; font-weight: 700; color: var(--text-muted); line-height: 1; }
+  .sp__info .title { font-size: 32px; font-weight: 600; font-family: var(--font-cn); margin-top: 16px; }
+  .sp__info .desc { font-size: 20px; line-height: 1.6; color: var(--text-muted); font-family: var(--font-cn); }
+  .sp__meta { display: flex; gap: 40px; margin-top: 32px; }
+  .sp__meta .k { font-size: 11px; font-weight: 500; color: var(--text-muted); letter-spacing: 0.04em; }
+  .sp__meta .v { font-size: 16px; font-weight: 500; color: var(--text-primary); margin-top: 4px; }
+
+  /* ---------- Contact ---------- */
+  .contact { padding-top: 160px; padding-bottom: 160px; }
+  .contact__title { line-height: 0.95; }
+  .contact__title .line { font-family: var(--font-display); font-size: clamp(44px, 9vw, 120px); font-weight: 700; letter-spacing: -0.04em; display: block; }
+  .contact__title .line.accent { color: var(--accent); }
+  .contact__avail { font-size: 18px; font-weight: 500; color: var(--text-muted); margin-top: 40px; letter-spacing: 0.02em; }
+  .contact__links { display: flex; gap: 48px; margin-top: 40px; flex-wrap: wrap; }
+  .contact__col .k { font-size: 11px; font-weight: 500; color: var(--text-muted); letter-spacing: 0.04em; }
+  .contact__col .v { font-size: 18px; font-weight: 500; margin-top: 8px; }
+  .contact__col .v:hover { color: var(--accent); }
+
+  /* ---------- Footer ---------- */
+  .footer {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 40px var(--margin); border-top: 1px solid var(--line-dark);
+    background: var(--bg-primary);
+  }
+  .footer__brand .name { font-size: 18px; font-weight: 700; }
+  .footer__brand .role { font-size: 10px; font-weight: 500; color: var(--text-muted); letter-spacing: 0.08em; margin-top: 4px; }
+  .footer__links { display: flex; gap: 32px; }
+  .footer__links a { font-size: 13px; font-weight: 500; color: var(--text-muted); }
+  .footer__links a:hover { color: var(--text-primary); }
+  .footer__right { text-align: right; }
+  .footer__right div { font-size: 12px; color: var(--text-muted); }
+  .footer__right .copy { font-size: 10px; margin-top: 4px; }
+
+  /* ---------- Reveal animation ---------- */
+  .reveal { opacity: 0; transform: translateY(40px); transition: opacity 0.8s ease, transform 0.8s cubic-bezier(.16,1,.3,1); }
+  .reveal.in { opacity: 1; transform: none; }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 1024px) {
+    :root { --margin: 32px; }
+    .hero__top { grid-template-columns: 1fr; }
+    .hero__visual { align-items: flex-start; }
+    .hero__circle { width: 240px; height: 240px; }
+    .hero__bottom { grid-template-columns: 1fr; gap: 32px; }
+    .hero__meta { text-align: left; }
+    .hero__scroll { display: none; }
+    .about__grid { grid-template-columns: 1fr; gap: 48px; }
+    .sp__info { grid-template-columns: 1fr; gap: 40px; }
+    .music-card { grid-template-columns: 1fr; }
+    .music-card__cover { width: 100%; height: auto; aspect-ratio: 1; }
+  }
+
+  @media (max-width: 900px) {
+    .hero__top { grid-template-columns: 1fr; gap: 48px; }
+    .hero__visual { padding-top: 0; }
+  }
+
+  @media (max-width: 640px) {
+    :root { --margin: 20px; --grid-gap: 16px; }
+    .section { padding-top: 72px; padding-bottom: 72px; }
+    .section-head { margin-bottom: 48px; }
+    .section-head__title { font-size: 36px; }
+    .nav__links { display: none; }
+    .nav__menu { display: flex; }
+    .hero { padding-top: 140px; }
+    .hero__title .line { letter-spacing: -0.01em; }
+    .disciplines__row { gap: 24px; }
+    .exp__item { grid-template-columns: 1fr; gap: 8px; }
+    .exp__year { font-size: 56px; }
+    .service { grid-template-columns: 50px 1fr 30px; gap: 20px; }
+    .service__title { font-size: 24px; }
+    .sp__hero { height: 420px; }
+    .sp__meta { flex-wrap: wrap; gap: 24px; }
+    .contact { padding-top: 96px; padding-bottom: 96px; }
+    .contact__links { gap: 24px; }
+    .footer { flex-direction: column; gap: 24px; align-items: flex-start; }
+    .footer__right { text-align: left; }
+  }
+
+  /* ---- Mobile-first upgrades: Works module scales up ---- */
+  @media (min-width: 641px) {
+    .work-card { width: 55vw; }
+    .work-card__media { height: 34vw; min-height: 300px; max-height: 380px; }
+  }
+  @media (min-width: 1025px) {
+    .work-card { width: 38vw; }
+    .work-card__media { height: 24vw; min-height: 320px; max-height: 420px; }
+    /* desktop: hover-reveal overlay, persistent placeholder */
+    .work-card__overlay { opacity: 0; transform: translateY(10px); padding: 28px 32px 32px; }
+    .work-card__placeholder { opacity: 1; }
+    .work-card:hover .work-card__overlay { opacity: 1; transform: none; }
+    .work-card:hover .work-card__placeholder { opacity: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+
+<!-- Navbar -->
+<nav class="nav" id="nav">
+  <div class="nav__inner">
+    <a href="#top" class="nav__brand">
+      <div class="name">LI SHUAI</div>
+      <div class="role">INDEPENDENT VISUAL DESIGNER</div>
+    </a>
+    <div class="nav__links">
+      <a href="#work">WORK</a>
+      <a href="#services">SERVICES</a>
+      <a href="#experience">EXPERIENCE</a>
+      <a href="#about">ABOUT</a>
+      <a href="#contact">CONTACT</a>
+    </div>
+    <div class="nav__menu" id="menuBtn">MENU <span class="plus">+</span></div>
+  </div>
+</nav>
+
+<!-- Mobile menu overlay -->
+<div class="menu-overlay" id="menuOverlay">
+  <a href="#work">WORK</a>
+  <a href="#services">SERVICES</a>
+  <a href="#experience">EXPERIENCE</a>
+  <a href="#about">ABOUT</a>
+  <a href="#contact">CONTACT</a>
+</div>
+
+<main id="top">
+
+  <!-- 01 HERO -->
+  <section class="hero page">
+    <div class="hero__top">
+      <div class="hero__title" id="heroTitle">
+        <svg class="hero__title-svg js-svg" viewBox="0 0 720 520" preserveAspectRatio="xMinYMin meet" aria-label="VISUAL DESIGNER & ART DIRECTOR">
+          <defs>
+            <mask id="heroTextBright">
+              <text x="8" y="118" font-family="Lexend, sans-serif" font-weight="700" font-size="130" letter-spacing="-5.2" fill="#fff">VISUAL</text>
+              <text x="8" y="241" font-family="Lexend, sans-serif" font-weight="700" font-size="130" letter-spacing="-5.2" fill="#fff">DESIGNER</text>
+            </mask>
+            <mask id="heroTextMuted">
+              <text x="8" y="364" font-family="Lexend, sans-serif" font-weight="700" font-size="130" letter-spacing="-5.2" fill="#fff">&amp; ART</text>
+              <text x="8" y="487" font-family="Lexend, sans-serif" font-weight="700" font-size="130" letter-spacing="-5.2" fill="#fff">DIRECTOR</text>
+            </mask>
+            <mask id="heroTextAll">
+              <text x="8" y="118" font-family="Lexend, sans-serif" font-weight="700" font-size="130" letter-spacing="-5.2" fill="#fff">VISUAL</text>
+              <text x="8" y="241" font-family="Lexend, sans-serif" font-weight="700" font-size="130" letter-spacing="-5.2" fill="#fff">DESIGNER</text>
+              <text x="8" y="364" font-family="Lexend, sans-serif" font-weight="700" font-size="130" letter-spacing="-5.2" fill="#fff">&amp; ART</text>
+              <text x="8" y="487" font-family="Lexend, sans-serif" font-weight="700" font-size="130" letter-spacing="-5.2" fill="#fff">DIRECTOR</text>
+            </mask>
+            <filter id="heroGooey" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur in="SourceGraphic" stdDeviation="10" result="blur" />
+              <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 50 -10" result="goo" />
+            </filter>
+          </defs>
+          <rect x="0" y="0" width="1000" height="520" mask="url(#heroTextBright)" fill="var(--text-primary)" />
+          <rect x="0" y="0" width="1000" height="520" mask="url(#heroTextMuted)" fill="var(--text-muted)" />
+          <g class="js-wrapper" filter="url(#heroGooey)" mask="url(#heroTextAll)"></g>
+        </svg>
+      </div>
+      <div class="hero__visual">
+        <div class="hero__circle" id="heroCircle">
+          <div class="hero__base"></div>
+          <img class="hero__reveal" id="heroReveal" src="assets/avatar.jpg" alt="LI SHUAI 真实照片" />
+          <span class="hero__lens"></span>
+          <span class="hero__name">LI SHUAI</span>
+        </div>
+      </div>
+    </div>
+    <div class="hero__bottom">
+      <div class="hero__tagline">
+        <div class="lead">Independent Visual Designer</div>
+        <div class="sub">独立视觉设计师 · 品牌视觉 / 电商视觉 / 商业视频 / AI视觉表达</div>
+      </div>
+      <div class="hero__meta">
+        <div>2026</div>
+        <div>BASED IN BEIJING</div>
+      </div>
+      <div class="hero__scroll">
+        <span>SCROLL</span>
+        <div class="bar"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 02 SELECTED WORKS — Infinite Marquee -->
+  <section class="section section--light" id="work">
+    <div class="page">
+      <div class="section-head reveal">
+        <div class="section-head__title"><span class="en">Selected Works</span>精选作品</div>
+        <div class="index-num">01 — 05</div>
+      </div>
+
+      <!-- Row 1: Automotive / Tech / Sport — auto scroll loop -->
+      <div class="works__row-label reveal">汽车 / 科技 / 运动</div>
+      <div class="works__marquee works__marquee--row1 reveal" id="worksRow1" aria-label="Automotive, tech and sport projects">
+        <div class="works__track">
+          <!-- set 1 -->
+          <a class="work-card" href="project.html" data-cursor="play">
+            <div class="work-card__media">
+              <video class="work-card__video" muted loop playsinline preload="metadata" style="opacity:1;">
+                <source src="assets/maybach-ad.mp4" type="video/mp4">
+              </video>
+              <div class="work-card__placeholder">MAYBACH</div>
+              <div class="work-card__overlay">
+                <p class="work-card__desc">为迈巴赫打造的高端品牌视频，以电影级运镜呈现极致工艺与尊贵气场。</p>
+                <span class="work-card__cta">VIEW PROJECT <span class="arrow">→</span></span>
+              </div>
+            </div>
+            <div class="work-card__info">
+              <div class="work-card__name"><div class="t">迈巴赫视频广告</div><div class="c">CAMPAIGN VIDEO</div></div>
+              <div class="work-card__num">01</div>
+            </div>
+          </a>
+
+          <a class="work-card" href="project.html" data-cursor="view">
+            <div class="work-card__media">
+              <img class="work-card__img" src="assets/scott-detail.jpg" alt="SCOTT Spark RC" />
+              <video class="work-card__video" muted loop playsinline preload="metadata">
+                <source src="assets/scott-ad.mp4" type="video/mp4">
+              </video>
+              <div class="work-card__placeholder">SCOTT</div>
+              <div class="work-card__overlay">
+                <p class="work-card__desc">SCOTT 旗舰山地车电商视觉，从性能参数到骑行场景，传递速度与控制的专业感。</p>
+                <span class="work-card__cta">VIEW PROJECT <span class="arrow">→</span></span>
+              </div>
+            </div>
+            <div class="work-card__info">
+              <div class="work-card__name"><div class="t">SCOTT Spark RC 详情页</div><div class="c">BRAND E-COMMERCE</div></div>
+              <div class="work-card__num">02</div>
+            </div>
+          </a>
+
+          <a class="work-card" href="project.html" data-cursor="view">
+            <div class="work-card__media">
+              <img class="work-card__img" src="assets/razer-detail.jpg" alt="雷蛇20周年" />
+              <video class="work-card__video" muted loop playsinline preload="metadata">
+                <source src="assets/razer-ad.mp4" type="video/mp4">
+              </video>
+              <div class="work-card__placeholder">RAZER</div>
+              <div class="work-card__overlay">
+                <p class="work-card__desc">为雷蛇 Boomslang 20 周年纪念版打造电商详情页，暗黑基因融合绿色科技光感，构建沉浸式产品叙事。</p>
+                <span class="work-card__cta">VIEW PROJECT <span class="arrow">→</span></span>
+              </div>
+            </div>
+            <div class="work-card__info">
+              <div class="work-card__name"><div class="t">雷蛇 20 周年详情页</div><div class="c">RAZER BOOMSLANG 20TH</div></div>
+              <div class="work-card__num">03</div>
+            </div>
+          </a>
+        </div>
+      </div>
+
+      <!-- Row 2: Food & Lifestyle — snap scroll (extendable) -->
+      <div class="works__row-label reveal">生活 / 食品</div>
+      <div class="works__marquee works__marquee--row2 reveal" id="worksRow2" aria-label="Food and lifestyle projects">
+        <div class="works__track">
+          <!-- set 1 -->
+          <a class="work-card" href="project.html" data-cursor="play">
+            <div class="work-card__media">
+              <video class="work-card__video" muted loop playsinline preload="metadata" style="opacity:1;">
+                <source src="assets/tofu-ad.mp4" type="video/mp4">
+              </video>
+              <div class="work-card__placeholder">TOFU</div>
+              <div class="work-card__overlay">
+                <p class="work-card__desc">豆腐产品短视频广告，温润质感与食物微动态结合，传达新鲜与安心。</p>
+                <span class="work-card__cta">VIEW PROJECT <span class="arrow">→</span></span>
+              </div>
+            </div>
+            <div class="work-card__info">
+              <div class="work-card__name"><div class="t">豆腐产品视频广告</div><div class="c">PRODUCT VIDEO</div></div>
+              <div class="work-card__num">04</div>
+            </div>
+          </a>
+
+          <a class="work-card" href="project.html" data-cursor="play">
+            <div class="work-card__media">
+              <video class="work-card__video" muted loop playsinline preload="metadata" style="opacity:1;">
+                <source src="assets/goat-milk-ad.mp4" type="video/mp4">
+              </video>
+              <div class="work-card__placeholder">GOAT MILK</div>
+              <div class="work-card__overlay">
+                <p class="work-card__desc">现挤羊奶广告片，自然牧场氛围与新鲜直供卖点的真实表达。</p>
+                <span class="work-card__cta">VIEW PROJECT <span class="arrow">→</span></span>
+              </div>
+            </div>
+            <div class="work-card__info">
+              <div class="work-card__name"><div class="t">现挤羊奶视频广告</div><div class="c">PRODUCT VIDEO</div></div>
+              <div class="work-card__num">05</div>
+            </div>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 DISCIPLINES -->
+  <section class="section section--dark">
+    <div class="page">
+      <div class="section-head reveal">
+        <div class="section-head__title"><span class="en">Disciplines</span>专业领域</div>
+        <div class="index-num">02</div>
+      </div>
+      <div class="disciplines__rows reveal">
+        <div class="disciplines__row">
+          <span class="discipline bright">BRAND</span>
+          <span class="discipline">DIGITAL</span>
+          <span class="discipline bright">PACKAGING</span>
+        </div>
+        <div class="disciplines__row">
+          <span class="discipline">CAMPAIGN</span>
+          <span class="discipline bright">E-COMMERCE</span>
+          <span class="discipline accent">AI</span>
+        </div>
+      </div>
+      <div class="disciplines__line reveal"></div>
+      <div class="disciplines__desc reveal">从品牌识别到电商视觉，从包装到商业视频与AI生成影像，覆盖商业视觉全链路。</div>
+    </div>
+  </section>
+
+  <!-- 04 SERVICES -->
+  <section class="section section--light" id="services">
+    <div class="page">
+      <div class="section-head reveal">
+        <div class="section-head__title"><span class="en">Services</span>服务</div>
+        <div class="index-num">03</div>
+      </div>
+      <div class="reveal">
+        <div class="service"><div class="service__num">01</div><div><div class="service__title">BRAND IDENTITY</div><div class="service__cn">品牌视觉识别</div></div><div class="service__arrow">→</div></div>
+        <div class="service"><div class="service__num">02</div><div><div class="service__title">E-COMMERCE VISUAL</div><div class="service__cn">电商视觉</div></div><div class="service__arrow">→</div></div>
+        <div class="service"><div class="service__num">03</div><div><div class="service__title">PACKAGING DESIGN</div><div class="service__cn">包装设计</div></div><div class="service__arrow">→</div></div>
+        <div class="service"><div class="service__num">04</div><div><div class="service__title">CAMPAIGN VISUAL</div><div class="service__cn">营销视觉</div></div><div class="service__arrow">→</div></div>
+        <div class="service"><div class="service__num">05</div><div><div class="service__title">ART DIRECTION</div><div class="service__cn">视觉指导</div></div><div class="service__arrow">→</div></div>
+        <div class="service"><div class="service__num">06</div><div><div class="service__title">AI VISUAL CREATION</div><div class="service__cn">AI视觉创意</div></div><div class="service__arrow">→</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 EXPERIENCE -->
+  <section class="section section--dark" id="experience">
+    <div class="page">
+      <div class="section-head reveal">
+        <div class="section-head__title"><span class="en">Experience</span>经历</div>
+        <div class="index-num">04</div>
+      </div>
+      <div class="reveal">
+        <div class="exp__item">
+          <div class="exp__year bright">2013</div>
+          <div class="exp__desc">设计教育 · Design Education</div>
+        </div>
+        <div class="exp__item">
+          <div class="exp__year muted">2016</div>
+          <div class="exp__desc">室内 / 空间设计 · Interior / Spatial Design</div>
+        </div>
+        <div class="exp__item">
+          <div class="exp__year muted">2019</div>
+          <div class="exp__desc">达城闻庆北京建筑工程 · 建筑设计</div>
+        </div>
+        <div class="exp__item">
+          <div class="exp__year bright">2022</div>
+          <div class="exp__desc">北京腾达远志科技 · 电商视觉设计</div>
+        </div>
+        <div class="exp__item">
+          <div class="exp__year accent">2026</div>
+          <div class="exp__desc">独立视觉设计师 · Independent Visual Designer / AI MV Creator</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 06 ABOUT -->
+  <section class="section section--light" id="about">
+    <div class="page">
+      <div class="about__grid">
+        <div class="about__left reveal">
+          <span class="eyebrow">ABOUT ME</span>
+          <div class="big">关于我</div>
+        </div>
+        <div class="about__right reveal">
+          <p class="p1">我是李帅，一名独立视觉设计师，同时也是原创音乐人（艺名：阿柠乐）。从建筑设计到电商视觉，再到 AI 影像与音乐 MV，我一直用视觉语言讲述真实的故事。</p>
+          <p class="p2">多年商业设计经验覆盖品牌视觉、电商详情页、视频广告、包装设计等领域。我相信好的设计不只是好看，更要解决问题、传递情绪、建立信任。现在专注于 AI 生成影像与商业视觉的结合，为品牌创造有记忆点的视觉体验。</p>
+          <div class="about__stats">
+            <div class="stat"><div class="num">10+</div><div class="label">YEARS EXPERIENCE</div></div>
+            <div class="stat"><div class="num">50+</div><div class="label">PROJECTS</div></div>
+            <div class="stat"><div class="num">20+</div><div class="label">BRANDS</div></div>
+          </div>
+
+          <div class="music-card">
+            <div class="music-card__cover">
+              <img src="assets/pahei-cover.jpg" alt="怕黑的人">
+            </div>
+            <div>
+              <div class="music-card__title">《怕黑的人》</div>
+              <div class="music-card__meta">作词 / 作曲 · 李帅 · 艺名：阿柠乐</div>
+              <p class="music-card__desc">关于爱情里把自己弄丢了，又希望可以找回那个爱哭爱笑的自己。QQ音乐、汽水音乐、网易云音乐均可收听。</p>
+              <audio controls preload="metadata">
+                <source src="assets/pahei-de-ren.mp3" type="audio/mpeg">
+                您的浏览器不支持音频播放。
+              </audio>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 07 SELECTED PROJECT -->
+  <section class="section section--secondary">
+    <div class="page">
+      <div class="sp__head reveal">
+        <div>
+          <div class="eyebrow">SELECTED PROJECT</div>
+          <div class="big">重点案例</div>
+        </div>
+        <a class="sp__view" href="project.html">VIEW CASE <span class="arrow">→</span></a>
+      </div>
+      <div class="sp__hero reveal" id="spHero">
+        <video muted loop playsinline preload="metadata" id="spVideo">
+          <source src="assets/maybach-ad.mp4" type="video/mp4">
+        </video>
+        <div class="overlay"><span>MAYBACH</span></div>
+      </div>
+      <div class="sp__info reveal">
+        <div>
+          <div class="num">01</div>
+          <div class="title">迈巴赫视频广告</div>
+        </div>
+        <div>
+          <p class="desc">为迈巴赫打造的高端品牌视频，以电影级运镜与光影呈现极致工艺与尊贵气场，营造从容不迫的豪华叙事。</p>
+          <div class="sp__meta">
+            <div><div class="k">YEAR</div><div class="v">2024</div></div>
+            <div><div class="k">CATEGORY</div><div class="v">Campaign / Automotive</div></div>
+            <div><div class="k">ROLE</div><div class="v">Art Direction / Visual Design</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 08 CONTACT -->
+  <section class="contact section--dark" id="contact">
+    <div class="page">
+      <div class="contact__title reveal">
+        <span class="line">LET'S</span>
+        <span class="line">MAKE</span>
+        <span class="line accent">SOMETHING</span>
+        <span class="line">GOOD.</span>
+      </div>
+      <div class="contact__avail reveal">AVAILABLE FOR FREELANCE / COLLABORATION / FULL-TIME</div>
+      <div class="contact__links reveal">
+        <div class="contact__col"><div class="k">EMAIL</div><a class="v" href="mailto:hello@lishuai.design">hello@lishuai.design</a></div>
+        <div class="contact__col"><div class="k">PHONE</div><div class="v">+86 138 0000 0000</div></div>
+        <div class="contact__col"><div class="k">WECHAT</div><div class="v">lishuai_design</div></div>
+        <div class="contact__col"><div class="k">MUSIC</div><a class="v" href="https://y.qq.com/n/ryqq_v2/profile/like/song" target="_blank">QQ音乐 / 汽水音乐 / 网易云 · 阿柠乐</a></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- 09 FOOTER -->
+<footer class="footer">
+  <div class="footer__brand">
+    <div class="name">LI SHUAI</div>
+    <div class="role">VISUAL DESIGNER / AI MV CREATOR</div>
+  </div>
+  <div class="footer__links">
+    <a href="#work">WORK</a>
+    <a href="#services">SERVICES</a>
+    <a href="#experience">EXPERIENCE</a>
+    <a href="#about">ABOUT</a>
+    <a href="#contact">CONTACT</a>
+  </div>
+  <div class="footer__right">
+    <div>© 2026 LI SHUAI</div>
+    <div class="copy">Designed &amp; Art Directed by Li Shuai</div>
+  </div>
+</footer>
+
+<script>
+  /* Custom cursor */
+  const cursor = document.getElementById('cursor');
+  let cx = window.innerWidth / 2, cy = window.innerHeight / 2, tx = cx, ty = cy;
+  const isTouch = window.matchMedia('(pointer: coarse)').matches;
+
+  if (!isTouch && cursor) {
+    window.addEventListener('mousemove', e => { tx = e.clientX; ty = e.clientY; }, { passive: true });
+    function moveCursor() {
+      cx += (tx - cx) * 0.15;
+      cy += (ty - cy) * 0.15;
+      cursor.style.left = cx + 'px';
+      cursor.style.top = cy + 'px';
+      requestAnimationFrame(moveCursor);
+    }
+    moveCursor();
+
+    document.querySelectorAll('[data-cursor]').forEach(el => {
+      el.addEventListener('mouseenter', () => cursor.classList.add(el.dataset.cursor));
+      el.addEventListener('mouseleave', () => cursor.classList.remove(el.dataset.cursor));
+    });
+  }
+
+  /* Hero circle: 默认纯绿圆，鼠标沿轨迹画蛇形丝带(clip-path path，无模糊)擦出彩色照片，边缘清晰有机 */
+  const heroCircle = document.getElementById('heroCircle');
+  if (heroCircle) {
+    const reveal = document.getElementById('heroReveal');
+    if (reveal) {
+      const now = () => performance.now();
+      const view = { w: 1, h: 1 };
+      let particles = [], raf = null, revealed = false;
+      const mouse = { x: 0, y: 0, sx: 0, sy: 0, diff: 0, a: 0, init: false };
+
+      function measure() {
+        const r = heroCircle.getBoundingClientRect();
+        view.w = r.width || 1; view.h = r.height || 1;
+      }
+      measure();
+      window.addEventListener('resize', () => {
+        measure(); particles = [];
+        if (!revealed) reveal.style.clipPath = 'inset(100%)';
+      }, { passive: true });
+
+      // 屏幕坐标 → 圆形本地像素坐标(0..view.w)
+      function toLocal(e) {
+        const r = heroCircle.getBoundingClientRect();
+        return { x: e.clientX - r.left, y: e.clientY - r.top };
+      }
+      // 粒子寿命内 p: 0→1(2s)→保持(1s)→1→0(4s)，复刻参考 pen 的 GSAP 时间线
+      function pAt(age) {
+        const t = age / 1000;
+        if (t < 2) { const k = t / 2; return k * k * (3 - 2 * k); }      // power1.inOut
+        if (t < 3) return 1;
+        if (t < 7) { const k = (t - 3) / 4; return 1 - k * k * k * k; }  // power4.in
+        return 0;
+      }
+      class Brush {
+        constructor(x, y, angle, dist) {
+          this.x = x; this.y = y; this.birth = now();
+          this.ox = Math.cos(angle + Math.PI / 2) * dist;
+          this.oy = Math.sin(angle + Math.PI / 2) * dist;
+        }
+        p() { return pAt(now() - this.birth); }
+        pos(dir) {
+          const k = this.p() * dir;
+          return { x: this.x + this.ox * k, y: this.y + this.oy * k };
+        }
+      }
+      // 沿粒子轨迹画闭合蛇形丝带(Q 曲线连成，无模糊)
+      function drawPath() {
+        particles = particles.filter(p => now() - p.birth < 7000);
+        if (particles.length < 2) {
+          if (!revealed) reveal.style.clipPath = 'inset(100%)';
+          raf = null; return;
+        }
+        let d = '';
+        for (let i = 0; i < particles.length; i++) {
+          const p1 = particles[i].pos(-1);
+          const p2 = (particles[i + 1] || particles[particles.length - 1]).pos(-1);
+          if (i > 0) d += `Q ${p1.x.toFixed(1)} ${p1.y.toFixed(1)} ${((p1.x + p2.x) / 2).toFixed(1)} ${((p1.y + p2.y) / 2).toFixed(1)} `;
+          else d += `M ${p1.x.toFixed(1)} ${p1.y.toFixed(1)} `;
+        }
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p1 = particles[i].pos(1);
+          const p2 = (particles[i - 1] || particles[0]).pos(1);
+          d += `Q ${p1.x.toFixed(1)} ${p1.y.toFixed(1)} ${((p1.x + p2.x) / 2).toFixed(1)} ${((p1.y + p2.y) / 2).toFixed(1)} `;
+        }
+        reveal.style.clipPath = `path('${d}')`;
+      }
+      function loop() { drawPath(); if (particles.length >= 2) raf = requestAnimationFrame(loop); else raf = null; }
+
+      if (!isTouch) {
+        heroCircle.addEventListener('mousemove', e => {
+          const u = toLocal(e);
+          if (!mouse.init) { mouse.sx = u.x; mouse.sy = u.y; mouse.init = true; }
+          mouse.x = u.x; mouse.y = u.y;
+          mouse.sx += (u.x - mouse.sx) * 0.1;
+          mouse.sy += (u.y - mouse.sy) * 0.1;
+          const ex = u.x - mouse.sx, ey = u.y - mouse.sy;
+          mouse.diff = Math.hypot(ex, ey);
+          if (mouse.diff > 0.1) mouse.a = Math.atan2(ey, ex);
+          // 移动越快丝带越宽；静止时保留最细丝带
+          const dist = Math.min(view.w * 0.22, Math.max(view.w * 0.07, mouse.diff));
+          if (mouse.diff > 0.4) {
+            particles.push(new Brush(mouse.sx, mouse.sy, mouse.a, dist));
+            if (particles.length > 500) particles.shift();
+          }
+          heroCircle.style.setProperty('--mx', u.x + 'px');
+          heroCircle.style.setProperty('--my', u.y + 'px');
+          if (!raf) raf = requestAnimationFrame(loop);
+        }, { passive: true });
+      } else {
+        /* 触屏：点按整圆显示照片 */
+        heroCircle.addEventListener('click', () => {
+          revealed = !revealed;
+          reveal.style.clipPath = revealed ? 'circle(72% at 50% 50%)' : 'inset(100%)';
+        });
+      }
+      // 磁吸（近距轻微跟随）
+      document.addEventListener('mousemove', e => {
+        const rect = heroCircle.getBoundingClientRect();
+        const dx = e.clientX - (rect.left + rect.width / 2);
+        const dy = e.clientY - (rect.top + rect.height / 2);
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        heroCircle.style.transform = dist < 320
+          ? `translate(${dx * 0.03}px, ${dy * 0.03}px) scale(1.03)`
+          : 'translate(0,0) scale(1)';
+      }, { passive: true });
+    }
+  }
+
+  /* Hero gooey 标题 — 文字品牌色，内部液滴动效品牌绿，跟随鼠标 */
+  (function () {
+    const svg = document.querySelector('.hero__title-svg');
+    if (!svg) return;
+    const VB_W = 720, VB_H = 520;
+    const wrapper = svg.querySelector('.js-wrapper');
+    const svgns = 'http://www.w3.org/2000/svg';
+    const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#CCFF00';
+
+    const toSvg = (cx, cy) => {
+      const p = svg.createSVGPoint(); p.x = cx; p.y = cy;
+      const ctm = svg.getScreenCTM();
+      if (!ctm) return { x: 0, y: 0 };
+      const q = p.matrixTransform(ctm.inverse());
+      return { x: q.x, y: q.y };
+    };
+
+    const mouse = { x: 0, y: 0, sx: 0, sy: 0, diff: 0 };
+    const head = { x: VB_W * 0.5, y: VB_H * 0.5 };
+    const particles = [];
+    let frame = 0, last = performance.now();
+
+    window.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; }, { passive: true });
+
+    const easeInOut = t => t * t * (3 - 2 * t);
+    const easeIn3 = t => t * t * t;
+
+    class P {
+      constructor(x, y, s) {
+        this.x = x; this.y = y; this.size = s; this.r = 3; this.vy = 0;
+        this.seed = Math.random() * 1000;
+        this.freq = (0.5 + Math.random()) * 0.01;
+        this.amp = (1 - Math.random() * 2) * 0.7;
+        this.age = 0; this.grow = 0.25; this.shrink = 1.0;
+        this.el = document.createElementNS(svgns, 'circle');
+        this.el.setAttribute('fill', accent);
+        this.el.setAttribute('cx', x); this.el.setAttribute('cy', y); this.el.setAttribute('r', this.r);
+        wrapper.prepend(this.el);
+      }
+      up(dt) {
+        this.age += dt;
+        if (this.age < this.grow) {
+          this.r = 3 + (this.size - 3) * easeInOut(this.age / this.grow);
+        } else {
+          const t = (this.age - this.grow) / this.shrink;
+          if (t >= 1) return false;
+          this.r = this.size * (1 - easeIn3(t));
+        }
+        this.x += Math.cos((frame + this.seed) * this.freq) * this.amp;
+        this.y += Math.sin((frame + this.seed) * this.freq) * this.amp + this.vy;
+        this.vy += 0.12;
+        this.el.setAttribute('cx', this.x);
+        this.el.setAttribute('cy', this.y);
+        this.el.setAttribute('r', this.r);
+        return true;
+      }
+      kill() { this.el.remove(); }
+    }
+
+    function emit(sp) {
+      let x, y, s;
+      if (mouse.diff > 0.6) {
+        x = sp.x; y = sp.y; s = Math.min(36, 5 + mouse.diff * 0.5);
+      } else {
+        if (frame % 6 !== 0) return;
+        x = head.x; y = head.y; s = 5 + Math.random() * 9;
+      }
+      particles.push(new P(x, y, s));
+      if (particles.length > 150) particles.shift().kill();
+    }
+
+    function loop(now) {
+      const dt = Math.min(0.05, (now - last) / 1000); last = now; frame++;
+      mouse.sx += (mouse.x - mouse.sx) * 0.1;
+      mouse.sy += (mouse.y - mouse.sy) * 0.1;
+      mouse.diff = Math.hypot(mouse.x - mouse.sx, mouse.y - mouse.sy);
+      const sp = toSvg(mouse.sx, mouse.sy);
+      emit(sp);
+      for (let i = particles.length - 1; i >= 0; i--) {
+        if (!particles[i].up(dt)) { particles[i].kill(); particles.splice(i, 1); }
+      }
+      head.x = VB_W * 0.5 + VB_W * 0.40 * Math.cos(now * 0.0006);
+      head.y = VB_H * 0.5 + VB_H * 0.16 * Math.sin(now * 0.0011);
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  })();
+
+  /* Navbar scroll state */
+  const nav = document.getElementById('nav');
+  const onScroll = () => {
+    if (window.scrollY > 40) nav.classList.add('scrolled');
+    else nav.classList.remove('scrolled');
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  /* Mobile menu */
+  const menuBtn = document.getElementById('menuBtn');
+  const overlay = document.getElementById('menuOverlay');
+  menuBtn.addEventListener('click', () => overlay.classList.toggle('open'));
+  overlay.querySelectorAll('a').forEach(a => a.addEventListener('click', () => overlay.classList.remove('open')));
+
+  /* Reveal on scroll */
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  /* Nav active link via section observation */
+  const sections = ['work', 'services', 'experience', 'about', 'contact'].map(id => document.getElementById(id));
+  const navLinks = document.querySelectorAll('.nav__links a');
+  const spy = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        navLinks.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + e.target.id));
+      }
+    });
+  }, { threshold: 0.4 });
+  sections.forEach(s => s && spy.observe(s));
+
+  /* Works: draggable snap-scroll rows + parallax stagger + card hover */
+  const marquees = document.querySelectorAll('.works__marquee');
+  marquees.forEach(trackContainer => {
+    let isDown = false, startX, scrollLeft, vel = 0, raf;
+
+    const onDown = e => {
+      isDown = true;
+      trackContainer.classList.add('dragging');
+      startX = (e.pageX || e.touches[0].pageX) - trackContainer.offsetLeft;
+      scrollLeft = trackContainer.scrollLeft;
+      cancelAnimationFrame(raf);
+    };
+    const onUp = () => {
+      if (!isDown) return;
+      isDown = false;
+      trackContainer.classList.remove('dragging');
+      // inertia snap
+      const decay = () => {
+        if (Math.abs(vel) < 0.5) return;
+        trackContainer.scrollLeft += vel;
+        vel *= 0.92;
+        raf = requestAnimationFrame(decay);
+      };
+      decay();
+    };
+    const onMove = e => {
+      if (!isDown) return;
+      e.preventDefault();
+      const x = (e.pageX || e.touches[0].pageX) - trackContainer.offsetLeft;
+      const walk = (x - startX) * 1.4;
+      vel = (scrollLeft - walk) - trackContainer.scrollLeft;
+      trackContainer.scrollLeft = scrollLeft - walk;
+    };
+
+    trackContainer.addEventListener('mousedown', onDown);
+    trackContainer.addEventListener('mouseleave', onUp);
+    trackContainer.addEventListener('mouseup', onUp);
+    trackContainer.addEventListener('mousemove', onMove);
+    trackContainer.addEventListener('touchstart', onDown, { passive: true });
+    trackContainer.addEventListener('touchend', onUp);
+    trackContainer.addEventListener('touchmove', onMove, { passive: false });
+  });
+
+  /* Row parallax stagger: rows drift in opposite directions while page scrolls */
+  const worksSection = document.getElementById('work');
+  const row1 = document.querySelector('.works__marquee--row1 .works__track');
+  const row2 = document.querySelector('.works__marquee--row2 .works__track');
+  if (worksSection && row1 && row2) {
+    const parallax = () => {
+      const rect = worksSection.getBoundingClientRect();
+      const progress = 1 - (rect.bottom / (window.innerHeight + rect.height));
+      const clamped = Math.max(0, Math.min(1, progress));
+      row1.style.transform = `translateY(${clamped * -40}px)`;
+      row2.style.transform = `translateY(${clamped * 40}px)`;
+    };
+    window.addEventListener('scroll', parallax, { passive: true });
+    parallax();
+  }
+
+  /* Work cards: 3D tilt + video hover play */
+  const cards = document.querySelectorAll('.work-card');
+  cards.forEach(card => {
+    const video = card.querySelector('.work-card__video');
+
+    if (!isTouch) {
+      card.addEventListener('mousemove', e => {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const cx = rect.width / 2, cy = rect.height / 2;
+        const rx = (y - cy) / cy * -5;
+        const ry = (x - cx) / cx * 5;
+        card.style.transform = `perspective(1000px) rotateX(${rx}deg) rotateY(${ry}deg) translateY(-6px)`;
+      });
+      card.addEventListener('mouseleave', () => {
+        card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) translateY(0)';
+      });
+    }
+
+    card.addEventListener('mouseenter', () => {
+      if (video) { video.currentTime = 0; video.play().catch(() => {}); }
+    });
+    card.addEventListener('mouseleave', () => {
+      if (video) { video.pause(); }
+    });
+  });
+
+  /* Selected project video */
+  const spHero = document.getElementById('spHero');
+  const spVideo = document.getElementById('spVideo');
+  if (spHero && spVideo) {
+    spHero.addEventListener('mouseenter', () => spVideo.play().catch(() => {}));
+    spHero.addEventListener('mouseleave', () => spVideo.pause());
+  }
+</script>
+</body>
+</html>
