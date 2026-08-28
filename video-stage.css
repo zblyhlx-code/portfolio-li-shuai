@@ -63,7 +63,7 @@ body {
   width: 1972px;
   height: 798px;
   transform-origin: center center;
-  background: #111111;
+  /* 背景交由 body 兜底（同色 #111111），保持透明以便左侧标题层（z:-1）可见 */
   flex: none;
   /* 创建独立层叠上下文，避免视频 transform 穿透 */
   z-index: 1;
