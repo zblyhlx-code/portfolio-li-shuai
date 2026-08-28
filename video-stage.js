@@ -20,7 +20,7 @@ const WORKS = [
 
 // —— 原始精调槽位（用户提供的原版；未改动前后/尺寸/位置）——
 const SLOTS = [
-  { x: 236, y: 187, z: 400, scale: 0.88, rx: 15, ry: -20, opacity: 1,    zIndex: 30 },
+  { x: 269, y: 169, z: 800, scale: 0.377, rx: 15, ry: -20, opacity: 1,   zIndex: 30 },
   { x: 161, y: 47,  z: 400, scale: 0.45, rx: -2, ry: 38,  opacity: 0.80, zIndex: 11 },
   { x: 351, y: 46,  z: 400, scale: 0.42, rx: 0,  ry: 21,  opacity: 0.80, zIndex: 12 },
   { x: 514, y: 130, z: 400, scale: 0.44, rx: 2,  ry: -60, opacity: 0.80, zIndex: 12 },
@@ -29,6 +29,12 @@ const SLOTS = [
 
 const EASE = "power3.out";
 const DUR = 0.8;
+
+// —— 透视参数（与 CSS .gallery 保持一致，用于按 z 改深度时的尺寸/位置补偿）——
+const PERSP = 1100;                                   // perspective
+const POX = 513, POY = 279;                           // perspective-origin 45%×1140 / 45%×620
+const CARD_W = 440, CARD_H = 248;                     // --card-w / --card-h
+const HOVER_Z = 900;                                  // 悬停时提到最前（> active 800 > 其余 400）
 const FS_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>';
 
 const gallery = document.getElementById("gallery");
@@ -231,16 +237,19 @@ WORKS.forEach((w, i) => {
     const qRY = gsap.quickTo(float, "rotationY", { duration: 0.45, ease: "power3.out" });
     const baseOf = () => SLOTS[parseInt(card.dataset.slot, 10) || 0];
     const zoomOf = () => (i === currentIndex ? 1.06 : 1.14);
-    const liftOf = () => (i === currentIndex ? 30 : 60);
 
     card.addEventListener("pointerenter", () => {
       if (i !== currentIndex) { video.muted = true; video.play().catch(() => {}); }
       const b = baseOf();
-      gsap.set(card, { zIndex: 1000 });
+      // 悬停：提到最前(HOVER_Z)，并用透视系数 R 补偿 x/y/scale，做到“原地浮起、不漂移”
+      const R = (PERSP - HOVER_Z) / (PERSP - b.z);
+      const xh = POX - CARD_W / 2 + (b.x + CARD_W / 2 - POX) * R;
+      const yh = POY - CARD_H / 2 + (b.y + CARD_H / 2 - POY) * R;
       gsap.to(card, {
         rotationX: 0, rotationY: 0,
-        scale: b.scale * zoomOf(),
-        z: b.z + liftOf(),
+        x: xh, y: yh,
+        scale: b.scale * zoomOf() * R,
+        z: HOVER_Z,
         duration: 0.45, ease: EASE, overwrite: "auto",
       });
     });
@@ -259,9 +268,9 @@ WORKS.forEach((w, i) => {
     card.addEventListener("pointerleave", () => {
       qRX(0); qRY(0);
       const b = baseOf();
-      gsap.set(card, { zIndex: b.zIndex });
       gsap.to(card, {
         rotationX: b.rx, rotationY: b.ry,
+        x: b.x, y: b.y,
         scale: b.scale, z: b.z,
         duration: 0.55, ease: EASE, overwrite: "auto",
       });
@@ -272,7 +281,6 @@ WORKS.forEach((w, i) => {
 
 function applySlot(card, slot, active) {
   const float = card.querySelector(".video-card__float");
-  gsap.set(card, { zIndex: slot.zIndex });
   card.classList.toggle("is-active", active);
   gsap.to(card, {
     x: slot.x, y: slot.y, z: slot.z,
