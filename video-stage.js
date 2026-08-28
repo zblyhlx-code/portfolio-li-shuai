@@ -236,7 +236,7 @@ WORKS.forEach((w, i) => {
     const qRX = gsap.quickTo(float, "rotationX", { duration: 0.45, ease: "power3.out" });
     const qRY = gsap.quickTo(float, "rotationY", { duration: 0.45, ease: "power3.out" });
     const baseOf = () => SLOTS[parseInt(card.dataset.slot, 10) || 0];
-    const zoomOf = () => (i === currentIndex ? 1.06 : 1.14);
+    const zoomOf = () => (i === currentIndex ? 1.4 : 1.14);
 
     card.addEventListener("pointerenter", () => {
       if (i !== currentIndex) { video.muted = true; video.play().catch(() => {}); }
