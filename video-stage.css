@@ -237,15 +237,15 @@ body.embed .site-nav { display: none; }
   transition: bottom 0.55s var(--ease), left 0.55s var(--ease), opacity 0.55s var(--ease);
 }
 
-/* active 卡片：序号和标签下沉到视频下方，不再叠加在画面上 */
+/* active 卡片：序号与标签保持浮在画面上（与原本设计一致），不沉到底部 */
 .video-card.is-active .video-card__num {
-  top: calc(100% + 14px);
-  left: 0;
+  top: 16px;
+  left: 18px;
 }
 .video-card.is-active .video-card__label {
-  bottom: auto;
-  top: calc(100% + 36px);
-  left: 0;
+  bottom: 16px;
+  top: auto;
+  left: 18px;
 }
 .video-card__label-cn {
   display: block;
