@@ -69,7 +69,7 @@ body {
   z-index: 1;
 }
 
-/* 文字层：强制在最前，彻底盖住 3D 视频卡片 */
+/* 文字/装饰层：沉到视频墙(.gallery z:5)之下，避免与视频穿插；左标题/底栏不与视频重叠，可见性不受影响 */
 .stage-overlay {
   position: absolute;
   inset: 0;
