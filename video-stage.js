@@ -236,7 +236,7 @@ WORKS.forEach((w, i) => {
     card.addEventListener("pointerenter", () => {
       if (i !== currentIndex) { video.muted = true; video.play().catch(() => {}); }
       const b = baseOf();
-      gsap.set(card, { zIndex: b.zIndex });
+      gsap.set(card, { zIndex: 1000 });
       gsap.to(card, {
         rotationX: 0, rotationY: 0,
         scale: b.scale * zoomOf(),
