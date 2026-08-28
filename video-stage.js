@@ -11,11 +11,11 @@ if (new URLSearchParams(location.search).get("embed") === "1") {
 }
 
 const WORKS = [
-  { id: "01", brand: "MAYBACH",   type: "BRAND VIDEO",      cn: "品牌 | 产品视频",     desc: "光影、节奏与情绪的结合，\n打造具有品牌记忆点的视觉内容。", src: "assets/maybach-ad.mp4", poster: "assets/pahei-cover.jpg" },
-  { id: "02", brand: "SCOTT",     type: "BRAND FILM",       cn: "品牌 | 情感短片",     desc: "山地车型的动态张力，\n泥土与风里的自由呼吸。",         src: "assets/scott-ad.mp4",   poster: "assets/scott-detail.jpg" },
-  { id: "03", brand: "RAZER",     type: "E-COMMERCE VIDEO", cn: "电商 | 产品主图视频", desc: "20 周年机械鼠标，\n电竞基因的视觉爆发。",          src: "assets/razer-ad.mp4",   poster: "assets/razer-detail.jpg" },
-  { id: "04", brand: "TOFU",      type: "MOTION VIDEO",     cn: "创意 | 动画短片",     desc: "家常豆腐的温润质感，\n生活气的轻快表达。",         src: "assets/tofu-ad.mp4",    poster: "" },
-  { id: "05", brand: "GOAT MILK", type: "PROMOTION VIDEO",  cn: "活动 | 宣传视频",     desc: "现挤羊奶的纯净诉求，\n自然本味的信任感。",         src: "assets/goat-milk-ad.mp4", poster: "" },
+  { id: "01", brand: "MAYBACH",   type: "BRAND VIDEO",      cn: "品牌 | 产品视频",     desc: "光影、节奏与情绪的结合，\n打造具有品牌记忆点的视觉内容。", src: "assets/maybach-ad.mp4" },
+  { id: "02", brand: "SCOTT",     type: "BRAND FILM",       cn: "品牌 | 情感短片",     desc: "山地车型的动态张力，\n泥土与风里的自由呼吸。",         src: "assets/scott-ad.mp4" },
+  { id: "03", brand: "RAZER",     type: "E-COMMERCE VIDEO", cn: "电商 | 产品主图视频", desc: "20 周年机械鼠标，\n电竞基因的视觉爆发。",          src: "assets/razer-ad.mp4" },
+  { id: "04", brand: "TOFU",      type: "MOTION VIDEO",     cn: "创意 | 动画短片",     desc: "家常豆腐的温润质感，\n生活气的轻快表达。",         src: "assets/tofu-ad.mp4" },
+  { id: "05", brand: "GOAT MILK", type: "PROMOTION VIDEO",  cn: "活动 | 宣传视频",     desc: "现挤羊奶的纯净诉求，\n自然本味的信任感。",         src: "assets/goat-milk-ad.mp4" },
 ];
 
 // —— 原始精调槽位（用户提供的原版；未改动前后/尺寸/位置）——
@@ -84,12 +84,13 @@ WORKS.forEach((w, i) => {
 
   const video = document.createElement("video");
   video.src = w.src;
-  if (w.poster) video.poster = w.poster;
   video.muted = true;
   video.loop = true;
   video.playsInline = true;
-  video.preload = "metadata";
+  // 首屏只让当前视频预加载元数据，其余默认不加载，切到再 load
+  video.preload = i === 0 ? "metadata" : "none";
   video.setAttribute("playsinline", "");
+  if (i !== 0) video.setAttribute("loading", "lazy");
 
   const sheen = document.createElement("div");
   sheen.className = "video-card__sheen";
@@ -303,8 +304,15 @@ function focus(to) {
   currentIndex = to;
   cards.forEach((c, i) => {
     const v = c.querySelector("video");
-    if (i === to) { v.muted = !soundOn; v.play().catch(() => {}); }
-    else v.pause();
+    if (i === to) {
+      v.preload = "metadata";
+      v.load();
+      v.muted = !soundOn;
+      v.play().catch(() => {});
+    } else {
+      v.pause();
+      v.preload = "none";
+    }
   });
   updateInfo(to);
   startBreathe(cards[to]);
