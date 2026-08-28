@@ -73,7 +73,6 @@ body {
 .stage-overlay {
   position: absolute;
   inset: 0;
-  z-index: 1;
   pointer-events: none;
 }
 .stage-inner {
@@ -124,7 +123,7 @@ body.embed .site-nav { display: none; }
   left: var(--margin);
   top: 16%;
   width: min(44%, 520px);
-  z-index: 20;
+  z-index: -1;
 }
 .intro__eyebrow { font-size: clamp(11px, 0.95vw, 13px); letter-spacing: 5px; color: var(--muted); margin-bottom: clamp(18px, 2vw, 26px); }
 .intro__title {
