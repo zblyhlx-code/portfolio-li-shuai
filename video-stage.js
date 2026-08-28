@@ -259,7 +259,7 @@ WORKS.forEach((w, i) => {
     card.addEventListener("pointerleave", () => {
       qRX(0); qRY(0);
       const b = baseOf();
-      gsap.set(card, { zIndex: b.zIndex });
+      gsap.set(card, { zIndex: i === currentIndex ? 100 : b.zIndex });
       gsap.to(card, {
         rotationX: b.rx, rotationY: b.ry,
         scale: b.scale, z: b.z,
@@ -272,7 +272,7 @@ WORKS.forEach((w, i) => {
 
 function applySlot(card, slot, active) {
   const float = card.querySelector(".video-card__float");
-  gsap.set(card, { zIndex: slot.zIndex });
+  gsap.set(card, { zIndex: active ? 100 : slot.zIndex });
   card.classList.toggle("is-active", active);
   gsap.to(card, {
     x: slot.x, y: slot.y, z: slot.z,
