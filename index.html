@@ -248,110 +248,146 @@
   }
   @keyframes scrollDrop { 0% { top: -40px; } 60%,100% { top: 40px; } }
 
-  /* ---------- Selected Works — Card Picker / Snap Scroll ---------- */
-  /* Mobile-first: horizontal draggable track, snap to card, parallax on page scroll */
-  .works__marquee {
-    position: relative; width: 100vw; margin-left: calc(-1 * var(--margin));
-    overflow-x: auto; overflow-y: hidden;
-    scroll-snap-type: x mandatory;
-    scrollbar-width: none; -ms-overflow-style: none;
-    padding: 2px 0; margin-bottom: 24px;
-    cursor: grab;
-  }
-  .works__marquee::-webkit-scrollbar { display: none; }
-  .works__marquee:active { cursor: grabbing; }
-  .works__marquee.dragging { scroll-snap-type: none; cursor: grabbing; }
-  .works__track {
-    display: flex; gap: var(--grid-gap); width: max-content;
-    padding: 0 var(--margin);
-    will-change: transform;
-    transition: transform 0.1s linear;
-  }
-  .works__marquee--row2 .works__track { padding-left: calc(var(--margin) + 12vw); }
-
-  .work-card {
-    flex: 0 0 auto; width: 80vw;
-    background: var(--bg-secondary); overflow: hidden; cursor: pointer;
-    display: flex; flex-direction: column;
-    transition: transform 0.5s cubic-bezier(.16,1,.3,1);
-    will-change: transform;
-    scroll-snap-align: center;
-    scroll-snap-stop: always;
-  }
-
-  .work-card__media {
-    flex: 1; background: var(--bg-primary); position: relative;
-    height: 46vw; min-height: 260px; max-height: 420px;
+    /* ---------- Selected Works / Interactive Video Stage ---------- */
+  .video-stage {
+    position: relative; width: 100%; min-height: 100vh;
+    background: var(--bg-primary);
     display: flex; align-items: center; justify-content: center;
-    border: 1px solid var(--line-dark); overflow: hidden;
+    padding: 80px 24px; overflow: hidden;
   }
-  .work-card__media::before {
-    content: ''; position: absolute; inset: 24px;
-    border: 1px dashed rgba(255,255,255,0.08); z-index: 2; pointer-events: none;
-  }
-  .work-card__video, .work-card__img {
-    position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
-    transition: transform 1s cubic-bezier(.16,1,.3,1), opacity 0.6s ease;
-    transform: scale(1.001);
-  }
-  .work-card__video { opacity: 0; }
-  .work-card:hover .work-card__video { opacity: 1; transform: scale(1.07); }
-  .work-card:hover .work-card__img { transform: scale(1.07); }
-  .work-card__placeholder {
-    position: relative; z-index: 1;
-    font-size: clamp(32px, 4vw, 64px); font-weight: 700; color: rgba(255,255,255,0.12);
-    text-transform: uppercase; letter-spacing: -0.02em; text-align: center;
-    pointer-events: none;
-    transition: opacity 0.5s ease;
-  }
-  .work-card:hover .work-card__placeholder { opacity: 0; }
-
-  /* hover mask / overlay */
-  .work-card__overlay {
-    position: absolute; inset: 0; z-index: 3;
-    display: flex; flex-direction: column; justify-content: flex-end;
-    padding: 28px 32px 32px;
-    background: linear-gradient(to top, rgba(17,17,17,0.94) 0%, rgba(17,17,17,0.45) 42%, rgba(17,17,17,0) 100%);
-    opacity: 0; transform: translateY(10px);
-    transition: opacity 0.55s cubic-bezier(.16,1,.3,1), transform 0.55s cubic-bezier(.16,1,.3,1);
-    pointer-events: none;
-  }
-  .work-card:hover .work-card__overlay { opacity: 1; transform: none; }
-  .work-card__desc {
-    font-size: 15px; line-height: 1.55; color: rgba(255,255,255,0.82);
-    font-family: var(--font-cn); margin-bottom: 18px;
-    max-width: 42ch;
-  }
-  .work-card__cta {
-    display: inline-flex; align-items: center; gap: 10px;
-    font-size: 13px; font-weight: 600; letter-spacing: 0.06em; color: var(--accent);
-  }
-  .work-card__cta .arrow { transition: transform 0.35s ease; }
-  .work-card:hover .work-card__cta .arrow { transform: translateX(6px); }
-  .work-card__info {
-    display: flex; justify-content: space-between; align-items: baseline;
-    padding: 24px 32px;
-  }
-  .work-card__name .t { font-size: 22px; font-weight: 700; font-family: var(--font-cn); transition: color 0.35s; }
-  .work-card__name .c { font-size: 12px; color: var(--text-muted); margin-top: 4px; letter-spacing: 0.04em; transition: color 0.35s; }
-  .work-card:hover .work-card__name .t { color: var(--accent); }
-  .work-card:hover .work-card__name .c { color: var(--text-primary); }
-  .work-card__num { font-size: 48px; font-weight: 700; color: var(--text-muted); line-height: 1; transition: color 0.35s; }
-  .work-card:hover .work-card__num { color: var(--accent); }
-
-  /* Row labels */
-  .works__row-label {
-    display: flex; align-items: center; gap: 16px;
-    margin-bottom: 20px; font-size: 13px; font-weight: 600;
-    letter-spacing: 0.06em; color: var(--text-muted); text-transform: uppercase;
-  }
-  .works__row-label::after {
-    content: ''; flex: 1; height: 1px; background: var(--line-light);
+  .video-stage__container {
+    position: relative; width: 100%; max-width: 1440px; height: 850px; margin: 0 auto;
   }
 
-  /* Touch: overlay always visible, placeholder hidden */
-  .work-card__overlay { opacity: 1; transform: none; padding: 22px 22px 24px; }
-  .work-card__placeholder { opacity: 0; }
+  /* embed 模式：iframe 承载精修版交互视频台，宽度与主页 .page 容器对齐 */
+  .video-stage--embed { width: 100%; max-width: 1440px; margin: 0 auto; padding: 0; }
+  .video-stage__frame { width: 100%; height: auto; aspect-ratio: 1972 / 798; border: 0; display: block; background: #111111; }
+  /* 老浏览器回退：无 aspect-ratio 支持时退化为整屏 */
+  @supports not (aspect-ratio: 1 / 1) {
+    .video-stage__frame { height: 100vh; }
+  }
+
+
+  /* neon green connecting curve */
+  .video-stage__curve { position: absolute; inset: 0; z-index: 1; pointer-events: none; width: 100%; height: 100%; }
+  .video-stage__curve path {
+    fill: none; stroke: var(--accent); stroke-width: 2;
+    filter: drop-shadow(0 0 10px rgba(204,255,0,0.6));
+    stroke-dasharray: 30 1600; stroke-dashoffset: 0;
+    animation: curveFlow 9s linear infinite; opacity: 0.9;
+  }
+  .video-stage__curve .track { stroke-width: 1; opacity: 0.12; stroke-dasharray: none; animation: none; filter: none; }
+  @keyframes curveFlow { to { stroke-dashoffset: -1630; } }
+
+  /* left title block */
+  .video-intro {
+    position: absolute; left: 0; top: 50%; z-index: 4;
+    transform: translateY(-50%); perspective: 900px; max-width: 320px; pointer-events: none;
+  }
+  .video-intro > * { pointer-events: auto; }
+  .video-intro__eyebrow { font-family: var(--font-en); font-size: 12px; font-weight: 600; letter-spacing: 0.2em; color: var(--text-muted); margin-bottom: 18px; }
+  .video-intro__title { position: relative; display: inline-block; transform-style: preserve-3d; cursor: default; transition: transform .25s ease; will-change: transform; }
+  .video-intro__title .line { display: block; font-family: var(--font-display); font-weight: 800; line-height: 0.95; letter-spacing: -0.03em; font-size: clamp(48px, 5.5vw, 86px); }
+  .video-intro__title .line--white { color: var(--text-primary); }
+  .video-intro__title .line--green { color: var(--accent); }
+  .video-intro__glow { position: absolute; inset: -25% -15%; background: radial-gradient(circle at var(--gx,50%) var(--gy,50%), rgba(204,255,0,0.5), transparent 45%); opacity: 0; transition: opacity .3s ease; mix-blend-mode: screen; pointer-events: none; }
+  .video-intro__title:hover .video-intro__glow { opacity: 1; }
+  .video-intro__subtitle { font-family: var(--font-cn); font-weight: 700; font-size: clamp(18px, 1.8vw, 24px); color: var(--text-primary); margin-top: 24px; letter-spacing: 0.12em; }
+  .video-intro__desc { font-family: var(--font-cn); font-size: 14px; line-height: 1.9; color: rgba(255,255,255,0.62); margin-top: 14px; max-width: 260px; }
+  .video-intro__cta { display: inline-flex; align-items: center; gap: 14px; margin-top: 36px; font-family: var(--font-en); font-size: 12px; font-weight: 600; letter-spacing: 0.14em; color: var(--text-primary); text-decoration: none; transition: color .3s; }
+  .video-intro__cta:hover { color: var(--accent); }
+  .video-intro__cta .cta-circle { width: 46px; height: 46px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.35); display: flex; align-items: center; justify-content: center; font-size: 18px; transition: background .3s, border-color .3s; }
+  .video-intro__cta:hover .cta-circle { background: var(--accent); border-color: var(--accent); color: #111; }
+
+  /* spatial video gallery */
+  .video-gallery { position: absolute; inset: 0; z-index: 2; }
+  .video-card {
+    position: absolute; width: 620px; height: 350px;
+    border-radius: 16px; overflow: hidden; background: #070707;
+    box-shadow: 0 30px 90px rgba(0,0,0,0.6); cursor: pointer;
+    transform-origin: center center; opacity: 0.45; filter: blur(1px); z-index: 1;
+    transition: all 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform, opacity, filter;
+  }
+  .video-card__video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .video-card__shade { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.2) 45%, rgba(0,0,0,0) 65%); }
+  .video-card__num { position: absolute; top: 18px; left: 22px; z-index: 3; font-family: var(--font-display); font-weight: 700; font-size: 14px; letter-spacing: 0.08em; color: rgba(255,255,255,0.55); transition: color .4s; }
+  .video-card__play { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; transition: opacity .5s ease, transform .5s ease; }
+  .video-card__play svg { width: 56px; height: 56px; color: #fff; filter: drop-shadow(0 8px 28px rgba(0,0,0,0.6)); opacity: 0.85; }
+  .video-card__labels { position: absolute; left: 22px; right: 22px; bottom: 18px; z-index: 3; pointer-events: none; }
+  .video-card__type { font-family: var(--font-cn); font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.92); letter-spacing: 0.04em; }
+  .video-card__type-en { font-family: var(--font-en); font-size: 10px; font-weight: 500; letter-spacing: 0.12em; color: var(--accent); margin-top: 5px; text-transform: uppercase; }
+
+  /* spatial slots inside 1440x850 container */
+  .video-card.slot-0 { left: 50%; top: 50%; transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+  .video-card.slot-1 { left: 38%; top: 25%; transform: translate(-50%, -50%) scale(0.65) rotate(-8deg); }
+  .video-card.slot-2 { left: 55%; top: 15%; transform: translate(-50%, -50%) scale(0.55) rotate(6deg); }
+  .video-card.slot-3 { left: 75%; top: 40%; transform: translate(-50%, -50%) scale(0.6) rotate(8deg); }
+  .video-card.slot-4 { left: 70%; top: 70%; transform: translate(-50%, -50%) scale(0.55) rotate(-5deg); }
+
+  .video-card.is-active {
+    opacity: 1; filter: blur(0); z-index: 30;
+    box-shadow: 0 50px 140px rgba(0,0,0,0.75), 0 0 0 2px rgba(204,255,0,0.85), 0 0 60px rgba(204,255,0,0.35);
+  }
+  .video-card.is-active .video-card__play { opacity: 0; transform: scale(0.7); }
+  .video-card.is-active .video-card__num { color: var(--accent); }
+
+  /* right info */
+  .video-info { position: absolute; right: 0; top: 50%; z-index: 5; transform: translateY(-50%); display: flex; flex-direction: column; align-items: flex-end; gap: 14px; text-align: right; width: 200px; pointer-events: none; }
+  .video-info > * { pointer-events: auto; }
+  .video-info__count { font-family: var(--font-display); font-weight: 800; font-size: 28px; color: #fff; letter-spacing: 0.04em; }
+  .video-info__count i { color: var(--text-muted); font-style: normal; margin: 0 5px; }
+  .video-info__brand { font-family: var(--font-en); font-weight: 700; font-size: 14px; letter-spacing: 0.16em; color: var(--accent); margin-top: 4px; }
+  .video-info__type { font-family: var(--font-en); font-size: 11px; letter-spacing: 0.14em; color: var(--text-muted); margin-top: 3px; text-transform: uppercase; }
+  .video-info__desc { font-family: var(--font-cn); font-size: 13px; line-height: 1.75; color: rgba(255,255,255,0.58); margin-top: 18px; }
+  .video-info__desc::before { content: ''; display: block; width: 28px; height: 1px; background: var(--accent); margin: 0 0 14px auto; }
+  .video-info__arrows { display: flex; gap: 12px; margin-top: 18px; }
+  .video-arrow { width: 46px; height: 46px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.28); background: rgba(0,0,0,0.35); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; backdrop-filter: blur(6px); transition: background .3s, color .3s, border-color .3s, transform .2s; }
+  .video-arrow:hover { background: var(--accent); color: #111; border-color: var(--accent); transform: scale(1.08); }
+  .video-arrow svg { width: 20px; height: 20px; }
+
+  /* sound toggle */
+  .video-sound { position: absolute; right: 0; bottom: 0; z-index: 5; width: 46px; height: 46px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.3); background: rgba(0,0,0,0.4); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; backdrop-filter: blur(6px); transition: background .3s, color .3s, border-color .3s; pointer-events: auto; }
+  .video-sound:hover { background: var(--accent); color: #111; border-color: var(--accent); }
+  .video-sound svg { width: 20px; height: 20px; }
+  .video-sound .ic-off { display: none; }
+  .video-sound.is-muted { color: rgba(255,255,255,0.5); }
+  .video-sound.is-muted .ic-on { display: none; }
+  .video-sound.is-muted .ic-off { display: block; }
+
+  /* bottom tagline */
+  .video-foot { position: absolute; left: 0; bottom: 0; z-index: 4; font-family: var(--font-en); font-size: 11px; letter-spacing: 0.28em; color: rgba(255,255,255,0.32); display: flex; gap: 14px; align-items: center; }
+
+  @media (max-width: 1200px) {
+    .video-stage__container { height: 760px; }
+    .video-intro { max-width: 260px; }
+    .video-info { width: 160px; }
+    .video-card { width: 520px; height: 292px; }
+  }
+  @media (max-width: 900px) {
+    .video-stage { min-height: auto; padding: 90px 24px; }
+    .video-stage__container { height: auto; min-height: 0; }
+    .video-intro { position: static; transform: none; text-align: center; max-width: none; margin-bottom: 32px; }
+    .video-intro__desc { margin: 14px auto 0; }
+    .video-intro__cta { margin-top: 24px; }
+    .video-gallery { position: relative; height: 520px; width: 100%; max-width: 720px; margin: 0 auto; }
+    .video-info { position: static; transform: none; align-items: center; text-align: center; width: auto; margin-top: 28px; }
+    .video-info__desc::before { margin: 0 auto 14px; }
+    .video-sound { position: static; margin: 18px auto 0; }
+    .video-foot { position: static; justify-content: center; padding-top: 22px; }
+  }
+  @media (max-width: 640px) {
+    .video-gallery { height: auto; }
+    .video-card { position: relative; top: auto; left: auto; width: 100%; max-width: 420px; height: 236px; margin: 0 auto 16px; transform: none !important; opacity: 1; filter: none; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+    .video-card.is-active { display: block; box-shadow: 0 0 0 2px var(--accent), 0 20px 50px rgba(0,0,0,0.5); }
+    .video-card:not(.is-active) { display: none; }
+    .video-card__play { opacity: 0; }
+    .video-card__num { color: var(--accent); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .video-stage__curve path { animation: none; }
+    .video-card { transition: opacity .2s ease; }
+  }
 
   /* ---------- Disciplines ---------- */
   .disciplines__rows { display: flex; flex-direction: column; gap: 0; }
@@ -510,20 +546,6 @@
     .footer__right { text-align: left; }
   }
 
-  /* ---- Mobile-first upgrades: Works module scales up ---- */
-  @media (min-width: 641px) {
-    .work-card { width: 55vw; }
-    .work-card__media { height: 34vw; min-height: 300px; max-height: 380px; }
-  }
-  @media (min-width: 1025px) {
-    .work-card { width: 38vw; }
-    .work-card__media { height: 24vw; min-height: 320px; max-height: 420px; }
-    /* desktop: hover-reveal overlay, persistent placeholder */
-    .work-card__overlay { opacity: 0; transform: translateY(10px); padding: 28px 32px 32px; }
-    .work-card__placeholder { opacity: 1; }
-    .work-card:hover .work-card__overlay { opacity: 1; transform: none; }
-    .work-card:hover .work-card__placeholder { opacity: 0; }
-  }
 </style>
 </head>
 <body>
@@ -614,118 +636,13 @@
     </div>
   </section>
 
-  <!-- 02 SELECTED WORKS — Infinite Marquee -->
-  <section class="section section--light" id="work">
-    <div class="page">
-      <div class="section-head reveal">
-        <div class="section-head__title"><span class="en">Selected Works</span>精选作品</div>
-        <div class="index-num">01 — 05</div>
-      </div>
-
-      <!-- Row 1: Automotive / Tech / Sport — auto scroll loop -->
-      <div class="works__row-label reveal">汽车 / 科技 / 运动</div>
-      <div class="works__marquee works__marquee--row1 reveal" id="worksRow1" aria-label="Automotive, tech and sport projects">
-        <div class="works__track">
-          <!-- set 1 -->
-          <a class="work-card" href="project.html" data-cursor="play">
-            <div class="work-card__media">
-              <video class="work-card__video" muted loop playsinline preload="metadata" style="opacity:1;">
-                <source src="assets/maybach-ad.mp4" type="video/mp4">
-              </video>
-              <div class="work-card__placeholder">MAYBACH</div>
-              <div class="work-card__overlay">
-                <p class="work-card__desc">为迈巴赫打造的高端品牌视频，以电影级运镜呈现极致工艺与尊贵气场。</p>
-                <span class="work-card__cta">VIEW PROJECT <span class="arrow">→</span></span>
-              </div>
-            </div>
-            <div class="work-card__info">
-              <div class="work-card__name"><div class="t">迈巴赫视频广告</div><div class="c">CAMPAIGN VIDEO</div></div>
-              <div class="work-card__num">01</div>
-            </div>
-          </a>
-
-          <a class="work-card" href="project.html" data-cursor="view">
-            <div class="work-card__media">
-              <img class="work-card__img" src="assets/scott-detail.jpg" alt="SCOTT Spark RC" />
-              <video class="work-card__video" muted loop playsinline preload="metadata">
-                <source src="assets/scott-ad.mp4" type="video/mp4">
-              </video>
-              <div class="work-card__placeholder">SCOTT</div>
-              <div class="work-card__overlay">
-                <p class="work-card__desc">SCOTT 旗舰山地车电商视觉，从性能参数到骑行场景，传递速度与控制的专业感。</p>
-                <span class="work-card__cta">VIEW PROJECT <span class="arrow">→</span></span>
-              </div>
-            </div>
-            <div class="work-card__info">
-              <div class="work-card__name"><div class="t">SCOTT Spark RC 详情页</div><div class="c">BRAND E-COMMERCE</div></div>
-              <div class="work-card__num">02</div>
-            </div>
-          </a>
-
-          <a class="work-card" href="project.html" data-cursor="view">
-            <div class="work-card__media">
-              <img class="work-card__img" src="assets/razer-detail.jpg" alt="雷蛇20周年" />
-              <video class="work-card__video" muted loop playsinline preload="metadata">
-                <source src="assets/razer-ad.mp4" type="video/mp4">
-              </video>
-              <div class="work-card__placeholder">RAZER</div>
-              <div class="work-card__overlay">
-                <p class="work-card__desc">为雷蛇 Boomslang 20 周年纪念版打造电商详情页，暗黑基因融合绿色科技光感，构建沉浸式产品叙事。</p>
-                <span class="work-card__cta">VIEW PROJECT <span class="arrow">→</span></span>
-              </div>
-            </div>
-            <div class="work-card__info">
-              <div class="work-card__name"><div class="t">雷蛇 20 周年详情页</div><div class="c">RAZER BOOMSLANG 20TH</div></div>
-              <div class="work-card__num">03</div>
-            </div>
-          </a>
-        </div>
-      </div>
-
-      <!-- Row 2: Food & Lifestyle — snap scroll (extendable) -->
-      <div class="works__row-label reveal">生活 / 食品</div>
-      <div class="works__marquee works__marquee--row2 reveal" id="worksRow2" aria-label="Food and lifestyle projects">
-        <div class="works__track">
-          <!-- set 1 -->
-          <a class="work-card" href="project.html" data-cursor="play">
-            <div class="work-card__media">
-              <video class="work-card__video" muted loop playsinline preload="metadata" style="opacity:1;">
-                <source src="assets/tofu-ad.mp4" type="video/mp4">
-              </video>
-              <div class="work-card__placeholder">TOFU</div>
-              <div class="work-card__overlay">
-                <p class="work-card__desc">豆腐产品短视频广告，温润质感与食物微动态结合，传达新鲜与安心。</p>
-                <span class="work-card__cta">VIEW PROJECT <span class="arrow">→</span></span>
-              </div>
-            </div>
-            <div class="work-card__info">
-              <div class="work-card__name"><div class="t">豆腐产品视频广告</div><div class="c">PRODUCT VIDEO</div></div>
-              <div class="work-card__num">04</div>
-            </div>
-          </a>
-
-          <a class="work-card" href="project.html" data-cursor="play">
-            <div class="work-card__media">
-              <video class="work-card__video" muted loop playsinline preload="metadata" style="opacity:1;">
-                <source src="assets/goat-milk-ad.mp4" type="video/mp4">
-              </video>
-              <div class="work-card__placeholder">GOAT MILK</div>
-              <div class="work-card__overlay">
-                <p class="work-card__desc">现挤羊奶广告片，自然牧场氛围与新鲜直供卖点的真实表达。</p>
-                <span class="work-card__cta">VIEW PROJECT <span class="arrow">→</span></span>
-              </div>
-            </div>
-            <div class="work-card__info">
-              <div class="work-card__name"><div class="t">现挤羊奶视频广告</div><div class="c">PRODUCT VIDEO</div></div>
-              <div class="work-card__num">05</div>
-            </div>
-          </a>
-        </div>
-      </div>
-    </div>
+    <!-- 02 SELECTED WORKS / INTERACTIVE VIDEO STAGE -->
+    <!-- 02 SELECTED WORKS / INTERACTIVE VIDEO STAGE -->
+  <section class="video-stage video-stage--embed" id="work">
+    <iframe class="video-stage__frame" src="video-stage.html?embed=1"
+      title="Selected Works — Interactive Video Stage" loading="lazy"></iframe>
   </section>
-
-  <!-- 03 DISCIPLINES -->
+<!-- 03 DISCIPLINES -->
   <section class="section section--dark">
     <div class="page">
       <div class="section-head reveal">
@@ -776,10 +693,6 @@
       </div>
       <div class="reveal">
         <div class="exp__item">
-          <div class="exp__year bright">2013</div>
-          <div class="exp__desc">设计教育 · Design Education</div>
-        </div>
-        <div class="exp__item">
           <div class="exp__year muted">2016</div>
           <div class="exp__desc">室内 / 空间设计 · Interior / Spatial Design</div>
         </div>
@@ -811,9 +724,10 @@
           <p class="p1">我是李帅，一名独立视觉设计师，同时也是原创音乐人（艺名：阿柠乐）。从建筑设计到电商视觉，再到 AI 影像与音乐 MV，我一直用视觉语言讲述真实的故事。</p>
           <p class="p2">多年商业设计经验覆盖品牌视觉、电商详情页、视频广告、包装设计等领域。我相信好的设计不只是好看，更要解决问题、传递情绪、建立信任。现在专注于 AI 生成影像与商业视觉的结合，为品牌创造有记忆点的视觉体验。</p>
           <div class="about__stats">
-            <div class="stat"><div class="num">10+</div><div class="label">YEARS EXPERIENCE</div></div>
-            <div class="stat"><div class="num">50+</div><div class="label">PROJECTS</div></div>
-            <div class="stat"><div class="num">20+</div><div class="label">BRANDS</div></div>
+            <div class="stat"><div class="num">4Y+</div><div class="label">零外包独立交付</div></div>
+            <div class="stat"><div class="num">60%+</div><div class="label">AI 工作流提效</div></div>
+            <div class="stat"><div class="num">12+</div><div class="label">电商模板沉淀</div></div>
+            <div class="stat"><div class="num">双11/618</div><div class="label">大促视觉经验</div></div>
           </div>
 
           <div class="music-card">
@@ -915,7 +829,13 @@
   const isTouch = window.matchMedia('(pointer: coarse)').matches;
 
   if (!isTouch && cursor) {
-    window.addEventListener('mousemove', e => { tx = e.clientX; ty = e.clientY; }, { passive: true });
+    const frame = document.querySelector('.video-stage__frame');
+    let inIframe = false;
+
+    window.addEventListener('mousemove', e => {
+      tx = e.clientX; ty = e.clientY;
+    }, { passive: true });
+
     function moveCursor() {
       cx += (tx - cx) * 0.15;
       cy += (ty - cy) * 0.15;
@@ -924,6 +844,22 @@
       requestAnimationFrame(moveCursor);
     }
     moveCursor();
+
+    if (frame) {
+      window.addEventListener('message', e => {
+        if (e.source !== frame.contentWindow) return;
+        const data = e.data;
+        if (!data || data.type !== 'cursor') return;
+        if (data.visible) {
+          inIframe = true;
+          const r = frame.getBoundingClientRect();
+          tx = r.left + data.x;
+          ty = r.top + data.y;
+        } else {
+          inIframe = false;
+        }
+      });
+    }
 
     document.querySelectorAll('[data-cursor]').forEach(el => {
       el.addEventListener('mouseenter', () => cursor.classList.add(el.dataset.cursor));
@@ -1160,94 +1096,7 @@
   }, { threshold: 0.4 });
   sections.forEach(s => s && spy.observe(s));
 
-  /* Works: draggable snap-scroll rows + parallax stagger + card hover */
-  const marquees = document.querySelectorAll('.works__marquee');
-  marquees.forEach(trackContainer => {
-    let isDown = false, startX, scrollLeft, vel = 0, raf;
-
-    const onDown = e => {
-      isDown = true;
-      trackContainer.classList.add('dragging');
-      startX = (e.pageX || e.touches[0].pageX) - trackContainer.offsetLeft;
-      scrollLeft = trackContainer.scrollLeft;
-      cancelAnimationFrame(raf);
-    };
-    const onUp = () => {
-      if (!isDown) return;
-      isDown = false;
-      trackContainer.classList.remove('dragging');
-      // inertia snap
-      const decay = () => {
-        if (Math.abs(vel) < 0.5) return;
-        trackContainer.scrollLeft += vel;
-        vel *= 0.92;
-        raf = requestAnimationFrame(decay);
-      };
-      decay();
-    };
-    const onMove = e => {
-      if (!isDown) return;
-      e.preventDefault();
-      const x = (e.pageX || e.touches[0].pageX) - trackContainer.offsetLeft;
-      const walk = (x - startX) * 1.4;
-      vel = (scrollLeft - walk) - trackContainer.scrollLeft;
-      trackContainer.scrollLeft = scrollLeft - walk;
-    };
-
-    trackContainer.addEventListener('mousedown', onDown);
-    trackContainer.addEventListener('mouseleave', onUp);
-    trackContainer.addEventListener('mouseup', onUp);
-    trackContainer.addEventListener('mousemove', onMove);
-    trackContainer.addEventListener('touchstart', onDown, { passive: true });
-    trackContainer.addEventListener('touchend', onUp);
-    trackContainer.addEventListener('touchmove', onMove, { passive: false });
-  });
-
-  /* Row parallax stagger: rows drift in opposite directions while page scrolls */
-  const worksSection = document.getElementById('work');
-  const row1 = document.querySelector('.works__marquee--row1 .works__track');
-  const row2 = document.querySelector('.works__marquee--row2 .works__track');
-  if (worksSection && row1 && row2) {
-    const parallax = () => {
-      const rect = worksSection.getBoundingClientRect();
-      const progress = 1 - (rect.bottom / (window.innerHeight + rect.height));
-      const clamped = Math.max(0, Math.min(1, progress));
-      row1.style.transform = `translateY(${clamped * -40}px)`;
-      row2.style.transform = `translateY(${clamped * 40}px)`;
-    };
-    window.addEventListener('scroll', parallax, { passive: true });
-    parallax();
-  }
-
-  /* Work cards: 3D tilt + video hover play */
-  const cards = document.querySelectorAll('.work-card');
-  cards.forEach(card => {
-    const video = card.querySelector('.work-card__video');
-
-    if (!isTouch) {
-      card.addEventListener('mousemove', e => {
-        const rect = card.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        const cx = rect.width / 2, cy = rect.height / 2;
-        const rx = (y - cy) / cy * -5;
-        const ry = (x - cx) / cx * 5;
-        card.style.transform = `perspective(1000px) rotateX(${rx}deg) rotateY(${ry}deg) translateY(-6px)`;
-      });
-      card.addEventListener('mouseleave', () => {
-        card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) translateY(0)';
-      });
-    }
-
-    card.addEventListener('mouseenter', () => {
-      if (video) { video.currentTime = 0; video.play().catch(() => {}); }
-    });
-    card.addEventListener('mouseleave', () => {
-      if (video) { video.pause(); }
-    });
-  });
-
-  /* Selected project video */
+    /* Selected project video */
   const spHero = document.getElementById('spHero');
   const spVideo = document.getElementById('spVideo');
   if (spHero && spVideo) {

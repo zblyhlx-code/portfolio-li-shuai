@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Selected Works — Video Stage</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700&family=Lexend:wght@400;600;800;900&family=Noto+Sans+SC:wght@400;500;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <link rel="stylesheet" href="video-stage.css" />
+</head>
+
+<body>
+  <div class="stage-scale" id="stageScale">
+    <!-- 3D 卡片舞台：居中、最大 1440，与主页容器对齐 -->
+    <div class="stage" id="stage">
+      <header class="site-nav">
+        <div class="site-nav__logo">
+          <div class="site-nav__logo-name">LI SHUAI</div>
+          <div class="site-nav__logo-role">INDEPENDENT VISUAL DESIGNER</div>
+        </div>
+        <nav class="site-nav__menu">
+          <a href="#" class="is-active">WORK</a>
+          <a href="#">SERVICES</a>
+          <a href="#">EXPERIENCE</a>
+          <a href="#">ABOUT</a>
+          <a href="#">CONTACT</a>
+        </nav>
+      </header>
+
+      <div class="gallery" id="gallery"></div>
+
+      <!-- 细装饰线：左上 → 右下，纯描边、无发光；绿色圆点沿线滑动 -->
+      <svg class="stage-deco" viewBox="0 0 1972 798" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+        <path class="stage-deco__line" d="M 75 170 C 240 210, 340 330, 560 415 C 760 490, 1000 430, 1280 300 C 1520 190, 1700 260, 1875 590" />
+        <circle class="stage-deco__node" r="4.5" cx="75" cy="170" />
+      </svg>
+    </div>
+
+    <!-- 文字层：与主页同一套 1440 容器 + 56px 边距 + clamp 流体字号 -->
+    <div class="stage-overlay" id="stageOverlay">
+      <div class="stage-inner">
+        <div class="intro" id="intro">
+          <div class="intro__eyebrow">/ VIDEO WORKS</div>
+          <h1 class="intro__title">VIDEO<br /><span>SHOWCASE</span></h1>
+          <h2 class="intro__sub">影像，让创意发声</h2>
+          <p class="intro__desc">
+            用视觉讲述品牌故事，<br />
+            让每一帧都充满力量与情绪。
+          </p>
+          <button class="intro__cta" type="button">
+            <span class="intro__cta-icon">↗</span>
+            <span class="intro__cta-text">EXPLORE MORE</span>
+            <span class="intro__cta-line"></span>
+          </button>
+        </div>
+
+        <aside class="info" id="info">
+          <div class="info__rail" id="infoRail"></div>
+          <div class="info__body">
+            <div class="info__count"><span id="infoIndex">01</span><em>/ 05</em></div>
+            <div class="info__type" id="infoType">BRAND VIDEO</div>
+            <div class="info__nav">
+              <button class="info__nav-btn info__nav-btn--prev" id="prevBtn" type="button" aria-label="上一个">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 15l7-7 7 7"/></svg>
+              </button>
+              <button class="info__nav-btn info__nav-btn--next" id="nextBtn" type="button" aria-label="下一个">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 9l7 7 7-7"/></svg>
+              </button>
+            </div>
+            <p class="info__desc" id="infoDesc">
+              <span>光影、节奏与情绪的结合，</span>
+              <span>打造具有品牌记忆点的视觉内容</span>
+            </p>
+            <span class="info__bar"></span>
+          </div>
+        </aside>
+
+        <footer class="foot">
+          <div class="foot__tagline">VIDEO · BRAND · PRODUCT · MOTION</div>
+          <button class="sound" id="soundBtn" type="button" aria-pressed="true">
+            <span class="sound__icon" id="soundIcon">🔊</span>
+            <span class="sound__label" id="soundLabel">SOUND ON</span>
+          </button>
+        </footer>
+      </div>
+    </div>
+  </div>
+
+  <script src="gsap.min.js"></script>
+  <script src="video-stage.js"></script>
+</body>
+</html>
