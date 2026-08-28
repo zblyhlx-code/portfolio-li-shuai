@@ -73,7 +73,7 @@ body {
 .stage-overlay {
   position: absolute;
   inset: 0;
-  z-index: 100;
+  z-index: 1;
   pointer-events: none;
 }
 .stage-inner {
@@ -532,7 +532,7 @@ body.embed .site-nav { display: none; }
   inset: 0;
   width: 100%;
   height: 100%;
-  z-index: 50;
+  z-index: 1;
   pointer-events: none;
   overflow: visible;
 }
