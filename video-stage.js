@@ -231,7 +231,7 @@ WORKS.forEach((w, i) => {
     const qRY = gsap.quickTo(float, "rotationY", { duration: 0.45, ease: "power3.out" });
     const baseOf = () => SLOTS[parseInt(card.dataset.slot, 10) || 0];
     const zoomOf = () => (i === currentIndex ? 1.06 : 1.14);
-    const liftOf = () => (i === currentIndex ? 40 : 180);
+    const liftOf = () => (i === currentIndex ? 30 : 60);
 
     card.addEventListener("pointerenter", () => {
       if (i !== currentIndex) { video.muted = true; video.play().catch(() => {}); }
@@ -259,7 +259,7 @@ WORKS.forEach((w, i) => {
     card.addEventListener("pointerleave", () => {
       qRX(0); qRY(0);
       const b = baseOf();
-      gsap.set(card, { zIndex: i === currentIndex ? 100 : b.zIndex });
+      gsap.set(card, { zIndex: b.zIndex });
       gsap.to(card, {
         rotationX: b.rx, rotationY: b.ry,
         scale: b.scale, z: b.z,
@@ -272,7 +272,7 @@ WORKS.forEach((w, i) => {
 
 function applySlot(card, slot, active) {
   const float = card.querySelector(".video-card__float");
-  gsap.set(card, { zIndex: active ? 100 : slot.zIndex });
+  gsap.set(card, { zIndex: slot.zIndex });
   card.classList.toggle("is-active", active);
   gsap.to(card, {
     x: slot.x, y: slot.y, z: slot.z,
