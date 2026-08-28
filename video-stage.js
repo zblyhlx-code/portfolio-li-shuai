@@ -19,12 +19,14 @@ const WORKS = [
 ];
 
 // —— 精调后的最终槽位（gallery 局部坐标；与参考图对齐）——
+// z 改为真实 3D 前后深度：active 最前(400)，其余按 zIndex 顺序向纵深退(340/320/280/220)，
+// scale 已按透视系数补偿，视觉尺寸与原版一致，仅产生真实的透视前后错落。
 const SLOTS = [
   { x: 236, y: 187, z: 400, scale: 0.88, rx: 15, ry: -20, opacity: 1,    zIndex: 30 },
-  { x: 161, y: 47,  z: 400, scale: 0.45, rx: -2, ry: 38,  opacity: 0.80, zIndex: 11 },
-  { x: 351, y: 46,  z: 400, scale: 0.42, rx: 0,  ry: 21,  opacity: 0.80, zIndex: 12 },
-  { x: 514, y: 130, z: 400, scale: 0.44, rx: 2,  ry: -60, opacity: 0.80, zIndex: 12 },
-  { x: 509, y: 254, z: 400, scale: 0.45, rx: 2,  ry: -60, opacity: 0.78, zIndex: 10 },
+  { x: 161, y: 47,  z: 280, scale: 0.53, rx: -2, ry: 38,  opacity: 0.80, zIndex: 11 },
+  { x: 351, y: 46,  z: 340, scale: 0.46, rx: 0,  ry: 21,  opacity: 0.80, zIndex: 12 },
+  { x: 514, y: 130, z: 320, scale: 0.49, rx: 2,  ry: -60, opacity: 0.80, zIndex: 12 },
+  { x: 509, y: 254, z: 220, scale: 0.57, rx: 2,  ry: -60, opacity: 0.78, zIndex: 10 },
 ];
 
 const EASE = "power3.out";
