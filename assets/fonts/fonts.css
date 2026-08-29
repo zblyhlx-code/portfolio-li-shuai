@@ -1,0 +1,121 @@
+/* ============================================================
+   本地字体（自托管 woff2）
+   ------------------------------------------------------------
+   原先走 Google Fonts CDN（fonts.googleapis.com），国内网络
+   加载失败导致页面回退到系统字体，视觉与预期不符。
+   现将 latin 子集字体文件下载到 assets/fonts 自托管，
+   彻底去掉外部 CDN 依赖。
+
+   中文不本地化：Noto Sans SC 全字重体积数 MB，
+   保留系统字体 fallback（PingFang SC / Microsoft YaHei），
+   中文显示效果与原先 CDN 命中时基本一致。
+
+   latin-ext 未包含：页面正文为英文 + 中文，
+   无需要 latin-ext 覆盖的语言（越南语/波兰语等）。
+   ============================================================ */
+
+/* ---------- Fira Sans（正文英文 --font-en） ---------- */
+@font-face {
+  font-family: 'Fira Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fira-sans-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Fira Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fira-sans-latin-500-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Fira Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fira-sans-latin-600-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Fira Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./fira-sans-latin-700-normal.woff2') format('woff2');
+}
+
+/* ---------- Lexend（标题/展示 --font-display） ---------- */
+@font-face {
+  font-family: 'Lexend';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./lexend-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Lexend';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./lexend-latin-600-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Lexend';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url('./lexend-latin-800-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Lexend';
+  font-style: normal;
+  font-weight: 900;
+  font-display: swap;
+  src: url('./lexend-latin-900-normal.woff2') format('woff2');
+}
+
+/* ---------- Inter（内页 project.html --font-en） ---------- */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url('./inter-latin-300-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./inter-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./inter-latin-500-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./inter-latin-600-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./inter-latin-700-normal.woff2') format('woff2');
+}
+
+/* ---------- Climate Crisis（冲击力标题 --font-impact） ---------- */
+@font-face {
+  font-family: 'Climate Crisis';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./climate-crisis-latin-400-normal.woff2') format('woff2');
+}
