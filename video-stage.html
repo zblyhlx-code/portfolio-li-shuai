@@ -10,7 +10,7 @@
   <link rel="preload" href="assets/fonts/lexend-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin />
   <link href="assets/fonts/fonts.css" rel="stylesheet" />
 
-  <link rel="stylesheet" href="video-stage.css" />
+  <link rel="stylesheet" href="video-stage-test.css" />
 </head>
 
 <body>
@@ -51,46 +51,40 @@
             用视觉讲述品牌故事，<br />
             让每一帧都充满力量与情绪。
           </p>
-          <button class="intro__cta" type="button">
-            <span class="intro__cta-icon">↗</span>
-            <span class="intro__cta-text">EXPLORE MORE</span>
-            <span class="intro__cta-line"></span>
-          </button>
         </div>
 
+        <button class="intro__cta intro__cta--stage-bottom" type="button">
+          <span class="intro__cta-icon">↗</span>
+          <span class="intro__cta-text">EXPLORE MORE</span>
+          <span class="intro__cta-line"></span>
+        </button>
+
         <aside class="info" id="info">
-          <div class="info__rail" id="infoRail"></div>
           <div class="info__body">
             <div class="info__count"><span id="infoIndex">01</span><em>/ 05</em></div>
             <div class="info__type" id="infoType">BRAND VIDEO</div>
-            <div class="info__nav">
-              <button class="info__nav-btn info__nav-btn--prev" id="prevBtn" type="button" aria-label="上一个">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
-              </button>
-              <button class="info__nav-btn info__nav-btn--next" id="nextBtn" type="button" aria-label="下一个">
-                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
-              </button>
-            </div>
-            <p class="info__desc" id="infoDesc">
-              <span>光影、节奏与情绪的结合，</span>
-              <span>打造具有品牌记忆点的视觉内容</span>
-            </p>
-            <span class="info__bar"></span>
           </div>
         </aside>
+        <div class="info__rail" id="infoRail"></div>
 
         <footer class="foot">
           <div class="foot__tagline">VIDEO · BRAND · PRODUCT · MOTION</div>
-          <button class="sound" id="soundBtn" type="button" aria-pressed="true">
-            <span class="sound__icon" id="soundIcon">🔊</span>
-            <span class="sound__label" id="soundLabel">SOUND ON</span>
-          </button>
         </footer>
+
+        <div class="sound" id="soundBar">
+          <button class="sound__btn sound__btn--mute" id="soundBtn" type="button" aria-pressed="true">🔊</button>
+          <button class="sound__btn sound__btn--prev" id="prevBtn" type="button" aria-label="上一个">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+          </button>
+          <button class="sound__btn sound__btn--next" id="nextBtn" type="button" aria-label="下一个">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+          </button>
+        </div>
       </div>
     </div>
   </div>
 
   <script src="gsap.min.js"></script>
-  <script src="video-stage.js"></script>
+  <script src="video-stage-test.js"></script>
 </body>
 </html>

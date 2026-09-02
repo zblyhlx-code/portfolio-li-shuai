@@ -344,7 +344,10 @@
   }
   .hero__bottom {
     display: grid; grid-template-columns: 480px 1fr auto; gap: 40px;
-    align-items: end; margin-top: calc(clamp(24px, 5vh, 72px) + 60px);
+    align-items: end;
+    /* 原 margin-top: clamp(24px,5vh,72px) + 60px；
+       老张要求底部红框整体上移约一个大标题字符高度（≈80px）。 */
+    margin-top: max(16px, calc(clamp(24px, 5vh, 72px) - 20px));
   }
   .hero__tagline .lead { font-size: 24px; font-weight: 500; }
   .hero__tagline .sub { font-size: 16px; color: var(--text-muted); margin-top: 12px; font-family: var(--font-cn); }
@@ -375,8 +378,19 @@
   /* min-height:0 必须显式覆盖：.video-stage 的 100vh 是给独立页用的，
      embed 模式下高度应由 iframe 的 aspect-ratio 决定，否则会在内容上下
      各留一大条纯黑（1080p 下约 159px），看起来像把上一屏的视频切断了 */
-  .video-stage--embed { width: 100%; max-width: 1440px; margin: 0 auto; padding: 0; min-height: 0; }
-  .video-stage__frame { width: 100%; height: auto; aspect-ratio: 1972 / 798; border: 0; display: block; background: #111111; }
+  /*
+    第二屏必须独占一屏，否则第一屏滑下来时第三屏的「专业领域」会跟着露头。
+    内部画布是固定 1972×798 等比缩放，1440 宽下只有 583 高。
+    为了和第一屏眉标高度对齐，iframe 改为顶对齐，padding-top 等于 hero 的 padding-top，
+    同时把 .intro 的 top 设为 0（见 video-stage-test.css），这样两屏眉标在同一水平线。
+  */
+  .video-stage--embed {
+    width: 100%; max-width: 1440px; margin: 0 auto;
+    min-height: 100vh; min-height: 100svh;
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: calc(clamp(104px, 10vh, 144px) + 52px) 0 0 0;
+  }
+  .video-stage__frame { width: 100%; height: auto; aspect-ratio: 1972 / 980; border: 0; display: block; background: #111111; }
   /* 老浏览器回退：无 aspect-ratio 支持时退化为整屏 */
   @supports not (aspect-ratio: 1 / 1) {
     .video-stage__frame { height: 100vh; }
@@ -765,7 +779,7 @@
     <!-- 02 SELECTED WORKS / INTERACTIVE VIDEO STAGE -->
     <!-- 02 SELECTED WORKS / INTERACTIVE VIDEO STAGE -->
   <section class="video-stage video-stage--embed" id="work">
-    <iframe class="video-stage__frame" src="video-stage.html?embed=1"
+    <iframe class="video-stage__frame" src="video-stage.html?embed=1&v=20260902d"
       title="Selected Works — Interactive Video Stage" loading="lazy"></iframe>
   </section>
 <!-- 03 DISCIPLINES -->
