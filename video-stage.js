@@ -392,15 +392,20 @@ function unlockSound() {
   document.addEventListener(ev, unlockSound, { capture: true })
 );
 
-// 按钮事件统一封装：click + pointerup + touchend 三重保险，并用时间戳去重，避免同一手势触发两次
-let lastTap = 0;
+// 按钮事件统一封装：click + pointerup + touchend 三重保险，按处理器独立去重（合并同一手势的多次触发）
+// 修复三点：
+//   1) lastTap 改为每个 fn 独立持有 —— 旧版全局共享，点完声音 300ms 内点箭头/圆点会被吞掉（表现为"按了没反应"）
+//   2) 转发参数 —— 旧版 fn() 不传参，doDot(idx) 拿不到索引，会变成 focus(undefined) 直接抛 TypeError
+//   3) 去重窗口 300ms → 120ms —— 旧版太长，连续切换视频时第二次点击会被吃掉
 function guarded(fn) {
-  return function(e) {
+  let last = 0;
+  return function (...args) {
     const now = Date.now();
-    if (now - lastTap < 300) return;
-    lastTap = now;
-    if (e) e.stopPropagation();
-    fn();
+    if (now - last < 120) return;
+    last = now;
+    const e = args[0];
+    if (e && typeof e.stopPropagation === "function") e.stopPropagation();
+    return fn(...args);
   };
 }
 

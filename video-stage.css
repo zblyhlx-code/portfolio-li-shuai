@@ -87,6 +87,9 @@ body {
   margin-top: -399px;    /* -798/2 */
   transform-origin: center center;
   pointer-events: none;
+  /* 控件层必须整体压在 .stage(z-index:1) 之上，否则内部按钮会被舞台吃掉点击
+     （2026-09-03：声音/左右箭头/五个点全部点不动，根因就是这层没有 z-index） */
+  z-index: 20;
 }
 .stage-inner {
   position: relative;
