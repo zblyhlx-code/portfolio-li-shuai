@@ -675,6 +675,14 @@
     .nav__menu { display: flex; }
     .hero { padding-top: 140px; }
     .hero__title .line { letter-spacing: -0.01em; }
+    /* 手机端标题跟随屏宽放大：
+       基础规则是 width: min(100%, 6.2 × clamp(56px, min(9vw,11vh), 120px))，
+       在 400-620 宽的机型上 min(9vw,11vh) 小于 56px 下限 → 被锁死在 6.2×56=347px
+       （540 宽手机上标题只占 ~347px，右侧空一大块，看着像"导航比内容宽"）。
+       这里换成 max(56px, min(14vw, 11vh))：390 宽仍是 56px→347px（完全不变），
+       540 宽 → 75.6→469px，640 宽 → 89.6→555px，标题跟着屏宽铺开；
+       外面那层 min(14vw, 11vh) 保留了原来的"矮屏按高度收缩"保护。 */
+    .hero__title-svg { width: min(100%, calc(6.2 * max(56px, min(14vw, 11vh)))); }
     .disciplines__row { gap: 24px; }
     .exp__item { grid-template-columns: 1fr; gap: 8px; }
     .exp__year { font-size: 56px; }
