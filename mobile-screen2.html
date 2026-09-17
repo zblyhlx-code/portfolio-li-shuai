@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>视频作品 — LI SHUAI</title>
+<meta name="description" content="李帅（LI SHUAI）视频作品：品牌视频、情感短片、电商主图视频、动效与推广视频。BASED IN BEIJING 2026" />
+<meta name="theme-color" content="#0A0A0A" />
+
+<!-- 与主站同一套自托管字体。⚠️ 必须用相对路径：写绝对地址（127.0.0.1 / 本地端口）上线后会全部 404 -->
+<link rel="preload" href="assets/fonts/lexend-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin />
+<link rel="preload" href="assets/fonts/fira-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
+<link href="assets/fonts/fonts.css" rel="stylesheet" />
+
+<style>
+/* ============================================================================
+   手机端屏2 — VIDEO WORKS（手机竖屏版）
+   ----------------------------------------------------------------------------
+   ≤640px 时由主站 index.html 用 iframe 引入本页（替代 1972×980 的横版 video-stage）。
+   设计原点：390pt 宽（iPhone 14/15 逻辑宽），左右边距 24px。
+   尺寸全部来自参考图实测（853×1844 → 390pt，K=0.4572）：
+     眉标 ink y125-134 / VIDEO y172-203（cap 31） / SHOWCASE y214-244
+     卡片 y279-518（340×239，比例 1.423） / 圆点 y538-541（5px 点，间距 10px）
+     缩略图 y557-653（155×96） / 文案标题 y690-704 / 描述两行 y715-739
+     BASED IN BEIJING y715-721 / 2026 y734-740 / CTA 圆环 y762-787 直径 25
+   ⚠️ 改完本文件，记得把主站 index.html 里引入本页的 ?v= 版本号一起改掉，否则浏览器用缓存。
+   ========================================================================== */
+:root{
+  --bg:        #0A0A0A;
+  --accent:    #CCFF00;
+  --ink:       #FFFFFF;
+  --ink-2:     rgba(255,255,255,0.62);
+  --ink-3:     rgba(255,255,255,0.55);   /* 原 .38 在 #0A0A0A 上只有 3.50:1（不达 AA）→ .55 约 6.3:1 */
+  --line:      rgba(255,255,255,0.14);
+  --pad:       24px;
+  --font-en:   "Fira Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-dis:  "Lexend", "Helvetica Neue", Arial, sans-serif;
+  --font-cn:   "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+  --ease:      cubic-bezier(.22,.61,.36,1);
+}
+
+*{ margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+html,body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--font-cn);
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+
+.screen{
+  position:relative;
+  width:100%; max-width:430px;
+  margin:0 auto;
+  min-height:100svh;
+  /* 底部留白 + 全面屏手势条安全区 */
+  padding:0 var(--pad) calc(44px + env(safe-area-inset-bottom, 0px));
+  overflow:hidden;          /* 装饰出血不外溢 */
+  isolation:isolate;
+}
+/* 作为 iframe 嵌进主站时，高度由父页按内容同步 → 不能再吃 100svh，否则父页永远多出一屏 */
+.is-embedded .screen{ min-height:0; }
+
+/* ─────────────────────────  顶部导航  ───────────────────────── */
+.nav{
+  display:flex; align-items:center; justify-content:space-between;
+  /* 参考图 LI SHUAI ink y40-50；刘海机再加状态栏安全区，否则顶部文字会被灵动岛/状态栏压住 */
+  padding:calc(33px + env(safe-area-inset-top, 0px)) 0 0;
+}
+.nav__name{
+  font-family:var(--font-dis); font-size:14px; font-weight:800;
+  letter-spacing:.055em; line-height:1;
+}
+.nav__role{
+  margin-top:6px;
+  font-family:var(--font-en); font-size:8px; font-weight:400;
+  letter-spacing:.145em; color:var(--ink-3);
+}
+.nav__burger{
+  position:relative;
+  width:40px; height:40px; flex:0 0 40px;
+  border:1px solid rgba(255,255,255,.22); border-radius:50%;
+  background:rgba(255,255,255,.03);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
+  cursor:pointer;
+  transition:border-color .25s var(--ease);
+}
+.nav__burger i{
+  display:block; width:15px; height:1.5px; border-radius:2px;
+  background:rgba(255,255,255,.85);
+}
+.nav__burger:active{ border-color:var(--accent); }
+
+/* ─────────────────────  眉标 + 大标题  ───────────────────── */
+.head{ margin-top:49px; }   /* 参考图眉标 ink y125-134（v3 实测 -4px 对齐） */
+
+.eyebrow{
+  display:flex; align-items:center; gap:9px;
+  font-family:var(--font-en); font-size:11px; font-weight:500;
+  letter-spacing:.10em; color:var(--ink);   /* 参考图整串 ink x29-129 = 100px */
+}
+.eyebrow b{ color:var(--accent); font-weight:600; }
+
+/* 参考图实测：VIDEO ink y172-203 / SHOWCASE y214-244（cap 31、两行间距 42px） */
+.title{
+  margin-top:31px;
+  font-family:var(--font-dis);
+  font-weight:900;
+  font-size:clamp(35px, 10.51vw, 44px);   /* 390 视口 → 41px */
+  line-height:1.0244;                     /* 41 × 1.0244 = 42px 行距 */
+  letter-spacing:-.02em;
+}
+.title span{ display:block; }
+.title .w{ color:var(--ink); }
+.title .g{ color:var(--accent); }
+
+/* ─────────────────────────  主卡片  ───────────────────────── */
+/* 参考图：x25-364 y279-518 → 340×239 → 比例 1.423 */
+.hero-card{
+  position:relative;
+  margin-top:30px;   /* 参考图卡片顶 y279（v3 实测 -5px 对齐） */
+  width:100%;
+  aspect-ratio:342 / 240;
+  border-radius:14px;
+  overflow:hidden;
+  background:#101010;
+  border:1px solid rgba(204,255,0,.55);
+  box-shadow:
+    0 0 0 1px rgba(204,255,0,.10) inset,
+    0 0 46px -4px rgba(204,255,0,.38),
+    0 18px 44px -22px rgba(0,0,0,.9);
+  cursor:pointer;
+}
+.hero-card__video{
+  position:absolute; inset:0;
+  width:100%; height:100%; object-fit:cover; display:block;
+  opacity:0; transition:opacity .45s var(--ease);
+}
+.hero-card__video.is-on{ opacity:1; }
+
+.hero-card__scrim{
+  position:absolute; left:0; right:0; bottom:0; height:58%;
+  background:linear-gradient(to top, rgba(0,0,0,.82), rgba(0,0,0,.34) 46%, transparent);
+  pointer-events:none;
+}
+
+.hero-card__num{
+  position:absolute; left:15px; top:12px; z-index:2;
+  font-family:var(--font-dis); font-size:15px; font-weight:800;
+  letter-spacing:.02em; color:var(--ink);
+  text-shadow:0 2px 10px rgba(0,0,0,.8);
+}
+
+.hero-card__play{
+  position:absolute; left:50%; top:50%; z-index:3;
+  width:62px; height:62px; margin:-31px 0 0 -31px;
+  border-radius:50%;
+  border:1.6px solid rgba(255,255,255,.92);
+  background:rgba(0,0,0,.28);
+  backdrop-filter:blur(2px);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer;
+  transition:transform .3s var(--ease), background .3s var(--ease);
+}
+.hero-card__play svg{ width:20px; height:20px; margin-left:3px; }
+.hero-card__play:active{ transform:scale(.92); }
+.is-playing .hero-card__play{ opacity:0; pointer-events:none; }
+
+.hero-card__meta{
+  position:absolute; left:15px; right:15px; bottom:13px; z-index:2;
+  display:flex; align-items:flex-end; justify-content:space-between; gap:12px;
+}
+.hero-card__cn{
+  font-family:var(--font-cn); font-size:12.5px; font-weight:600;
+  letter-spacing:.01em; color:var(--ink);
+}
+.hero-card__en{
+  margin-top:5px;
+  font-family:var(--font-en); font-size:8.5px; font-weight:500;
+  letter-spacing:.155em; color:var(--ink-2);
+}
+.hero-card__go{
+  flex:0 0 auto; width:26px; height:26px;
+  display:flex; align-items:center; justify-content:center;
+  color:var(--accent);
+  transition:transform .3s var(--ease);
+}
+.hero-card__go svg{ width:17px; height:17px; }
+.hero-card:active .hero-card__go{ transform:translate(2px,-2px); }
+
+/* ─────────────────────────  圆点  ───────────────────────── */
+/* 参考图：点 5px、中心间距 10px、ink y537-542、整组居中 */
+.dots{
+  display:flex; align-items:center; justify-content:center; gap:5px;
+  margin-top:19px;
+}
+/* 圆点改成真按钮（可点、可键盘操作）。视觉仍是 5px 点；热区用 ::before 撑到 10×21，
+   横向 10px 正好等于点距 10px，相邻热区不重叠。 */
+.dots button{
+  position:relative;
+  display:block; width:5px; height:5px; padding:0; border:0; border-radius:50%;
+  background:rgba(255,255,255,.20);
+  cursor:pointer; appearance:none; -webkit-appearance:none;
+  transition:background .3s var(--ease), box-shadow .3s var(--ease);
+}
+.dots button::before{ content:""; position:absolute; inset:-8px -2.5px; border-radius:50%; }
+.dots button.is-on{
+  background:var(--accent);
+  box-shadow:0 0 9px rgba(204,255,0,.75);
+}
+
+/* ────────────────────  缩略图横滑行  ──────────────────── */
+/* 参考图：卡宽 155、间距 10、高 96、首卡与正文左对齐(x24)、末卡被右边缘裁切 */
+.strip{
+  display:flex; gap:10px;
+  margin:15px -24px 0 0;      /* 只向右出血到屏幕边，左侧保持 24 对齐 */
+  padding:0 24px 0 0;
+  overflow-x:auto;
+  scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;
+}
+.strip::-webkit-scrollbar{ display:none; }
+
+.thumb{
+  position:relative; flex:0 0 155px;
+  aspect-ratio:155 / 96;
+  border-radius:10px; overflow:hidden;
+  background:#131313;
+  border:1px solid rgba(255,255,255,.10);
+  cursor:pointer;
+  transition:border-color .3s var(--ease);
+}
+.thumb video{ width:100%; height:100%; object-fit:cover; display:block; }
+/* 当前作品不在缩略图行里（参考图：行内只放「其它」作品）——用 CSS 隐藏而不是重建 DOM，
+   这样切换时不会反复重新创建 <video>、也不会让整行洗牌 */
+.thumb.is-active{ display:none; }
+.thumb::after{
+  content:""; position:absolute; inset:0;
+  background:linear-gradient(to top, rgba(0,0,0,.8), rgba(0,0,0,.15) 55%, transparent);
+}
+.thumb__num{
+  position:absolute; left:8px; top:7px; z-index:2;
+  font-family:var(--font-dis); font-size:11px; font-weight:800; color:var(--ink);
+  text-shadow:0 1px 6px rgba(0,0,0,.85);
+}
+.thumb__play{
+  position:absolute; left:50%; top:50%; z-index:2;
+  width:32px; height:32px; margin:-16px 0 0 -16px;
+  border-radius:50%; border:1.3px solid rgba(255,255,255,.9);
+  background:rgba(0,0,0,.3);
+  display:flex; align-items:center; justify-content:center;
+}
+.thumb__play svg{ width:11px; height:11px; margin-left:1.5px; }
+.thumb__meta{
+  position:absolute; left:8px; right:8px; bottom:7px; z-index:2;
+}
+.thumb__cn{
+  font-family:var(--font-cn); font-size:9.5px; font-weight:600; color:var(--ink);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.thumb__en{
+  margin-top:3px;
+  font-family:var(--font-en); font-size:7px; font-weight:500;
+  letter-spacing:.11em; color:var(--ink-2);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+
+/* ───────────────────────  文案区  ─────────────────────── */
+.copy{
+  display:flex; align-items:flex-start; justify-content:space-between; gap:16px;
+  margin-top:34px;
+}
+.copy__left{ min-width:0; }
+.copy__h{
+  font-family:var(--font-cn); font-size:15px; font-weight:700;
+  letter-spacing:.01em;
+}
+/* 参考图两行是显式断行（断在「，」后），字号约 9.7px；此处取 10.5px 兼顾手机可读性 */
+.copy__p{
+  margin-top:6px;
+  font-size:10.5px; line-height:1.52; color:var(--ink-2);
+}
+.copy__right{ flex:0 0 auto; text-align:left; padding-top:6px; }
+.copy__loc{
+  display:flex; align-items:center; justify-content:flex-start; gap:6px;
+  font-family:var(--font-en); font-size:9px; font-weight:500;
+  letter-spacing:.15em; color:var(--ink-2);
+}
+.copy__loc b{
+  display:block; width:5px; height:5px; border-radius:50%;
+  background:var(--accent); box-shadow:0 0 7px rgba(204,255,0,.7);
+  flex:0 0 5px;
+}
+.copy__year{
+  margin-top:8px;
+  font-family:var(--font-en); font-size:9px; letter-spacing:.15em; color:var(--ink-3);
+}
+
+/* ───────────────────────  CTA  ─────────────────────── */
+/* 参考图：圆环直径 25、文字 10px、尾线 26px */
+.cta{
+  display:flex; align-items:center; gap:13px;
+  margin-top:15px; padding:0;   /* 参考图圆环顶 y762（v3 实测 -5px 对齐） */
+  background:none; border:0; cursor:pointer;
+  font-family:inherit; color:inherit;
+}
+.cta__icon{
+  width:25px; height:25px; flex:0 0 25px;
+  border:1px solid var(--accent); border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  color:var(--accent);
+  transition:background .3s var(--ease), color .3s var(--ease);
+}
+.cta__icon svg{ width:11px; height:11px; }
+.cta__text{
+  font-family:var(--font-en); font-size:10px; font-weight:500;
+  letter-spacing:.02em; color:var(--ink);   /* 参考图整串 ink x64-138 = 75px（原 .19em 过宽 25px） */
+}
+.cta__line{
+  flex:0 0 auto; width:26px; height:1px;
+  background:linear-gradient(to right, var(--accent), rgba(204,255,0,0));
+}
+.cta:active .cta__icon{ background:var(--accent); color:#0A0A0A; }
+
+/* ─────────────────────  角落装饰  ───────────────────── */
+/* v3（2026-09-16 用户定稿）：移除参考图里的绿色 3D 液体装饰——
+   右上液团+分离垂滴、右下贯穿细液线+液珠、右下角部液团，全部不要，页面保持干净。
+   下面这行只是给内容层一个堆叠上下文/定位祖先（内含绝对定位子元素）。 */
+.nav,.head,.hero-card,.dots,.strip,.copy,.cta{ position:relative; z-index:1; }
+
+/* ─────────────  加载态 / 失败态 / 键盘焦点 / 动效偏好  ───────────── */
+/* 视频首帧就绪前铺一层很弱的流光：弱网或首屏时不会只剩一块纯黑 */
+.hero-card::before{
+  content:""; position:absolute; inset:0; z-index:0;
+  background:linear-gradient(110deg,#101010 32%,#191919 50%,#101010 68%);
+  background-size:220% 100%;
+  animation:cardLoad 1.5s linear infinite;
+  transition:opacity .35s var(--ease);
+}
+.hero-card.is-ready::before{ opacity:0; animation:none; }
+.hero-card.is-broken::before{ animation:none; opacity:1; background:#141414; }
+@keyframes cardLoad{ from{ background-position:120% 0; } to{ background-position:-120% 0; } }
+
+/* 键盘焦点可见（缩略图是 div[role=button]，必须自己给 focus 样式） */
+.thumb:focus-visible, .dots button:focus-visible, .cta:focus-visible, .hero-card__play:focus-visible{
+  outline:2px solid var(--accent); outline-offset:2px;
+}
+
+/* 系统开启「减弱动效」时不自动巡播、不做过渡（自动轮播对晕动症用户不友好） */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{ animation:none !important; transition:none !important; }
+}
+</style>
+</head>
+
+<body>
+<div class="screen" id="screen">
+
+  <!-- 顶部导航 -->
+  <header class="nav">
+    <div>
+      <div class="nav__name">LI SHUAI</div>
+      <div class="nav__role">INDEPENDENT VISUAL DESIGNER</div>
+    </div>
+    <button class="nav__burger" type="button" aria-label="菜单"><i></i><i></i><i></i></button>
+  </header>
+
+  <!-- 眉标 + 标题 -->
+  <div class="head">
+    <div class="eyebrow"><b>/</b>VIDEO WORKS</div>
+    <h1 class="title"><span class="w">VIDEO</span> <span class="g" id="titleLine2">SHOWCASE</span></h1>
+  </div>
+
+  <!-- 主卡片 -->
+  <div class="hero-card" id="heroCard">
+    <video class="hero-card__video" id="heroVideo" muted playsinline preload="metadata"></video>
+    <div class="hero-card__scrim"></div>
+    <div class="hero-card__num" id="heroNum">01</div>
+    <button class="hero-card__play" id="heroPlay" type="button" aria-label="播放">
+      <svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>
+    </button>
+    <div class="hero-card__meta">
+      <div>
+        <div class="hero-card__cn" id="heroCn">—</div>
+        <div class="hero-card__en" id="heroEn">—</div>
+      </div>
+      <div class="hero-card__go">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M7 17L17 7M9 7h8v8"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- 圆点 -->
+  <div class="dots" id="dots"></div>
+
+  <!-- 缩略图横滑 -->
+  <div class="strip" id="strip"></div>
+
+  <!-- 文案 -->
+  <div class="copy">
+    <div class="copy__left">
+      <div class="copy__h">影像，让创意发声</div>
+      <p class="copy__p">用视觉讲述品牌故事，<br>让每一帧都充满力量与情绪。</p>
+    </div>
+    <div class="copy__right">
+      <div class="copy__loc"><b></b>BASED IN BEIJING</div>
+      <div class="copy__year">2026</div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <button class="cta" type="button">
+    <span class="cta__icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M4 12h15M13 6l6 6-6 6"/>
+      </svg>
+    </span>
+    <span class="cta__text">EXPLORE MORE</span>
+    <span class="cta__line"></span>
+  </button>
+
+</div>
+
+<script>
+/* ============================================================================
+   数据：对应主站 video-stage.js 的 WORKS
+   移动端标签用「分类 | 类型」（参考图用法）——缩略图 155pt 宽，两段短词刚好放下。
+   ========================================================================== */
+const ASSETS = "assets/";   /* ⚠️ 相对路径：跟随站点根目录。写绝对地址/本地端口（127.0.0.1）上线后视频必 404 */
+
+const WORKS = [
+  { id:"01", cat:"品牌", cn:"产品视频",     type:"BRAND VIDEO",      src:"maybach-ad.mp4"   },
+  { id:"02", cat:"品牌", cn:"情感短片",     type:"BRAND FILM",       src:"scott-ad.mp4"     },
+  { id:"03", cat:"电商", cn:"产品主图视频", type:"E-COMMERCE VIDEO", src:"razer-ad.mp4"     },
+  { id:"04", cat:"创意", cn:"动效视频",     type:"MOTION VIDEO",     src:"tofu-ad.mp4"      },
+  { id:"05", cat:"商业", cn:"推广视频",     type:"PROMOTION VIDEO",  src:"goat-milk-ad.mp4" }
+];
+
+const STEP_MS = 4000;   /* 与主站一致的自动巡播间隔 */
+
+const heroCard  = document.getElementById("heroCard");
+const heroVideo = document.getElementById("heroVideo");
+const heroNum   = document.getElementById("heroNum");
+const heroCn    = document.getElementById("heroCn");
+const heroEn    = document.getElementById("heroEn");
+const dotsEl    = document.getElementById("dots");
+const stripEl   = document.getElementById("strip");
+
+let cur = 0;
+let autoTimer = null;
+let userHold = false;
+
+/* ── 圆点：真按钮 + aria（原来是无语义的 <i>，键盘和读屏都进不去） ── */
+dotsEl.innerHTML = WORKS.map((w, i) =>
+  `<button type="button" data-i="${i}" class="${i === 0 ? "is-on" : ""}"` +
+  ` aria-label="第 ${i + 1} 个作品：${w.cat} ${w.cn}"${i === 0 ? ' aria-current="true"' : ""}></button>`
+).join("");
+dotsEl.addEventListener("click", (e) => {
+  const t = e.target.closest("button[data-i]");
+  if (t) { show(+t.dataset.i); hold(2600); }
+});
+
+/* ── 缩略图行：一次建到位，切换时只改「谁被隐藏」 ──────────────────
+   原来是每次切换都 innerHTML 重建（4 个 <video> 反复重建 + 整行顺序洗牌，
+   手指底下的内容会被换掉）；现在 5 张常驻、当前那张用 .is-active 隐藏，
+   视觉与参考图完全一致，但不再重建 DOM。 */
+function renderStrip() {
+  stripEl.innerHTML = WORKS.map((w, i) => `
+      <div class="thumb" data-i="${i}" role="button" tabindex="0"
+           aria-label="播放：${w.cat} ${w.cn}（${w.type}）">
+        <video src="${ASSETS}${w.src}" muted playsinline preload="metadata" aria-hidden="true"></video>
+        <div class="thumb__num">${w.id}</div>
+        <div class="thumb__play">
+          <svg viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>
+        </div>
+        <div class="thumb__meta">
+          <div class="thumb__cn">${w.cat} | ${w.cn}</div>
+          <div class="thumb__en">${w.type}</div>
+        </div>
+      </div>`).join("");
+}
+function markStrip() {
+  [...stripEl.children].forEach((t, k) => t.classList.toggle("is-active", k === cur));
+}
+stripEl.addEventListener("click", (e) => {
+  const t = e.target.closest(".thumb[data-i]");
+  if (t) { show(+t.dataset.i); hold(2600); }
+});
+/* 键盘 Enter / 空格 = 点击 */
+stripEl.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const t = e.target.closest(".thumb[data-i]");
+  if (t) { e.preventDefault(); show(+t.dataset.i); hold(2600); }
+});
+
+/* ── 切换主卡片 ────────────────────────────────────────────────── */
+const BROKEN = new Set();     /* 加载失败的作品：跳过、不再重试 */
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* 找下一个「没坏」的作品；全部坏掉时原地不动，避免死循环 */
+function nextAvailable(from) {
+  for (let k = 1; k <= WORKS.length; k++) {
+    const i = (from + k) % WORKS.length;
+    if (!BROKEN.has(i)) return i;
+  }
+  return from;
+}
+
+function show(i) {
+  if (i === cur && heroVideo.getAttribute("src")) return;
+  cur = i;
+  const w = WORKS[i];
+
+  heroNum.textContent = w.id;
+  heroCn.textContent  = w.cat + " | " + w.cn;
+  heroEn.textContent  = w.type;
+
+  /* 交叉淡化：旧片留在下层淡出、新片淡入，中间不留黑（与主站双 video 同一思路）。
+     但旧片要等新片真的出画（loadeddata）才开始淡出，否则新片解码慢时会闪一下黑。 */
+  const old = heroVideo.cloneNode(false);
+  const hadSrc = heroVideo.getAttribute("src");
+  if (hadSrc) {
+    old.classList.add("hero-card__video");
+    old.style.cssText = "position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:1;transition:opacity .5s cubic-bezier(.22,.61,.36,1)";
+    heroCard.insertBefore(old, heroCard.firstChild);
+    let dropped = false;
+    const drop = () => {
+      if (dropped) return;
+      dropped = true;
+      old.style.opacity = "0";
+      setTimeout(() => old.remove(), 540);
+    };
+    heroVideo.addEventListener("loadeddata", drop, { once: true });
+    setTimeout(drop, 1400);                  /* 兜底：新片一直不出画也要清掉旧层 */
+  }
+
+  heroVideo.classList.remove("is-on", "is-playing");
+  heroCard.classList.remove("is-playing", "is-ready", "is-broken");
+  const v = ASSETS + w.src;
+  if (heroVideo.getAttribute("src") !== v) { heroVideo.setAttribute("src", v); }
+  heroVideo.load();
+  heroVideo.classList.add("is-on");
+
+  [...dotsEl.children].forEach((d, k) => {
+    d.classList.toggle("is-on", k === i);
+    if (k === i) d.setAttribute("aria-current", "true"); else d.removeAttribute("aria-current");
+  });
+  markStrip();
+
+  /* 巡播改成定时器驱动，不再挂在 playing 事件上：
+     自动播放被系统拦掉（iOS 低电量模式等）时 playing 永远不会来，原写法会让巡播静默死掉 */
+  if (!userHold) scheduleAuto();
+}
+
+/* 视频加载失败：标记跳过 + 自动换下一个，巡播不会因此停摆 */
+heroVideo.addEventListener("error", () => {
+  BROKEN.add(cur);
+  heroCard.classList.add("is-broken", "is-ready");
+  console.warn("[mobile-screen2] 视频加载失败，已跳过：", ASSETS + WORKS[cur].src);
+  clearTimeout(autoTimer);
+  if (BROKEN.size < WORKS.length) autoTimer = setTimeout(() => show(nextAvailable(cur)), 700);
+});
+heroVideo.addEventListener("loadeddata", () => heroCard.classList.add("is-ready"));
+heroVideo.addEventListener("playing",    () => heroCard.classList.add("is-ready"));
+
+function scheduleAuto() {
+  clearTimeout(autoTimer);
+  if (reduceMotion) return;                  /* 系统开了「减弱动效」就不自动轮播 */
+  autoTimer = setTimeout(() => { if (!userHold) show(nextAvailable(cur)); }, STEP_MS);
+}
+
+/* 触摸/操作后短暂暂停自动巡播，避免"手还没离开就切走了" */
+function hold(ms) {
+  userHold = true;
+  clearTimeout(autoTimer);
+  setTimeout(() => { userHold = false; scheduleAuto(); }, ms);
+}
+
+/* ── 播放 / 暂停 ──────────────────────────────────────────────── */
+function togglePlay() {
+  if (heroVideo.paused) { heroVideo.play().catch(() => {}); heroCard.classList.add("is-playing"); }
+  else { heroVideo.pause(); heroCard.classList.remove("is-playing"); }
+}
+document.getElementById("heroPlay").addEventListener("click", (e) => { e.stopPropagation(); togglePlay(); });
+heroCard.addEventListener("click", togglePlay);
+
+heroVideo.addEventListener("pause", () => heroCard.classList.remove("is-playing"));
+heroVideo.addEventListener("play",  () => heroCard.classList.add("is-playing"));
+
+/* ── 被主站 iframe 嵌入时：去掉 100svh，高度交给父页按内容同步（避免嵌套滚动） ── */
+if (window.self !== window.top) document.documentElement.classList.add("is-embedded");
+
+/* ── 启动 ─────────────────────────────────────────────────────── */
+renderStrip();
+show(0);
+</script>
+</body>
+</html>

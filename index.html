@@ -391,6 +391,16 @@
     padding: calc(clamp(104px, 10vh, 144px) + 52px) 0 0 0;
   }
   .video-stage__frame { width: 100%; height: auto; aspect-ratio: 1972 / 980; border: 0; display: block; background: #111111; }
+  /* 手机（≤640px）换成竖屏版 mobile-screen2.html：横版 1972×980 画布压到手机宽度只剩 ~190px 高、
+     字全糊，所以手机上整屏改用独立竖屏排版。断点由页面末尾那段脚本切 src（含高度同步）。 */
+  @media (max-width: 640px) {
+    .video-stage__frame { aspect-ratio: auto; height: 100svh; }
+    /* 手机版页面内部已经有 24px 内容边距（与参考图一致）。
+       这里必须把区块自身的左右内边距归零，否则 24(区块) + 24(手机版) = 左右各 48px，
+       比参考图宽一倍、还会把竖屏版整体压窄。
+       用双类名提权：下面（更靠后）还有一条 .video-stage{padding:90px 24px} 会盖掉单类名规则。 */
+    .video-stage.video-stage--embed { padding-left: 0; padding-right: 0; }
+  }
   /* 老浏览器回退：无 aspect-ratio 支持时退化为整屏 */
   @supports not (aspect-ratio: 1 / 1) {
     .video-stage__frame { height: 100vh; }
@@ -779,7 +789,7 @@
     <!-- 02 SELECTED WORKS / INTERACTIVE VIDEO STAGE -->
     <!-- 02 SELECTED WORKS / INTERACTIVE VIDEO STAGE -->
   <section class="video-stage video-stage--embed" id="work">
-    <iframe class="video-stage__frame" src="video-stage.html?embed=1&v=20260903d"
+    <iframe class="video-stage__frame" id="stageFrame" src="video-stage.html?embed=1&v=20260903d"
       title="Selected Works — Interactive Video Stage" loading="lazy"></iframe>
   </section>
 <!-- 03 DISCIPLINES -->
@@ -1243,6 +1253,47 @@
     spHero.addEventListener('mouseenter', () => spVideo.play().catch(() => {}));
     spHero.addEventListener('mouseleave', () => spVideo.pause());
   }
+
+  /* ---------- 02 SELECTED WORKS：手机端切竖屏版 + iframe 高度自适应 ----------
+     >640px：video-stage.html（1972×980 横版舞台，3D 卡片画廊）
+     ≤640px：mobile-screen2.html（竖屏版：大卡片 + 圆点 + 缩略图横滑）
+     横版画布压到手机宽度只剩 ~190px 高、字全糊，所以手机上整屏换掉。
+     换 src 会重载 iframe，所以只在「断点真的跨越」时才动它。 */
+  (function(){
+    var f = document.getElementById('stageFrame');
+    if(!f) return;
+    var DESKTOP = 'video-stage.html?embed=1&v=20260903d';
+    var MOBILE  = 'mobile-screen2.html?v=20260917a';   /* ⚠️ 改完 mobile-screen2.html 要把这里版本号改掉 */
+    var mq = window.matchMedia('(max-width: 640px)');
+
+    function pick(){
+      var want = mq.matches ? MOBILE : DESKTOP;
+      if(f.getAttribute('src') !== want){
+        f.removeAttribute('style');        /* 清掉上一次的同步高度，否则桌面端会被写死 */
+        f.setAttribute('src', want);
+      }
+    }
+    pick();
+    if(mq.addEventListener) mq.addEventListener('change', pick);
+    else if(mq.addListener) mq.addListener(pick);
+
+    /* 同源 iframe，直接读内部内容高度同步过来（屏3 同一做法）：
+       竖屏版是流式高度，写死 100svh 会在矮屏上出现「页中页」滚动条 */
+    function sync(){
+      if(!mq.matches){ f.style.height = ''; return; }
+      try{
+        var d = f.contentDocument;
+        if(!d) return;
+        var h = Math.max(d.documentElement.scrollHeight || 0, d.body.scrollHeight || 0);
+        if(h > 300) f.style.height = h + 'px';
+      }catch(e){}
+    }
+    f.addEventListener('load', function(){ sync(); setTimeout(sync, 300); setTimeout(sync, 1200); });
+    var t;
+    window.addEventListener('resize', function(){ clearTimeout(t); t = setTimeout(sync, 150); });
+    /* 切回桌面端时把同步高度清掉 */
+    if(mq.addEventListener) mq.addEventListener('change', function(){ setTimeout(sync, 0); });
+  })();
 </script>
 <script type="module" src="metaballs.js"></script>
 </body>
