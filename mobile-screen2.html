@@ -55,7 +55,7 @@ html,body{
   margin:0 auto;
   min-height:100svh;
   /* 底部留白 + 全面屏手势条安全区 */
-  padding:0 var(--pad) calc(44px + env(safe-area-inset-bottom, 0px));
+  padding:calc(22px + env(safe-area-inset-top, 0px)) var(--pad) calc(44px + env(safe-area-inset-bottom, 0px));
   overflow:hidden;          /* 装饰出血不外溢 */
   isolation:isolate;
 }
@@ -63,37 +63,13 @@ html,body{
 .is-embedded .screen{ min-height:0; }
 
 /* ─────────────────────────  顶部导航  ───────────────────────── */
-.nav{
-  display:flex; align-items:center; justify-content:space-between;
-  /* 参考图 LI SHUAI ink y40-50；刘海机再加状态栏安全区，否则顶部文字会被灵动岛/状态栏压住 */
-  padding:calc(33px + env(safe-area-inset-top, 0px)) 0 0;
-}
-.nav__name{
-  font-family:var(--font-dis); font-size:14px; font-weight:800;
-  letter-spacing:.055em; line-height:1;
-}
-.nav__role{
-  margin-top:6px;
-  font-family:var(--font-en); font-size:8px; font-weight:400;
-  letter-spacing:.145em; color:var(--ink-3);
-}
-.nav__burger{
-  position:relative;
-  width:40px; height:40px; flex:0 0 40px;
-  border:1px solid rgba(255,255,255,.22); border-radius:50%;
-  background:rgba(255,255,255,.03);
-  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px;
-  cursor:pointer;
-  transition:border-color .25s var(--ease);
-}
-.nav__burger i{
-  display:block; width:15px; height:1.5px; border-radius:2px;
-  background:rgba(255,255,255,.85);
-}
-.nav__burger:active{ border-color:var(--accent); }
+/* 2026-09-17 按用户要求删除：主站手机端自己已经有导航（LI SHUAI + MENU +），
+   这里再来一条会在屏幕上出现两条一模一样的导航。竖屏版不再自带导航。 */
 
 /* ─────────────────────  眉标 + 大标题  ───────────────────── */
-.head{ margin-top:49px; }   /* 参考图眉标 ink y125-134（v3 实测 -4px 对齐） */
+/* 导航删掉后，眉标到 iframe 顶部的距离 = .screen 上内边距 22 + head 上边距 24 = 46px
+   （原来是 nav 73px + head 49px = 122px） */
+.head{ margin-top:24px; }
 
 .eyebrow{
   display:flex; align-items:center; gap:9px;
@@ -327,7 +303,7 @@ html,body{
 /* v3（2026-09-16 用户定稿）：移除参考图里的绿色 3D 液体装饰——
    右上液团+分离垂滴、右下贯穿细液线+液珠、右下角部液团，全部不要，页面保持干净。
    下面这行只是给内容层一个堆叠上下文/定位祖先（内含绝对定位子元素）。 */
-.nav,.head,.hero-card,.dots,.strip,.copy,.cta{ position:relative; z-index:1; }
+.head,.hero-card,.dots,.strip,.copy,.cta{ position:relative; z-index:1; }
 
 /* ─────────────  加载态 / 失败态 / 键盘焦点 / 动效偏好  ───────────── */
 /* 视频首帧就绪前铺一层很弱的流光：弱网或首屏时不会只剩一块纯黑 */
@@ -357,14 +333,7 @@ html,body{
 <body>
 <div class="screen" id="screen">
 
-  <!-- 顶部导航 -->
-  <header class="nav">
-    <div>
-      <div class="nav__name">LI SHUAI</div>
-      <div class="nav__role">INDEPENDENT VISUAL DESIGNER</div>
-    </div>
-    <button class="nav__burger" type="button" aria-label="菜单"><i></i><i></i><i></i></button>
-  </header>
+  <!-- 顶部导航已删除（2026-09-17 用户要求）：主站手机端自带导航，这里再放一条会重复 -->
 
   <!-- 眉标 + 标题 -->
   <div class="head">
