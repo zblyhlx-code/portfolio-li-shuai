@@ -387,8 +387,12 @@
   .video-stage--embed {
     width: 100%; max-width: 1440px; margin: 0 auto;
     min-height: 100vh; min-height: 100svh;
-    display: flex; align-items: flex-start; justify-content: center;
-    padding: calc(clamp(104px, 10vh, 144px) + 52px) 0 0 0;
+    /* 垂直居中：屏2 的 iframe 是 1972×980 固定画布，宽度封顶 1440 → 高度只有 716px，
+       在一屏 1080px 里靠上（flex-start）会让下方空 364px、看着偏上（屏1/屏3 的内容都接近满屏所以居中）。
+       改成 center 后上下各留 182px，滚动到本屏时内容正好在画面中心。
+       注：容器高度由内容撑开（min-height 只是下限），所以内容比视口高时不会溢出裁切。 */
+    display: flex; align-items: center; justify-content: center;
+    padding: 0;
   }
   .video-stage__frame { width: 100%; height: auto; aspect-ratio: 1972 / 980; border: 0; display: block; background: #111111; }
   /* 手机（≤640px）换成竖屏版 mobile-screen2.html：横版 1972×980 画布压到手机宽度只剩 ~190px 高、
@@ -401,6 +405,11 @@
        用双类名提权：下面（更靠后）还有一条 .video-stage{padding:90px 24px} 会盖掉单类名规则。 */
     .video-stage.video-stage--embed { padding-left: 0; padding-right: 0; }
   }
+  /* 03 SKILLS（屏3 iframe）：屏3 是响应式布局、高度随宽度变，写死 aspect-ratio 会裁切，
+     所以高度交给 JS 按内部内容同步；这里的 height 只是加载前的兜底值。
+     背景 #111111 必须与屏3 内部的 --bg 一致，否则会露出一块色差方块。 */
+  .skills-embed { background: #111111; }
+  .skills-embed__frame { width: 100%; height: 1020px; border: 0; display: block; background: #111111; }
   /* 老浏览器回退：无 aspect-ratio 支持时退化为整屏 */
   @supports not (aspect-ratio: 1 / 1) {
     .video-stage__frame { height: 100vh; }
@@ -527,19 +536,6 @@
     .video-stage__curve path { animation: none; }
     .video-card { transition: opacity .2s ease; }
   }
-
-  /* ---------- Disciplines ---------- */
-  .disciplines__rows { display: flex; flex-direction: column; gap: 0; }
-  .disciplines__row { display: flex; gap: 40px; flex-wrap: wrap; }
-  .disciplines__row + .disciplines__row { margin-top: 8px; }
-  .discipline {
-    font-size: clamp(40px, 6vw, 80px); font-weight: 700; line-height: 0.95;
-    letter-spacing: -0.02em; color: var(--text-muted);
-  }
-  .discipline.bright { color: var(--text-primary); }
-  .discipline.accent { color: var(--accent); }
-  .disciplines__line { height: 1px; background: var(--line-dark); margin: 40px 0; }
-  .disciplines__desc { font-size: 18px; color: var(--text-muted); font-family: var(--font-cn); }
 
   /* ---------- Services ---------- */
   .service {
@@ -683,7 +679,6 @@
        540 宽 → 75.6→469px，640 宽 → 89.6→555px，标题跟着屏宽铺开；
        外面那层 min(14vw, 11vh) 保留了原来的"矮屏按高度收缩"保护。 */
     .hero__title-svg { width: min(100%, calc(6.2 * max(56px, min(14vw, 11vh)))); }
-    .disciplines__row { gap: 24px; }
     .exp__item { grid-template-columns: 1fr; gap: 8px; }
     .exp__year { font-size: 56px; }
     .service { grid-template-columns: 50px 1fr 30px; gap: 20px; }
@@ -711,6 +706,7 @@
     </a>
     <div class="nav__links">
       <a href="#work">WORK</a>
+      <a href="#skills">SKILLS</a>
       <a href="#services">SERVICES</a>
       <a href="#experience">EXPERIENCE</a>
       <a href="#about">ABOUT</a>
@@ -723,6 +719,7 @@
 <!-- Mobile menu overlay -->
 <div class="menu-overlay" id="menuOverlay">
   <a href="#work">WORK</a>
+  <a href="#skills">SKILLS</a>
   <a href="#services">SERVICES</a>
   <a href="#experience">EXPERIENCE</a>
   <a href="#about">ABOUT</a>
@@ -800,28 +797,16 @@
     <iframe class="video-stage__frame" id="stageFrame" src="video-stage.html?embed=1&v=20260903d"
       title="Selected Works — Interactive Video Stage" loading="lazy"></iframe>
   </section>
-<!-- 03 DISCIPLINES -->
-  <section class="section section--dark">
-    <div class="page">
-      <div class="section-head reveal">
-        <div class="section-head__title"><span class="en">Disciplines</span>专业领域</div>
-        <div class="index-num">02</div>
-      </div>
-      <div class="disciplines__rows reveal">
-        <div class="disciplines__row">
-          <span class="discipline bright">BRAND</span>
-          <span class="discipline">DIGITAL</span>
-          <span class="discipline bright">PACKAGING</span>
-        </div>
-        <div class="disciplines__row">
-          <span class="discipline">CAMPAIGN</span>
-          <span class="discipline bright">E-COMMERCE</span>
-          <span class="discipline accent">AI</span>
-        </div>
-      </div>
-      <div class="disciplines__line reveal"></div>
-      <div class="disciplines__desc reveal">从品牌识别到电商视觉，从包装到商业视频与AI生成影像，覆盖商业视觉全链路。</div>
-    </div>
+  <!-- 03 SKILLS —— 环形技能画廊（屏3）
+       用 iframe 嵌入：屏3 自带 * / html,body 等全局样式重置，直接内联会覆盖本站其它区块，
+       隔离后互不影响（与屏2 video-stage 同一做法）。
+       调参面板在 skills-stage.html 里默认隐藏，需要调试时访问 skills-stage.html?edit=1
+       ⚠️ 地址里的 v= 是缓存版本号：**每次改完 skills-stage.html 都要把它改掉**
+          （如 v=20260912c → v=20260913a），否则浏览器/CDN 会继续用缓存的旧屏3，
+          表现为"改了但线上/本地看不到变化"。屏2 也是同样做法（video-stage.html?...&v=...）。 -->
+  <section class="skills-embed" id="skills">
+    <iframe class="skills-embed__frame" id="skillsFrame" src="skills-stage.html?v=20260916b"
+      title="MY SKILLS — 技能与工具" loading="lazy" scrolling="no"></iframe>
   </section>
 
   <!-- 04 SERVICES -->
@@ -969,6 +954,7 @@
   </div>
   <div class="footer__links">
     <a href="#work">WORK</a>
+    <a href="#skills">SKILLS</a>
     <a href="#services">SERVICES</a>
     <a href="#experience">EXPERIENCE</a>
     <a href="#about">ABOUT</a>
@@ -987,7 +973,8 @@
   const isTouch = window.matchMedia('(pointer: coarse)').matches;
 
   if (!isTouch && cursor) {
-    const frame = document.querySelector('.video-stage__frame');
+    /* 两个 iframe（屏2 作品画廊 / 屏3 SKILLS）都把鼠标坐标发上来，由父站统一画绿点 */
+    const frames = [document.querySelector('.video-stage__frame'), document.getElementById('skillsFrame')].filter(Boolean);
     let inIframe = false;
 
     window.addEventListener('mousemove', e => {
@@ -1003,14 +990,18 @@
     }
     moveCursor();
 
-    if (frame) {
+    if (frames.length) {
       window.addEventListener('message', e => {
-        if (e.source !== frame.contentWindow) return;
+        const src = frames.find(f => f.contentWindow === e.source);
+        if (!src) return;
         const data = e.data;
-        if (!data || data.type !== 'cursor') return;
+        if (!data) return;
+        /* 屏3 里调「图标行高／两行间距」会改变内容高度，在这里同步 iframe 高度 */
+        if (data.type === 'resize') { if (typeof syncSkillsHeight === 'function') syncSkillsHeight(); return; }
+        if (data.type !== 'cursor') return;
         if (data.visible) {
           inIframe = true;
-          const r = frame.getBoundingClientRect();
+          const r = src.getBoundingClientRect();
           tx = r.left + data.x;
           ty = r.top + data.y;
         } else {
@@ -1261,6 +1252,34 @@
     spHero.addEventListener('mouseenter', () => spVideo.play().catch(() => {}));
     spHero.addEventListener('mouseleave', () => spVideo.pause());
   }
+
+  /* ---------- 03 SKILLS（屏3）iframe 高度自适应 ----------
+     屏3 是响应式布局，内容高度随视口宽度变化，不能像屏2 那样写死 aspect-ratio。
+     同源 iframe，直接读内部文档高度同步过来；图片与字体加载会改变高度，故多次校准。 */
+  var syncSkillsHeight = null;
+  (function(){
+    var f = document.getElementById('skillsFrame');
+    if(!f) return;
+    function sync(){
+      try{
+        var d = f.contentDocument;
+        if(!d) return;
+        var h = Math.max(d.documentElement.scrollHeight || 0, d.body.scrollHeight || 0);
+        if(h > 300) f.style.height = h + 'px';
+      }catch(e){}
+    }
+    f.addEventListener('load', function(){
+      sync(); setTimeout(sync, 300); setTimeout(sync, 1200);
+      /* 屏3 里用滑轨调「图标行高／两行间距」会改变整页高度 → 用 ResizeObserver 自动跟上 */
+      try{
+        var d = f.contentDocument;
+        if(window.ResizeObserver && d && d.body) new ResizeObserver(sync).observe(d.body);
+      }catch(e){}
+    });
+    var t;
+    window.addEventListener('resize', function(){ clearTimeout(t); t = setTimeout(sync, 150); });
+    syncSkillsHeight = sync;      /* 供 iframe 发来的 resize 消息调用 */
+  })();
 
   /* ---------- 02 SELECTED WORKS：手机端切竖屏版 + iframe 高度自适应 ----------
      >640px：video-stage.html（1972×980 横版舞台，3D 卡片画廊）

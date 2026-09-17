@@ -1,0 +1,1622 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SKILLS · LI SHUAI</title>
+<link href="assets/fonts/fonts.css" rel="stylesheet" />
+<style>
+/* ============================================================
+   品牌基础 —— 与主站保持一致
+   暗色 + 白 alpha 分层 + 品牌绿 #CCFF00 + Minimal Editorial
+   ============================================================ */
+:root{
+  --bg:#111111;
+  /* 与主站 index.html 的 --margin 保持三档一致（56/32/20），左右对齐全靠它。
+     主站若改 --margin，这里要同步。 */
+  --page-margin:56px;
+  --loop-pad:2px;   /* 图标行上下留白（面板"图标行高"可调） */
+  --loop-gap:0px;    /* 两行图标之间的距离（面板"两行间距"可调）。用户 2026-09-13 拖到 0：两行紧贴 */
+  --panel:rgba(255,255,255,.03);
+  --line:rgba(255,255,255,.10);
+  --txt:#ffffff;
+  --txt-2:rgba(255,255,255,.62);
+  --txt-3:rgba(255,255,255,.34);
+  --accent:#CCFF00;
+
+  --gap:12px;          /* 工具卡间距（面板可调） */
+  --logoH:42px;        /* 工具卡高度（面板可调） */
+  --tile:clamp(96px,13vw,176px);  /* 主角位方形瓦片边长；JS 会按右侧文字块实测高度覆盖（瓦片缩到与文字等高） */
+  --c-rx:0deg;         /* 环形 俯仰（面板可调） */
+  --c-ry:0deg;         /* 环形 左右摆角（面板可调） */
+  --c-rz:-30deg;       /* 环形 平面旋转（面板可调） */
+  --c-persp:500px;     /* 环形 透视强度（面板可调） */
+  --c-tx:26px;         /* 环形 横向偏移（面板可调） */
+  --c-ty:-8px;         /* 环形 纵向偏移（面板可调） */
+  --ring-size:120px;   /* 环形直径（面板可调） */
+  --ring-dx:69px;      /* 环心把手拖出来的横向平移（JS 写，不动角度参数） */
+  --ring-dy:23px;      /* 环心把手拖出来的纵向平移 */
+  --fade:#111111;      /* 边缘淡出色 = 背景色 */
+
+  /* ---- 环形「绑定到标题文字」的锚点 ----
+     --ring-anchor-x/y = MY SKILLS 文字的中心（相对 .skills 左上角）。
+     下面给的是兜底值（= 满字号 104px 时的实测值）；JS layoutRing() 会按标题文字的实际
+     包围盒覆盖它，所以标题字号随视口变化（见 .title 的 font-size 公式）时，环依然跟着文字走。 */
+  --ring-anchor-x:calc(max((100% - 1440px) / 2, 0px) + var(--page-margin) + 303px);
+  --ring-anchor-y:208px;
+
+  /* 环形定位与 3D 变换：.curved-wrap（环本体）与 .ring-hub-layer（环心把手的承载层）
+     共用这两个变量 —— 保证把手永远落在环的几何圆心上，且跟随同样的角度。
+     + ringSize*0.262 是老版本对 _circlePath 圆心偏移的写死补偿；现在环心由 placeRingHub()
+     实测，这一项只作为「维持用户已调好构图」的常量保留（改动它会让整环平移）。 */
+  /* --ring-k：环随标题字号的缩放比（1 = 满字号 104px，即用户调好的状态）。
+     --ring-s：实际生效的环尺寸 = 面板值 ringSize × --ring-k。两者都由 JS 写入。
+     做法：把"环的尺寸 + 所有偏移项"统一乘 --ring-k，而不是用 transform:scale() ——
+     因为 --ring-x 里还有 0.262×ringSize 这类常量，用 scale() 它们不会跟着缩，窄屏会漂。 */
+  --ring-k:1;
+  --ring-s:var(--ring-size,176px);
+  --ring-x:calc(var(--ring-anchor-x) + var(--ring-s) * 0.262 + var(--ring-dx,0px) * var(--ring-k));
+  --ring-y:calc(var(--ring-anchor-y) - var(--ring-s) / 2 + var(--ring-dy,0px) * var(--ring-k));
+  --ring-tf:perspective(calc(var(--c-persp,1600px) * var(--ring-k)))
+            rotateX(var(--c-rx,0deg)) rotateY(var(--c-ry,0deg)) rotateZ(var(--c-rz,0deg))
+            translateX(calc(var(--c-tx,0px) * var(--ring-k)))
+            translateY(calc(var(--c-ty,0px) * var(--ring-k)));
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);}
+body{
+  cursor:none;                  /* 嵌入主站时由父站统一画绿点光标（见文件末尾的坐标同步） */
+  color:var(--txt);
+  font-family:"Fira Sans","Helvetica Neue",Arial,"PingFang SC","Microsoft YaHei",sans-serif;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+@media (pointer:coarse){ body{cursor:auto} }   /* 触屏没有悬停光标，恢复系统默认 */
+
+.skills{
+  /* 顶部留白 120 → 88px：与屏2 的"眉标距区块顶"统一为 88px（原来 120 vs 227，两屏不一致）。
+     88 是下限——导航 fixed 高 80px，再小内容会被导航压住。底部 140px 未动。 */
+  padding:88px 0 140px;
+  position:relative;
+}
+
+/* ---------- 标题区 ---------- */
+.skills__hd{
+  width:min(1440px,100%);
+  padding-left:var(--page-margin);    /* 与主站 .page 的左右边距完全一致 → 左缘对齐 */
+  padding-right:var(--page-margin);
+  margin:0 auto 56px;
+  position:relative;z-index:1;   /* 标题压在环形之上（环形是标题背后的装饰） */
+}
+.eyebrow{
+  font-size:13px;letter-spacing:.28em;text-transform:uppercase;
+  color:var(--txt-3);margin-bottom:22px;
+}
+.eyebrow b{color:var(--accent);font-weight:600}
+.title{
+  font-family:"Lexend","Helvetica Neue",Arial,sans-serif;
+  font-weight:800;
+  /* 字号与屏2 大标题保持一致：屏2 是 1972 宽的固定画布等比缩放，
+     99px × (iframe宽1440/1972) = 72.3px 且 iframe 封顶 1440 → 基本恒定。
+     这里按同一比例换算：内容宽（min(1440px,100vw)-2×page-margin）× 0.0545
+     （1920 视口：1328×0.0545=72.3 ✓；1440 视口：1310×0.0545=71.4 = 屏2 实测值 ✓）
+     改大标题字号会连带缩放环形（环与字号等比绑定，见 --ring-k），这是既有设计。 */
+  font-size:clamp(24px, calc((min(1440px, 100vw) - var(--page-margin) * 2) * 0.0545), 200px);
+  line-height:.94;letter-spacing:-.03em;
+  text-transform:uppercase;
+}
+.title span{color:var(--accent)}
+.sub{
+  margin-top:22px;max-width:52ch;
+  font-size:clamp(14px,1.1vw,17px);line-height:1.7;color:var(--txt-2);
+}
+
+/* ---------- 弧形流动文字（CurvedLoop） ---------- */
+/* 环形锚定到 MY SKILLS 文字：绝对定位，锚点 --ring-anchor-x/y 由 JS 实测文字包围盒写入，
+   尺寸与偏移统一乘 --ring-k 随标题字号等比缩放 → 任何窗口宽度下环与文字的关系完全一致；
+   --c-tx / --c-ty 仍可在面板里微调。 */
+.curved-wrap{
+  position:absolute;
+  left:var(--ring-x);
+  top:var(--ring-y);
+  width:var(--ring-s,176px);
+  margin:0;
+  z-index:0;                    /* 压在标题之下，当背景装饰 */
+  display:flex;justify-content:center;align-items:center;
+  transform:var(--ring-tf);     /* 3D 角度（俯仰/摆角/平面旋转/透视/偏移），默认全 0 = 平面圆环 */
+  transform-origin:50% 50%;
+  will-change:transform;
+}
+/* 环心把手的承载层：位置/尺寸/transform 与 .curved-wrap 完全一致，
+   但 z-index 在标题之上 —— 否则把手会正好被 MY SKILLS 的字母盖住、看不见也点不到。 */
+.ring-hub-layer{
+  position:absolute;
+  left:var(--ring-x);
+  top:var(--ring-y);
+  width:var(--ring-s,176px);
+  height:var(--ring-s,176px);
+  transform:var(--ring-tf);
+  transform-origin:50% 50%;
+  pointer-events:none;          /* 层本身不挡交互，只有把手可点 */
+  z-index:5;
+}
+.curved-loop-jacket{
+  width:100%;display:flex;align-items:center;justify-content:center;
+  user-select:none;-webkit-user-select:none;
+}
+.curved-loop-svg{
+  width:100%;aspect-ratio:100/12;overflow:visible;display:block;
+  font-size:6rem;font-weight:700;text-transform:uppercase;line-height:1;
+  fill:var(--accent);
+  user-select:none;-webkit-user-select:none;
+}
+/* 环形模式：方形、尺寸由 --ring-size 控制，可缩小成画面里的一个环 */
+.curved-loop-svg.is-ring{ width:var(--ring-s,176px); aspect-ratio:1; }
+.curved-loop-jacket{visibility:hidden}   /* 测量完成后由 JS 置为 visible */
+
+/* 环心拖动把手：抓住它平移整个环。
+   只写 --ring-dx / --ring-dy，绝不触碰 --c-rx/ry/rz/persp/tx/ty，所以拖动不会重置角度。
+   注意 left/top 这里只是兜底值 —— 实际位置由 JS 从圆弧路径采样三点求外心后写 inline style。
+   原因：_circlePath 用 "A r,r 0 1,1" 画弧，缺口角度一变浏览器会选到另一个圆心，
+   环会翻到 viewBox 另一侧，任何写死的补偿值都会失效。 */
+.ring-hub{
+  position:absolute;
+  left:50%;
+  top:50%;
+  width:22px;height:22px;margin:-11px 0 0 -11px;
+  border-radius:50%;
+  background:var(--accent);                 /* 实心品牌绿点 */
+  border:1px solid #111111;                 /* 深色描边：压在绿色标题字母上时靠它区分 */
+  box-shadow:0 0 0 2px rgba(10,10,10,.6), 0 0 14px rgba(204,255,0,.45);
+  cursor:grab;touch-action:none;z-index:6;
+  pointer-events:auto;          /* 承载层是 none，这里单独打开 */
+  transition:box-shadow .2s ease, transform .2s ease;
+}
+.ring-hub:hover{box-shadow:0 0 0 3px rgba(10,10,10,.68), 0 0 18px rgba(204,255,0,.75)}
+.ring-hub.is-drag{cursor:grabbing;transform:scale(1.2)}
+/* 深色十字准星，同样是为了在绿底上也能看清中心 */
+.ring-hub::before,.ring-hub::after{content:"";position:absolute;left:50%;top:50%;background:#111111;opacity:.82}
+.ring-hub::before{width:10px;height:1.5px;transform:translate(-50%,-50%)}
+.ring-hub::after{width:1.5px;height:10px;transform:translate(-50%,-50%)}
+
+/* ---------- 工具滚动行（LogoLoop） ---------- */
+/* 内容压在媒体残影之上（残影是环境光晕，属于背景层；不给 z-index 会被它轻微盖住） */
+.loops{display:flex;flex-direction:column;gap:var(--loop-gap,22px);position:relative;z-index:1}
+.loop-row{position:relative;width:100%}
+.loop-label{
+  width:min(1440px,100%);padding-left:var(--page-margin);padding-right:var(--page-margin);margin:0 auto 12px;
+  font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--txt-3);
+  display:flex;align-items:center;gap:10px;
+}
+.loop-label::after{content:"";flex:1;height:1px;background:var(--line)}
+
+.logoloop{
+  position:relative;overflow:hidden;width:100%;
+  padding:var(--loop-pad,16px) 0;   /* 上下留白由面板"图标行高"控制 */
+}
+.logoloop__track{display:flex;width:max-content;will-change:transform;user-select:none;position:relative;z-index:0}
+.logoloop__list{display:flex;align-items:center;list-style:none}
+.logoloop__item:last-child{margin-right:var(--gap)}
+
+/* 工具行卡：纯图标（无方框 / 无名字 —— 名字由上方主角位给出）。
+   Kling / LiblibAI 已用 icons/*-n.png（预先把 logo 放大裁掉多余透明边），
+   所以所有图标都能在"统一格子 contain"下视觉一致。 */
+.logoloop__item{
+  flex:0 0 auto;margin-right:var(--gap);
+  height:calc(var(--logoH) * 1.3);
+  display:flex;align-items:center;
+}
+.skill{
+  display:inline-flex;align-items:center;
+  height:100%;
+}
+/* 统一对齐格子：每个图标居中在等宽格子里（透明、无边框） */
+.skill__icon{
+  position:relative;
+  width:calc(var(--logoH) * 1.7);
+  height:100%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:calc(var(--logoH) * .85);   /* 字母 fallback 与图标视觉同高 */
+  font-weight:800;letter-spacing:-.02em;
+  color:rgba(216,214,212,.5);            /* 字母 fallback（SD）：默认 50% 透明（整行图标不抢眼），hover 时回到不透明并变品牌绿 */
+  font-family:"Lexend","Helvetica Neue",Arial,sans-serif;
+  flex:none;
+  transition:color .3s ease;
+}
+/* 默认：原色（白/彩） */
+.skill__icon img{
+  max-width:calc(var(--logoH) * 1.2);
+  max-height:calc(var(--logoH) * .85);
+  width:auto;height:auto;
+  object-fit:contain;
+  opacity:.5;                            /* 默认 50%：工具行整体降低存在感，hover 时回到 100% 并变绿 */
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,.3));
+  transition:opacity .3s ease, transform .35s cubic-bezier(.4,0,.2,1), filter .3s ease;
+}
+/* hover：品牌绿上色 —— 与"正片叠底"同款的数学运算（feColorMatrix 把像素亮度映射成绿色）。
+   白 → 精确品牌绿 #CCFF00；灰 → 按比例变深的绿（保留图标原有灰阶层次，不是拍平成一块纯色）。
+   为什么不用 mix-blend-mode:multiply：它会把整格的透明区也一起乘暗
+   （页面底 #111111 乘绿后蓝色通道必然归 0）→ 实测会露出一圈可见的淡方块。
+   feColorMatrix 只作用于图标像素本身并保留 alpha，透明区完全不动 → 无方块。
+   【也不要改回 mask-image】：它指向本地图片时在 file:// 下会被浏览器拦截，
+   遮罩层变全透明 → 表现为"只有 SD 字母变绿、PNG 图标都不变"。 */
+.logoloop--scale-hover .logoloop__item:hover .skill__icon img,
+.logoloop--scale-hover .logoloop__item.is-hovered .skill__icon img{
+  transform:scale(1.1);
+  opacity:1;
+  filter:url(#brandgreen);
+}
+/* 字母 fallback（SD）：hover 直接变精确品牌绿 */
+.logoloop--scale-hover .logoloop__item:hover .skill__icon,
+.logoloop--scale-hover .logoloop__item.is-hovered .skill__icon{color:var(--accent)}
+
+/* 边缘淡出 */
+.logoloop--fade::before,.logoloop--fade::after{
+  content:"";position:absolute;top:0;bottom:0;width:clamp(40px,10%,160px);
+  pointer-events:none;z-index:10;
+}
+.logoloop--fade::before{left:0;background:linear-gradient(to right,var(--fade) 0%,rgba(0,0,0,0) 100%)}
+.logoloop--fade::after{right:0;background:linear-gradient(to left,var(--fade) 0%,rgba(0,0,0,0) 100%)}
+
+/* ---------- 主角位（Editorial 焦点区）：悬停工具带 → 显示该软件 ---------- */
+.spotlight{
+  width:min(1440px,100%);padding-left:var(--page-margin);padding-right:var(--page-margin);margin:0 auto 18px;
+  display:flex;align-items:center;gap:clamp(22px,4vw,56px);
+  min-height:clamp(150px,22vh,240px);
+  user-select:none;
+  position:relative;z-index:1;          /* 压在媒体残影之上 */
+}
+.spotlight__art{flex:none;display:flex;align-items:center}
+.spotlight__tile{
+  width:var(--tile,clamp(96px,13vw,176px));aspect-ratio:1;
+  border-radius:18px;
+  overflow:hidden;                 /* 保险：内容（如 SD 字母）永不越出方框 */
+  background:var(--panel);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 30px 70px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.04);
+  transition:border-color .4s ease;
+}
+.spotlight__tile img{
+  width:56%;height:56%;object-fit:contain;
+  /* 用 D:/导入 原图标的本来样子（保留明暗层次），不再强制压成纯白剪影 */
+  filter:drop-shadow(0 4px 14px rgba(0,0,0,.45));
+}
+.spotlight__tile span{
+  font-family:"Lexend","Helvetica Neue",Arial,sans-serif;
+  font-weight:800;
+  /* 字号挂到瓦片尺寸上（原来独立用 6vw/84px，瓦片从 176 缩到 99 后没跟着缩 → SD 溢出方框）。
+     0.46 × 瓦片：99px 瓦片 → 45.5px，两个字总宽约 60px，既不出框、视觉分量也与其他 54px 图标相当。 */
+  font-size:calc(var(--tile, 96px) * 0.46);
+  line-height:1;
+  /* 亮度对齐 PNG 图标（图标不透明区平均约 204）：原来用 --txt-3(34%白≈98) 显得过浅。 */
+  color:rgba(255,255,255,.80);
+}
+/* 文字块保持自然高度（不拉伸）。方形瓦片反过来缩小到与它等高：
+   --tile 由 JS 实测 .spotlight__body 的高度写入，父级 align-items:center 保证两者居中对齐。 */
+.spotlight__body{min-width:0}
+.spotlight__eyebrow{
+  display:flex;align-items:center;gap:10px;
+  font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--txt-3);
+  margin-bottom:14px;
+}
+.spotlight__eyebrow::before{content:"";width:26px;height:1px;background:var(--accent)}
+.spotlight__eyebrow b{color:var(--accent);font-weight:600}
+.spotlight__name{
+  font-family:"Lexend","Helvetica Neue",Arial,sans-serif;
+  font-weight:800;
+  /* 与 .title 同一套坐标系、固定取其 55% —— 任何宽度下都严格低于大标题一级，
+     不会再出现"软件名跟大标题一样大"的观感。1920 视口实测 ≈ 39.8px（大标题 72.38px）。
+     连带：瓦片（--tile）由 JS 按 .spotlight__body 高度写入 → 瓦片与图标会一起等比缩小。 */
+  font-size:clamp(24px, calc((min(1440px, 100vw) - var(--page-margin) * 2) * 0.030), 44px);
+  line-height:.92;letter-spacing:-.02em;
+  color:var(--txt);
+}
+.spotlight__meta{
+  margin-top:14px;font-size:clamp(13px,1vw,15px);
+  color:var(--txt-2);letter-spacing:.04em;
+}
+.spotlight__meta i{
+  font-style:normal;color:var(--accent);
+  border:1px solid rgba(204,255,0,.4);border-radius:99px;
+  padding:3px 10px;font-size:10px;letter-spacing:.14em;margin-right:10px;
+  text-transform:uppercase;
+}
+/* 切换过渡：大字**不完全消失**，只"沉一下"再浮回来。
+   退场快（0.1s：压到 .35 + 下沉 4px）→ 在最低点换内容 → 入场慢（0.24s）回位。
+   这样"换内容"那一下被藏在最暗处，全程文字都在，不会出现"空一下"。
+   eyebrow（AI · TOOLS）和 meta（[AI] 图像生成）**都不参与** ——
+   这两行位置钉死、原地换字，不跟着大字一起位移，否则整块内容像在上下弹跳。 */
+.spotlight__name,
+.spotlight__tile img,
+.spotlight__tile span{
+  transition:opacity .24s ease, transform .24s cubic-bezier(.4,0,.2,1);
+}
+.spotlight.swap .spotlight__name,
+.spotlight.swap .spotlight__tile img,
+.spotlight.swap .spotlight__tile span{
+  opacity:.35; transform:translateY(4px) scale(.985);
+  transition-duration:.1s;                 /* 退场比入场快 —— 利落，不拖泥带水 */
+}
+
+/* ---------- 右侧媒体窗口（当前软件的设计图 / 之后换视频） ----------
+   左右：对齐内容容器 —— 右缘 = 内容右缘，宽度 = 内容宽 × 0.54（用户红框实测比例）。
+   上下：--stage-top / --stage-h 由 JS 实测写入（top = 大标题顶边，height = 到底部内容块底边）。 */
+.stage{
+  position:absolute;
+  /* 坐标系与主站 .page 一致：内容区左缘 = max((100%-1440px)/2,0)+page-margin，
+     再取内容区（宽 - 2×margin）的右侧 --stage-ratio。窄屏时左缘退化为 page-margin。
+     ⚠️ 画面大小由"宽度"决定（视频 16:9 级 → 按宽撑满）；改高度不会让画面变大。 */
+  --stage-ratio:0.62;
+  left:calc(max((100% - 1440px) / 2, 0px) + var(--page-margin) + (min(1440px, 100%) - var(--page-margin) * 2) * (1 - var(--stage-ratio)));
+  width:calc((min(1440px, 100%) - var(--page-margin) * 2) * var(--stage-ratio));
+  top:var(--stage-top,170px);
+  height:var(--stage-h,400px);
+  display:flex;align-items:center;justify-content:flex-end;  /* 图片右缘贴齐窗口右缘（右边不留空） */
+  pointer-events:none;                 /* 不挡下面两行图标的悬停 */
+  z-index:0;
+}
+/* 主图：矩形羽化 —— 四条边各羽化最外侧约 5%。
+   用两层线性渐变做"交集"（mask-composite:intersect），
+   不能用 radial-gradient（径向的实心区是椭圆，会把画面切成椭圆）。
+   想调羽化宽度改那两个 5%（调大=羽化更宽、调小=更锐）。 */
+.stage__media{
+  /* 绝对定位 + margin:auto → 两个 video 完全重叠（交叉淡化必需）。
+     若用 position:relative，两个元素会左右并排而不是叠在一起。 */
+  position:absolute;left:0;right:0;top:0;bottom:0;margin:auto;z-index:1;
+  /* 等比缩放、绝不拉伸：max-width 与 max-height 双重约束，取"刚好装进窗口"的那一档。
+     ⚠️ 别改回 height:100% —— 那样宽度靠 max-width 封顶时，高度不会跟着缩，
+        宽高比大于窗口的图（例如 16:9）会被横向压扁（实测 1.778 被压到 1.569）。
+     适配比例：4:3 → 609×457（按高撑满）；16:9 → 717×403（按宽撑满，上下各留 27px）。 */
+  width:auto;height:auto;max-width:100%;max-height:100%;
+  object-fit:contain;display:block;
+  -webkit-mask-image:linear-gradient(to right, rgba(0,0,0,0) 0, #000 5%, #000 95%, rgba(0,0,0,0) 100%),
+                     linear-gradient(to bottom, rgba(0,0,0,0) 0, #000 5%, #000 95%, rgba(0,0,0,0) 100%);
+          mask-image:linear-gradient(to right, rgba(0,0,0,0) 0, #000 5%, #000 95%, rgba(0,0,0,0) 100%),
+                     linear-gradient(to bottom, rgba(0,0,0,0) 0, #000 5%, #000 95%, rgba(0,0,0,0) 100%);
+  -webkit-mask-composite:source-in;    /* 老写法（Safari/旧 Chrome） */
+          mask-composite:intersect;    /* 标准写法 */
+  /* 抬黑：把图片的黑场对齐到页面背景 #111111，消除"图片比背景更深"的色块感。
+     不需要就删掉这一行（详见 SVG 里 #liftblack 的注释）。 */
+  filter:url(#liftblack);
+  opacity:0;transition:opacity .45s ease;
+}
+/* 两个 video 用同一条曲线、同时开始 → 两者 opacity 之和恒为 1，交叉区不会"暗一下"。
+   （给淡入单独加 delay 的话，中间会出现两边都不满 → 整体亮度掉到 0.5，反而更生硬；
+     真正需要"错开"的是文字与画面之间，那个由 JS 的 300ms 时序负责。） */
+.stage__media.is-on{opacity:1}
+/* 背后的"大残影"：同一张图放大很多倍 + 10% 透明度 + 外侧羽化 20% → 环境光晕。
+   高度倍数/透明度/羽化都在这三条里调。
+   ⚠️ 用 bottom:0 而不是居中：残影只向上/左右扩，**绝不向下溢出**，
+   否则会盖到下面两行滚动的图标上（用户反馈那样很乱）。 */
+.stage__ghost{
+  /* 【已关闭】背后的大残影（10% 环境光晕）——用户反馈下面两行图标滚动时会显乱，先关掉。
+     要恢复：把下面的 display:none 改成 display:block 即可，其余参数都还在。
+     ⚠️ 一定要写在这条规则的最后：前面写会被本条自己的 display 声明覆盖掉。 */
+  position:absolute;left:50%;bottom:0;
+  transform:translateX(-50%);
+  /* 用 --stage-h 显式算高度（百分比在小盒子里解析不可靠）；1.9 = 放大倍数 */
+  height:calc(var(--stage-h,400px) * 1.9);
+  width:auto;max-width:none;
+  object-fit:contain;display:block;
+  z-index:0;
+  opacity:0;transition:opacity .5s ease;
+  /* 残影同样用矩形羽化，外侧 20% */
+  -webkit-mask-image:linear-gradient(to right, rgba(0,0,0,0) 0, #000 20%, #000 80%, rgba(0,0,0,0) 100%),
+                     linear-gradient(to bottom, rgba(0,0,0,0) 0, #000 20%, #000 80%, rgba(0,0,0,0) 100%);
+          mask-image:linear-gradient(to right, rgba(0,0,0,0) 0, #000 20%, #000 80%, rgba(0,0,0,0) 100%),
+                     linear-gradient(to bottom, rgba(0,0,0,0) 0, #000 20%, #000 80%, rgba(0,0,0,0) 100%);
+  -webkit-mask-composite:source-in;
+          mask-composite:intersect;
+  display:none;                 /* ← 残影开关：改成 block 即恢复（必须放最后） */
+}
+.stage__ghost.is-on{opacity:.10}
+
+/* ---------- 调参面板 ---------- */
+.panel{
+  position:fixed;top:18px;right:18px;z-index:999;
+  width:270px;padding:16px 16px 12px;
+  background:rgba(20,20,20,.94);border:1px solid var(--line);border-radius:12px;
+  backdrop-filter:blur(12px);
+  font-size:12px;color:var(--txt-2);
+  /* 滑轨变多后整块会超出窗口高度、底部「复制参数」被裁掉。
+     所以：面板限高 = 视口高 - 上下各 18px；只让中间的滑轨区滚动，
+     标题头和底部按钮固定 —— 按钮永远够得着。 */
+  max-height:calc(100vh - 36px);
+  display:flex;flex-direction:column;
+  overflow:hidden;
+}
+.panel__hd{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:12px;cursor:move;user-select:none;
+}
+.panel__hd b{color:var(--accent);font-size:12px;letter-spacing:.1em;text-transform:uppercase}
+.panel__toggle{
+  background:none;border:1px solid var(--line);color:var(--txt-3);
+  width:22px;height:22px;border-radius:6px;cursor:pointer;font-size:13px;line-height:1;
+}
+.panel__body{
+  display:flex;flex-direction:column;gap:11px;
+  flex:1 1 auto;min-height:0;        /* min-height:0 是 flex 子项能滚动的前提 */
+  overflow-y:auto;padding-right:6px;
+  scrollbar-width:thin;              /* Firefox */
+}
+.panel__body::-webkit-scrollbar{width:6px}
+.panel__body::-webkit-scrollbar-track{background:transparent}
+.panel__body::-webkit-scrollbar-thumb{background:rgba(204,255,0,.28);border-radius:3px}
+.panel__body::-webkit-scrollbar-thumb:hover{background:rgba(204,255,0,.5)}
+.panel.collapsed .panel__body{display:none}
+/* 按钮和提示已移出滚动区，折叠时也要一起收起 */
+.panel.collapsed .panel__btns,
+.panel.collapsed .panel__hint{display:none}
+.ctl{display:flex;flex-direction:column;gap:5px}
+.ctl__row{display:flex;justify-content:space-between;align-items:baseline}
+.ctl__row label{color:var(--txt-3)}
+.ctl__row output{color:var(--accent);font-variant-numeric:tabular-nums;font-weight:600}
+input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer}
+.panel__sec{
+  margin-top:4px;padding-top:10px;border-top:1px solid var(--line);
+  font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--txt-3);
+}
+.panel__btns{display:flex;gap:8px;margin-top:12px}
+.btn{
+  flex:1;padding:7px 0;border:1px solid var(--line);border-radius:7px;
+  background:none;color:var(--txt-2);font-size:11px;cursor:pointer;
+  transition:all .25s;
+}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn--go{background:var(--accent);color:#111111;border-color:var(--accent);font-weight:600}
+.btn--go:hover{background:#d9ff33;color:#111111}
+.panel__hint{margin-top:10px;font-size:10px;line-height:1.6;color:var(--txt-3)}
+
+/* ---------- 无障碍：尊重系统减弱动效 ---------- */
+@media (prefers-reduced-motion: reduce){
+  .logoloop__track{transform:translate3d(0,0,0) !important}
+  .skill{transition:none !important}
+}
+
+/* ---------- 窄屏 ---------- */
+@media (max-width:768px){
+  .curved-loop-svg{font-size:3.2rem;aspect-ratio:100/16}
+  :root{--gap:10px;--logoH:36px}   /* 小屏按同样比例收一档 */
+  .panel{width:calc(100vw - 36px)}
+}
+
+/* —— 与主站一致的左右边距断点（.page 的 --margin 三档）—— */
+@media (max-width:1024px){ :root{ --page-margin:32px } }
+@media (max-width:640px){ :root{ --page-margin:20px } }
+</style>
+</head>
+<body>
+
+<!-- 品牌绿上色滤镜 —— 等价于"正片叠底"，但保留 alpha、不会产生方块：
+     R'=0.8·L，G'=1.0·L，B'=0  （L = 0.2126R + 0.7152G + 0.0722B）
+     纯白 L=1 → (204,255,0) 精确品牌绿；灰 → 按比例变深的绿，图标原有灰阶层次全部保留。
+     color-interpolation-filters="sRGB" 必须保留，否则会在 linearRGB 下算偏色。
+     内联 SVG 不抓外部资源，file:// / http / 线上均生效。 -->
+<svg width="0" height="0" aria-hidden="true" style="position:absolute;pointer-events:none">
+  <filter id="brandgreen" color-interpolation-filters="sRGB"
+          x="-10%" y="-10%" width="120%" height="120%">
+    <feColorMatrix type="matrix" values="
+      0.17008 0.57216 0.05776 0 0
+      0.21260 0.71520 0.07220 0 0
+      0       0       0       0 0
+      0       0       0       1 0"/>
+  </filter>
+
+  <!-- 抬黑滤镜：把设计图的"黑"抬到和页面背景 #111111(17) 一致，消除图片与背景的色差。
+       参数：out = in × slope + intercept（归一化），由"该图黑场→背景色、255→255"解出。
+       这里的数值是**首图 liblibai 的默认值**（黑场 5.1 → 17），
+       切换图片时由 JS 的 applyLift() 按每张图自己的黑场动态改写这两个属性。
+       所以改页面背景色时只要改 JS 里的 LIFT_BG，不用动这里。
+       ⚠️ 关掉：删掉 .stage__media 上的 filter:url(#liftblack) 即可。 -->
+  <filter id="liftblack" color-interpolation-filters="sRGB">
+    <feComponentTransfer>
+      <feFuncR type="linear" slope="0.9524" intercept="0.0476"/>
+      <feFuncG type="linear" slope="0.9524" intercept="0.0476"/>
+      <feFuncB type="linear" slope="0.9524" intercept="0.0476"/>
+    </feComponentTransfer>
+  </filter>
+</svg>
+
+<section class="skills">
+
+  <!-- 标题区 -->
+  <div class="skills__hd">
+    <div class="eyebrow"><b>02</b> &nbsp;/&nbsp; SKILLS</div>
+    <h1 class="title">MY <span>SKILLS</span></h1>
+    <p class="sub">工具是思维的延伸，创意是解决问题的钥匙。覆盖商业视觉全链路的创作工具与技能体系。</p>
+  </div>
+
+  <!-- 弧形流动文字（CurvedLoop 原生版） -->
+  <div class="curved-wrap">
+    <div id="curved1"></div>
+  </div>
+
+  <!-- 环心拖动把手：拖动平移整个环（只改 --ring-dx/--ring-dy，不重置任何角度参数） -->
+  <div class="ring-hub-layer">
+    <div class="ring-hub" id="ringHub" title="拖动可平移环形（不影响角度参数）· 双击归位"></div>
+  </div>
+
+  <!-- 主角位（Editorial 焦点区）：悬停两行工具带任意卡 → 这里切换成该软件 -->
+  <div class="spotlight" id="spotlight">
+    <div class="spotlight__art">
+      <div class="spotlight__tile" id="spotTile"><img src="icons-final/liblibai.png" alt="L" draggable="false"/></div>
+    </div>
+    <div class="spotlight__body">
+      <div class="spotlight__eyebrow" id="spotEyebrow">AI <b>·</b> TOOLS</div>
+      <h2 class="spotlight__name" id="spotName">LiblibAI</h2>
+      <div class="spotlight__meta" id="spotMeta"><i>AI</i>图像生成</div>
+    </div>
+  </div>
+
+  <!-- 右侧媒体窗口：显示当前软件的"设计图 / 视频"，边缘羽化融入背景。
+       位置由 JS 实测（top = 大标题顶边，height = 到聚光灯底边），左右由内容容器公式算。
+       之后把图片换成视频：把下面 <img> 换成 <video muted autoplay loop playsinline>，
+       并把 ROW 里的 media 改成对应的 .mp4 路径即可（视频不需要羽化的话删掉 .stage__media 的 mask）。 -->
+  <div class="stage" id="stage" aria-hidden="true">
+    <!-- 背后的大残影（同一张图放大 1.9 倍 / 10% 透明度 / 外侧羽化 20%），先于主图 → 画在下面 -->
+    <video class="stage__media" id="stageMedia" src="media/liblibai.mp4?v=20260915c"
+           muted autoplay loop playsinline preload="auto" draggable="false"></video>
+    <!-- 第二个 video：专用于「交叉淡化」。两个元素交替当"当前/待播"。
+         只有一个元素时，换 src 会立刻清空当前帧 → 中间一段空白，
+         淡出变成"淡出一块空白"，这就是右侧切换生硬的主因。 -->
+    <video class="stage__media" id="stageMedia2"
+           muted loop playsinline preload="none" draggable="false"></video>
+  </div>
+
+  <!-- 工具无限滚动（LogoLoop 原生版）
+       第一排标签：文字已删、只留横线（::after flex:1 自动贯穿整行）；
+       第二排标签：整行已按需求删除。要恢复标签就把文字填回 div 里。 -->
+  <div class="loops">
+    <div class="loop-row">
+      <div class="loop-label" aria-hidden="true"></div>
+      <div id="loop1"></div>
+    </div>
+    <div class="loop-row">
+      <div id="loop2"></div>
+    </div>
+  </div>
+
+</section>
+
+<!-- 调参面板 -->
+<div class="panel" id="panel">
+  <div class="panel__hd" id="panelHd">
+    <b>调参面板</b>
+    <button class="panel__toggle" id="panelToggle" type="button">–</button>
+  </div>
+  <div class="panel__body">
+
+    <div class="panel__sec">环形文字 · CurvedLoop</div>
+    <div class="ctl">
+      <div class="ctl__row"><label>旋转速度</label><output id="o-cSpeed"></output></div>
+      <input type="range" id="cSpeed" min="0" max="8" step="0.1" value="0.3">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>环尺寸</label><output id="o-cRing"></output></div>
+      <input type="range" id="cRing" min="120" max="460" step="4" value="120">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>字号</label><output id="o-cSize"></output></div>
+      <input type="range" id="cSize" min="3" max="12" step="0.2" value="12">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>缺口大小</label><output id="o-cGap"></output></div>
+      <input type="range" id="cGap" min="0" max="180" step="1" value="180">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>缺口朝向</label><output id="o-cGapA"></output></div>
+      <input type="range" id="cGapA" min="0" max="360" step="1" value="349">
+    </div>
+
+    <div class="panel__sec">工具行 · LogoLoop</div>
+    <div class="ctl">
+      <div class="ctl__row"><label>第一行速度</label><output id="o-l1Speed"></output></div>
+      <input type="range" id="l1Speed" min="0" max="220" step="5" value="30">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>第二行速度</label><output id="o-l2Speed"></output></div>
+      <input type="range" id="l2Speed" min="0" max="220" step="5" value="30">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>卡片间距</label><output id="o-gap"></output></div>
+      <input type="range" id="gap" min="12" max="90" step="2" value="12">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>卡片高度</label><output id="o-logoH"></output></div>
+      <input type="range" id="logoH" min="24" max="86" step="2" value="42">
+    </div>
+
+    <div class="panel__sec">环形 · 3D 角度（俯仰/摆角/旋转/透视/偏移）</div>
+    <div class="ctl">
+      <div class="ctl__row"><label>俯仰角</label><output id="o-cRx"></output></div>
+      <input type="range" id="cRx" min="-30" max="30" step="1" value="0">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>左右摆角</label><output id="o-cRy"></output></div>
+      <input type="range" id="cRy" min="-30" max="30" step="1" value="0">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>平面旋转</label><output id="o-cRz"></output></div>
+      <input type="range" id="cRz" min="-30" max="30" step="1" value="-30">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>透视强度</label><output id="o-cPersp"></output></div>
+      <input type="range" id="cPersp" min="500" max="3000" step="50" value="500">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>横向偏移</label><output id="o-cTx"></output></div>
+      <input type="range" id="cTx" min="-200" max="200" step="2" value="26">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>纵向偏移</label><output id="o-cTy"></output></div>
+      <input type="range" id="cTy" min="-120" max="120" step="2" value="-8">
+    </div>
+
+    <div class="ctl">
+      <div class="ctl__row"><label>图标行高（上下留白）</label><output id="o-cLoopPad"></output></div>
+      <input type="range" id="cLoopPad" min="2" max="60" step="1" value="2">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>两行间距</label><output id="o-cLoopGap"></output></div>
+      <input type="range" id="cLoopGap" min="0" max="80" step="1" value="0">
+    </div>
+
+  </div><!-- /.panel__body：只装滑轨，内容超高时在内部滚动 -->
+
+  <!-- 按钮与提示放在滚动区【外面】→ 固定在面板底部，永远够得着、不会被裁掉 -->
+  <div class="panel__btns">
+    <button class="btn" id="btnDir" type="button">第二行反向</button>
+    <button class="btn btn--go" id="btnCopy" type="button">复制参数</button>
+  </div>
+  <div class="panel__hint">
+    拖动滑块找手感 → 点「复制参数」把数值发我，我写进正式版。<br>
+    弧形文字可用鼠标左右拖拽。<br>
+    3D 角度可单独微调弧形文字的俯仰 / 摆角 / 旋转 / 透视 / 偏移。
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CurvedLoop —— React Bits 组件的无依赖原生 JS 改写
+   原理：SVG <textPath> 沿「曲线」或「圆环」排布，每帧改 startOffset
+   实现流动，到 -spacing 时回绕一整段文字长度，形成无缝循环。
+   ring:true 时走圆形路径（文字绕环滚动），由 3D 角度面板控制倾斜。
+   ⚠️ 限制：textPath 只能承载文本，放不了 HTML 卡片。
+   ============================================================ */
+/* ============================================================
+   图标可见性说明：icons/*-n.png 为预归一化图标（把 logo 放大裁掉
+   多余透明边，使所有图标在统一格子 contain 下视觉一致）。
+   ============================================================ */
+
+class CurvedLoop{
+  constructor(root, opt={}){
+    this.root = root;
+    this.opt = Object.assign({
+      text:'',
+      speed:2,            // 每帧位移像素（按 60fps 计，内部换算成 px/ms）
+      curveAmount:400,    // 弧线弯曲量，正值向下弯（仅弧线模式）
+      direction:'left',   // 'left' | 'right'
+      interactive:true,   // 是否可鼠标拖拽
+      fontSize:'6rem',    // 仅弧线模式
+      className:'',
+      ring:false,         // true = 环形文字（文字沿圆环路径流动）
+      ringViewBox:100,    // 环形 viewBox 边长（用户单位）
+      ringRadius:44,      // 圆环半径（viewBox 单位，中心 50/50）
+      ringFont:6,         // 环形文字字号（viewBox 单位，随环缩放）
+      gap:0,             // 环形开口角度（度），0 = 完整圆
+      gapAngle:180       // 缺口朝向（度）：0=右 90=下 180=左 270=上
+    }, opt);
+    this.offset = 0;
+    this.spacing = 0;
+    this.dragging = false;
+    this.lastX = 0;
+    this.vel = 0;
+    this._build();
+    this._measure();
+    this._start();
+    if(this.opt.interactive) this._bindDrag();
+    window.addEventListener('resize', ()=>this._measure());
+  }
+
+  _svgEl(tag){ return document.createElementNS('http://www.w3.org/2000/svg', tag); }
+
+  _build(){
+    const o=this.opt;
+    this.root.innerHTML='';
+    this.root.className='curved-loop-jacket';
+
+    const svg=this._svgEl('svg');
+    svg.setAttribute('class','curved-loop-svg'+(o.ring?' is-ring':'')+(o.className?' '+o.className:''));
+    if(o.ring){
+      svg.setAttribute('viewBox',`0 0 ${o.ringViewBox} ${o.ringViewBox}`);
+    } else {
+      svg.setAttribute('viewBox','0 0 1440 120');
+      svg.style.fontSize=o.fontSize;
+    }
+
+    // 隐藏的测量文本：用来取单段文字的渲染宽度
+    const measure=this._svgEl('text');
+    measure.setAttribute('xml:space','preserve');
+    measure.style.visibility='hidden';
+    measure.style.opacity='0';
+    measure.style.pointerEvents='none';
+    if(o.ring) measure.setAttribute('font-size',o.ringFont);
+    measure.textContent=o.text;
+    svg.appendChild(measure);
+
+    // 路径定义
+    const defs=this._svgEl('defs');
+    const path=this._svgEl('path');
+    this.pathId='curve-'+Math.random().toString(36).slice(2,9);
+    path.setAttribute('id',this.pathId);
+    path.setAttribute('fill','none');
+    path.setAttribute('stroke','transparent');
+    defs.appendChild(path);
+    svg.appendChild(defs);
+
+    // 可见文本 + textPath
+    const text=this._svgEl('text');
+    text.setAttribute('font-weight','700');
+    text.setAttribute('xml:space','preserve');
+    if(o.ring) text.setAttribute('font-size',o.ringFont);
+    const tp=this._svgEl('textPath');
+    tp.setAttribute('href','#'+this.pathId);
+    tp.setAttribute('startOffset','0px');
+    tp.setAttribute('xml:space','preserve');
+    text.appendChild(tp);
+    svg.appendChild(text);
+
+    this.root.appendChild(svg);
+    this.svg=svg; this.path=path; this.measureEl=measure; this.textPath=tp; this.textEl=text;
+    this._applyPath();
+  }
+
+  // 圆环路径（viewBox 单位）：
+  //   gap = 0     → 完整圆（两段小弧拼）
+  //   gap > 0     → 带缺口的弧，缺口正对 gapAngle 方向（0°右 180°左 90°下 270°上），绕大弧避开开口
+  _circlePath(r, vb, gap, angle){
+    const c=vb/2;
+    if(!gap || gap<=0){
+      return `M ${c-r},${c} a ${r},${r} 0 1,1 ${2*r},0 a ${r},${r} 0 1,1 ${-2*r},0`;
+    }
+    const half = gap * Math.PI/360;
+    const a    = angle * Math.PI/180;
+    const sx = c + r*Math.cos(a - half);
+    const sy = c + r*Math.sin(a - half);
+    const ex = c + r*Math.cos(a + half);
+    const ey = c + r*Math.sin(a + half);
+    // sweep=1 顺时针绕大弧（300° 弧线，避开缺口方向）
+    return `M ${sx},${sy} A ${r},${r} 0 1,1 ${ex},${ey}`;
+  }
+
+  _applyPath(){
+    const o=this.opt;
+    if(o.ring){
+      this.path.setAttribute('d', this._circlePath(o.ringRadius, o.ringViewBox, o.gap||0, o.gapAngle??180));
+    } else {
+      this.path.setAttribute('d',`M-100,40 Q500,${40+o.curveAmount} 1540,40`);
+    }
+  }
+
+  // 测量单段文字宽度，据此重复足够多份填满整条路径（弧线 / 圆环通用）
+  _measure(){
+    this._applyPath();
+    const spacing=this.measureEl.getComputedTextLength();
+    if(!spacing) return;
+    this.spacing=spacing;
+    const o=this.opt;
+    const hasTrailing=/\s|\u00A0$/.test(o.text);
+    const unit=(hasTrailing ? o.text.replace(/\s+$/,''):o.text)+'\u00A0';
+    let len; try{ len=this.path.getTotalLength(); }catch(_){ len=1800; }
+    const copies=Math.max(2, Math.ceil(len/spacing)+2);
+    this.textPath.textContent=Array(copies).fill(unit).join('');
+    this.offset=-spacing;
+    this.textPath.setAttribute('startOffset',this.offset+'px');
+    this.root.style.visibility='visible';
+  }
+
+  _start(){
+    if(this.raf) cancelAnimationFrame(this.raf);
+    let last=performance.now();
+    const step=(now)=>{
+      const dt=Math.min(64, now-last);   // 防止切后台回来跳一大步
+      last=now;
+      if(!this.dragging && this.spacing){
+        const pxPerMs = this.opt.speed*60/1000;
+        const delta=(this.opt.direction==='right'?1:-1)*pxPerMs*dt;
+        let o=this.offset+delta;
+        const w=this.spacing;
+        if(o<=-w) o+=w;      // 无缝回绕
+        if(o>0)   o-=w;
+        this.offset=o;
+        this.textPath.setAttribute('startOffset',o+'px');
+      }
+      this.raf=requestAnimationFrame(step);
+    };
+    this.raf=requestAnimationFrame(step);
+  }
+
+  _bindDrag(){
+    const root=this.root;
+    root.style.cursor='grab';
+    const wrap=(v)=>{ const w=this.spacing; if(v<=-w) v+=w; if(v>0) v-=w; return v; };
+    root.addEventListener('pointerdown',e=>{
+      this.dragging=true; this.lastX=e.clientX; this.vel=0;
+      root.style.cursor='grabbing';
+      try{ root.setPointerCapture(e.pointerId); }catch(_){}
+    });
+    root.addEventListener('pointermove',e=>{
+      if(!this.dragging||!this.spacing) return;
+      const dx=e.clientX-this.lastX;
+      this.lastX=e.clientX;
+      this.vel=dx;
+      this.offset=wrap(this.offset+dx);
+      this.textPath.setAttribute('startOffset',this.offset+'px');
+    });
+    const end=()=>{
+      if(!this.dragging) return;
+      this.dragging=false;
+      root.style.cursor='grab';
+      if(this.vel!==undefined && this.vel!==0) this.opt.direction=this.vel>0?'right':'left';
+    };
+    root.addEventListener('pointerup',end);
+    root.addEventListener('pointerleave',end);
+    root.addEventListener('pointercancel',end);
+  }
+
+  // 外部调参接口
+  set(key,val){
+    this.opt[key]=val;
+    if(key==='curveAmount'){ this._applyPath(); }
+    if(key==='fontSize'){ this.svg.style.fontSize=val; }
+    if(key==='ringFont'){ this.textEl.setAttribute('font-size',val); }
+    if(key==='text'){ this.measureEl.textContent=val; }
+    if(key==='gap' || key==='gapAngle'){ this._applyPath(); }
+    this._measure();
+  }
+  destroy(){ if(this.raf) cancelAnimationFrame(this.raf); }
+}
+
+/* ============================================================
+   LogoLoop —— React Bits 组件的无依赖原生 JS 改写
+   原理：把一组卡片复制 N 份塞进 flex track，
+   每帧推进 offset 并对单份宽度取模，形成无缝无限滚动。
+   自带：hover 暂停/减速、响应式重算复制份数、边缘淡出、reduced-motion 降级。
+   ============================================================ */
+class LogoLoop{
+  constructor(root, opt={}){
+    this.root=root;
+    this.opt=Object.assign({
+      items:[],          // [{abbr:'Ps', name:'Photoshop'}, ...]
+      speed:70,          // px/秒
+      direction:'left',  // 'left' | 'right'
+      gap:44,
+      logoHeight:52,
+      hoverSpeed:0,      // hover 时的速度，0 = 暂停
+      fadeOut:true,
+      scaleOnHover:true,
+      magnify:0,         // >1 开启「邻近放大」：鼠标越近越大，最大放大到该倍数
+      magDistance:110,   // 邻近放大的影响半径（px），越小越"只影响隔壁那一两个"
+      magLift:0          // 放大时同步上浮的像素 —— 营造"突出"感，而不是单纯变大
+    },opt);
+
+    this.copies=2;
+    this.seqWidth=0;
+    this.offset=0;
+    this.vel=0;
+    this.hovered=false;
+    this.mouseX=Infinity;
+
+    this._build();
+    this._dims();
+    this._start();
+    this._bind();
+    window.addEventListener('resize',()=>this._dims());
+  }
+
+  _build(){
+    const o=this.opt;
+    this.root.className='logoloop'
+      + (o.fadeOut?' logoloop--fade':'')
+      + (o.scaleOnHover?' logoloop--scale-hover':'');
+    this.root.innerHTML='';
+    const track=document.createElement('div');
+    track.className='logoloop__track';
+    this.track=track;
+    this.root.appendChild(track);
+    this._render();
+  }
+
+  _render(){
+    const o=this.opt;
+    this.track.innerHTML='';
+    for(let c=0;c<this.copies;c++){
+      const ul=document.createElement('ul');
+      ul.className='logoloop__list';
+      if(c>0) ul.setAttribute('aria-hidden','true');
+      o.items.forEach(it=>{
+        const li=document.createElement('li');
+        li.className='logoloop__item';
+        if(it.icon){
+          // 纯图标：hover 变绿由 CSS 的 filter:url(#brandgreen) 完成（正片叠底同款算法）
+          li.innerHTML=
+            '<span class="skill__icon">'+
+              '<img src="'+it.icon+'" alt="'+it.name+'" draggable="false"/>'+
+            '</span>';
+        } else {
+          // 无 png（SD）：字母占位，名字交给上方主角位
+          li.innerHTML='<span class="skill__icon">'+(it.abbr||'')+'</span>';
+        }
+        // 悬停 → 主角位联动（编辑克制切换）+ 显式 hover class 兜底，避免某些浏览器/场景下 :hover 不同步
+        li.addEventListener('mouseenter',()=>{
+          li.classList.add('is-hovered');
+          if(this.opt.onItemHover) this.opt.onItemHover(it);
+        });
+        li.addEventListener('mouseleave',()=>{
+          li.classList.remove('is-hovered');
+        });
+        ul.appendChild(li);
+      });
+      if(c===0) this.seqEl=ul;   // 第一份用来测宽
+      this.track.appendChild(ul);
+    }
+    /* 邻近放大用：缓存所有 li 与它们的图标元素；并摘掉 transform 过渡（改由每帧 JS 驱动，
+       否则 CSS 的 .35s 过渡会把每帧写入的值再缓动一次，产生拖尾感） */
+    this._lis=Array.prototype.slice.call(this.track.querySelectorAll('.logoloop__item'));
+    this._imgs=this._lis.map(li=>{
+      const el=li.querySelector('.skill__icon img')||li.querySelector('.skill__icon');
+      if(el) el.style.transition='opacity .3s ease, filter .3s ease';
+      return el;
+    });
+    this._step=0; this._lastS=null;
+  }
+
+  // 按容器宽度算需要复制几份，保证任何时刻都填满不留白
+  _dims(){
+    const cw=this.root.clientWidth||0;
+    const w=this.seqEl?this.seqEl.getBoundingClientRect().width:0;
+    if(w>0){
+      this.seqWidth=Math.ceil(w);
+      const need=Math.max(2, Math.ceil(cw/w)+2);
+      if(need!==this.copies){ this.copies=need; this._render(); }
+    }
+  }
+
+  _velocity(){
+    const o=this.opt;
+    return Math.abs(o.speed) * (o.direction==='left'?1:-1);
+  }
+
+  _start(){
+    if(this.raf) cancelAnimationFrame(this.raf);
+    let last=null;
+    const TAU=0.25;   // 速度平滑时间常数（照搬原版）
+    const step=(now)=>{
+      if(last===null) last=now;
+      const dt=Math.max(0,(now-last))/1000; last=now;
+      const target=this.hovered ? this.opt.hoverSpeed : this._velocity();
+      const k=1-Math.exp(-dt/TAU);          // 指数缓动，hover 切换不突兀
+      this.vel += (target-this.vel)*k;
+      if(this.seqWidth>0){
+        let o=this.offset + this.vel*dt;
+        o=((o%this.seqWidth)+this.seqWidth)%this.seqWidth;   // 取模实现无缝
+        this.offset=o;
+        this.track.style.transform='translate3d('+(-o)+'px,0,0)';
+      }
+      if(this._imgs) this._magnify();      /* 恒调用：这样把「放大」调回 1.0 时也能把残留的 transform 清干净 */
+      this.raf=requestAnimationFrame(step);
+    };
+    this.raf=requestAnimationFrame(step);
+  }
+
+  /* 邻近放大（macOS Dock 式）：鼠标离图标越近 → 越大 + 轻微上浮。
+     每一项宽度恒定（--logoH*1.7 + gap），所以位置能直接算出来，
+     不必每帧对所有元素读 getBoundingClientRect（那会触发 layout thrash）。 */
+  _magnify(){
+    const o=this.opt, D=o.magDistance, maxS=o.magnify, lis=this._lis;
+    if(!lis || lis.length<2) return;
+    if(!this._step){
+      const a=lis[0].getBoundingClientRect(), b=lis[1].getBoundingClientRect();
+      this._step=Math.abs(b.left-a.left);
+      if(!this._step) return;
+    }
+    const trackLeft=this.root.getBoundingClientRect().left - this.offset;
+    const mx=this.mouseX, n=lis.length;
+    if(!this._lastS || this._lastS.length!==n) this._lastS=new Array(n).fill(-1);
+    for(let i=0;i<n;i++){
+      const cx=trackLeft + i*this._step + this._step*0.5;
+      const d=Math.abs(mx-cx);
+      let k=(mx===Infinity || d>=D) ? 0 : 1-d/D;
+      k=k*k*(3-2*k);                                   /* smoothstep：近处过渡柔和，不像线性那样突然 */
+      const s=1+k*(maxS-1);
+      if(Math.abs(s-this._lastS[i])<0.0015) continue;   /* 值没变就不写 DOM，省掉无谓的样式重算 */
+      this._lastS[i]=s;
+      const el=this._imgs[i];
+      if(!el) continue;
+      el.style.transform = k>0.0015
+        ? 'translateY('+(-k*o.magLift).toFixed(2)+'px) scale('+s.toFixed(3)+')'
+        : '';
+    }
+  }
+
+  _bind(){
+    this.root.addEventListener('mouseenter',()=>{ this.hovered=true; });
+    this.root.addEventListener('mouseleave',()=>{ this.hovered=false; this.mouseX=Infinity; });
+    /* 邻近放大：跟踪鼠标 X。clientX 与 getBoundingClientRect 同一坐标系 */
+    this.root.addEventListener('pointermove',e=>{ this.mouseX=e.clientX; });
+    this.root.addEventListener('pointerleave',()=>{ this.mouseX=Infinity; });
+  }
+
+  set(key,val){
+    this.opt[key]=val;
+    if(key==='items'){ this._render(); this._dims(); }
+    if(key==='gap'||key==='logoHeight'){
+      // logoHeight 改变会改变图标精确尺寸（ICON_METRICS 按 logoH 计算）→ 重渲染
+      this._render();
+      this._dims();
+    }
+    if(key==='fadeOut'||key==='scaleOnHover'){
+      this.root.className='logoloop'
+        + (this.opt.fadeOut?' logoloop--fade':'')
+        + (this.opt.scaleOnHover?' logoloop--scale-hover':'');
+    }
+  }
+  destroy(){ if(this.raf) cancelAnimationFrame(this.raf); }
+}
+
+/* ============================================================
+   实例化
+   ============================================================ */
+const CURVED_TEXT='DESIGN ✦ AI GENERATION ✦ 3D & ARCHITECTURE ✦ VIDEO & MOTION ✦ AUDIO ✦ ';
+
+const curved=new CurvedLoop(document.getElementById('curved1'),{
+  text:CURVED_TEXT,
+  speed:0.3,
+  direction:'left',
+  interactive:true,
+  ring:true,          /* 环形文字：文字沿圆环路径流动 + 3D 角度控制 */
+  ringRadius:44,
+  ringFont:12,
+  gap:180,            /* 缺口大小（面板可调） */
+  gapAngle:349        /* 缺口朝向（面板可调）：0=右 90=下 180=左 270=上 */
+});
+
+/* media = 右侧媒体窗口用的设计图（media/<key>.png）。
+   之后把图片换成视频时，只要把该 key 的 media 值改指向视频文件即可（见 .stage 的注释）。 */
+/* meta 拆成 tag + 描述 两部分：
+   tag = 绿色胶囊徽章里的分类，描述 = 后面的说明。
+   原来靠"斜杠后面的词"推断徽章 —— 只要有一项没写斜杠（剪映、WorkBuddy）徽章就整条消失，
+   现在显式声明，19 项全部统一有徽章。 */
+const ROW1=[
+  {icon:'icons-final/liblibai.png',  abbr:'L',  name:'LiblibAI',         tag:'AI', meta:'图像生成',   media:'liblibai'},
+  {icon:'icons-final/libtv.png',     abbr:'Lt', name:'LibTV',            tag:'AI', meta:'无限画布',   media:'libtv'},
+  {icon:'icons-final/midjourney.png',abbr:'Mj', name:'Midjourney',       tag:'AI', meta:'概念生成',   media:'midjourney'},
+  {icon:'icons-final/seedance.png',  abbr:'Sn', name:'Seedance',         tag:'AI', meta:'视频生成',   media:'seedance'},
+  {icon:'icons-final/kling.png',     abbr:'Kl', name:'Kling',            tag:'AI', meta:'视频生成',   media:'kling'},
+  {icon:'icons-final/jimeng.png',    abbr:'Jm', name:'Jimeng',           tag:'AI', meta:'视频生成',   media:'jimeng'},
+  {icon:'icons-final/hailuo.png',    abbr:'H3', name:'Hailuo AI',        tag:'AI', meta:'视频生成',   media:'hailuo'},
+  {icon:'icons-final/comfyui.png',   abbr:'Cu', name:'ComfyUI',          tag:'AI', meta:'节点工作流', media:'comfyui'},
+  {icon:'icons-final/chatgpt.png',   abbr:'GP', name:'ChatGPT',          tag:'AI', meta:'语言对话',   media:'chatgpt'},
+  {icon:'icons-final/suno.png',      abbr:'Su', name:'Suno',             tag:'AI', meta:'音乐生成',   media:'suno'},
+  {icon:'icons-final/WorkBuddy.png', abbr:'WB', name:'WorkBuddy',        tag:'AI', meta:'工作台',     media:'workbuddy'},
+  {icon:null,                        abbr:'SD', name:'Stable Diffusion', tag:'AI', meta:'图像生成',   media:'sd'}
+];
+const ROW2=[
+  {icon:'icons-final/photoshop.png',   abbr:'Ps', name:'Photoshop',   tag:'设计', meta:'视觉处理', media:'photoshop'},
+  {icon:'icons-final/illustrator.png', abbr:'Ai', name:'Illustrator', tag:'设计', meta:'矢量绘制', media:'illustrator'},
+  {icon:'icons-final/c4d.png',         abbr:'C4', name:'Cinema 4D',   tag:'3D',  meta:'三维建模', media:'c4d'},
+  {icon:'icons-final/jianying.png',    abbr:'Jy', name:'剪映',        tag:'视频', meta:'视频剪辑', media:'jianying'},
+  {icon:'icons-final/autocad.png',     abbr:'Ac', name:'AutoCAD',     tag:'3D',  meta:'施工图',   media:'autocad'},
+  {icon:'icons-final/sketchup.png',    abbr:'Sk', name:'SketchUp',    tag:'3D',  meta:'空间建模', media:'sketchup'},
+  {icon:'icons-final/lumion.png',      abbr:'Lu', name:'Lumion',      tag:'3D',  meta:'场景渲染', media:'lumion'}
+];
+
+/* ============================================================
+   主角位（Editorial 焦点区）：悬停工具带任意卡 → 克制的淡切换
+   ============================================================ */
+const spot=$id=>document.getElementById($id);
+const spotEl=spot('spotlight');
+const spotTile=spot('spotTile');
+const spotName=spot('spotName');
+const spotMeta=spot('spotMeta');
+const spotEyebrow=spot('spotEyebrow');
+const stageMedia=spot('stageMedia');
+const stageGhost=spot('stageGhost');
+
+/* 右侧媒体窗口：按软件的 media key 换图（主图 + 背后的放大残影一起换）。
+   media 为空（c4d 暂无设计图）时保持上一张。
+   之后换视频：把这两个 <img> 换成 <video muted autoplay loop playsinline> 即可。 */
+/* 抬黑：把每张设计图的"黑"抬到和当前页面背景一致，消除"图片是另一块黑"的色块感。
+   【为什么必须逐图算】这 18 张图的暗部本身差异很大（实测 4.0 ~ 10.0，见 MEDIA_DARK），
+   统一抬一个量会让偏亮的几张（chatgpt/kling/lumion/midjourney）抬过头、反而比背景亮。
+   所以按每张图自己的暗部值解方程：out = in × slope + intercept，
+   约束 "该图暗部 → 背景色" 且 "255 → 255"，中间调几乎不变、高光无损。
+   【背景色联动】LIFT_BG 必须等于本页 --bg。主站 section--dark 是 #111111(17)。
+     若以后改页面背景色，LIFT_BG 要同步改（否则又会出现色差）。 */
+const LIFT_BG=17;                 /* #111111 的亮度值 */
+
+/* 【抬黑滤镜总开关】
+   true  = 开：把图片按自己的黑场抬到背景色 #111111，消除"图片是另一块更深的黑"的色块感。
+   false = 关：图片原样显示（暗部会比背景深 7~12 级）。
+   也可以用网址参数临时覆盖，方便对照：
+     skills-stage.html?lift=0   → 强制关
+     skills-stage.html?lift=1   → 强制开
+   ⚠️ 换过图/视频之后：若画面背景已经是 #111111，这里应保持 false（不需要补偿）；
+      若仍偏暗，改回 true 并更新上面的 MEDIA_DARK 表。 */
+const LIFT_ON=(function(){
+  var m=/[?&]lift=(0|1)/.exec(location.search);
+  return m ? (m[1]==='1') : false;      /* ← 默认值就改这一处 */
+})();
+const MEDIA_DARK={                /* 逐图实测的图片自身暗部平均（黑场基准） */
+  autocad:4.7,  chatgpt:9.2,  comfyui:5.4,   hailuo:4.8,
+  illustrator:4.6, jianying:4.1, jimeng:6.8, kling:10.0,
+  liblibai:5.1, libtv:5.9,    lumion:8.7,    midjourney:10.0,
+  photoshop:4.0, sd:7.6,      seedance:5.7,  sketchup:4.2,
+  suno:5.4,     workbuddy:5.4
+};
+function applyLift(key){
+  const d=(key && MEDIA_DARK[key]) || 5.5;          /* 缺省按整批均值算 */
+  const slope=(255-LIFT_BG)/(255-d);
+  const intercept=(LIFT_BG-d*slope)/255;
+  ['R','G','B'].forEach(function(c){
+    var f=document.querySelector('#liftblack feFunc'+c);
+    if(f){ f.setAttribute('slope', slope.toFixed(4)); f.setAttribute('intercept', intercept.toFixed(4)); }
+  });
+}
+/* 真正决定"挂不挂滤镜"的地方（applyLift 只负责算参数） */
+function applyLiftFilter(el,key){
+  if(!el) return;
+  if(!LIFT_ON){ el.style.filter='none'; return; }
+  applyLift(key);
+  el.style.filter='url(#liftblack)';
+}
+
+/* ============================================================
+   右侧媒体窗口：双 video 交叉淡化
+   ------------------------------------------------------------
+   · 两个 <video> 重叠放，交替当「当前 / 待播」
+   · 切换时待播的先在后台 load + play（此刻不可见），就绪后才交叉淡化
+     → 全程没有空白帧。单元素直接换 src 会立刻清空当前帧，
+       淡出就变成"淡出一块空白"，这是之前生硬的主因。
+   · 旧的等淡出（.45s）结束再 pause()，避免淡出途中定格
+   · 配上 .12s 的淡入延迟 → 两个画面不同帧闪
+   ============================================================ */
+const stageMedia2=spot('stageMedia2');
+let stageCur=stageMedia, stageOther=stageMedia2;
+
+function showStage(it){
+  if(!stageCur || !it || !it.media) return false;
+  const src='media/'+it.media+'.mp4?v=20260915c';
+  if(stageCur.getAttribute('src')===src) return false;   /* 已经是这一条，不用动（调用方据此直接开始计时） */
+
+  const next=stageOther, old=stageCur;
+  next.muted=true;
+  next.setAttribute('src',src);
+  try{ next.playbackRate = PLAY_RATE; }catch(_){}
+  if(next.load) next.load();
+  try{ next.playbackRate = PLAY_RATE; }catch(_){}   /* load() 会把 rate 重置回 1，所以要再设一次 */
+  var pr=next.play && next.play();
+  if(pr && pr.catch) pr.catch(function(){});
+  applyLiftFilter(next,it.media);
+
+  var done=false;
+  function cross(){
+    if(done) return; done=true;
+    next.removeEventListener('canplay',onReady);
+    next.removeEventListener('loadeddata',onReady);
+    next.classList.add('is-on');                      /* 新的淡入（CSS 延迟 .12s） */
+    old.classList.remove('is-on');                    /* 旧的立即开始淡出 */
+    setTimeout(function(){ try{ old.pause(); }catch(_){} }, 520);
+    stageCur=next; stageOther=old;                    /* 交换角色 */
+  }
+  function onReady(){ cross(); }
+  if(next.readyState>=2){ cross(); }
+  else{
+    next.addEventListener('canplay',onReady);
+    next.addEventListener('loadeddata',onReady);
+    /* 兜底：网慢时也别卡死 —— 只要已经有任一帧就先切 */
+    setTimeout(function(){ if(!done && next.readyState>=1) cross(); }, 1800);
+  }
+  return true;                                        /* 确实换了源 */
+}
+/* 首个媒体的淡入：只给"当前"那一个加 is-on */
+[stageMedia,stageMedia2].forEach(function(v){
+  if(!v) return;
+  v.addEventListener('loadeddata', function(){ if(v===stageCur) v.classList.add('is-on'); });
+  v.addEventListener('error',      function(){ v.classList.remove('is-on'); });
+});
+
+/* 切换时序：退场 0.1s（只压到 .35，不归零）→ 在最低点换内容 → 入场 0.24s 回位。
+   文字全程"在场"，内容替换藏在最暗处，所以不会闪。
+   showStage 在退场一开始就调用 → 右侧画面同时开始预载 / 交叉淡化，两边互不等待。 */
+const SPOT_OUT=100;
+let spotTimer=null;
+
+function showSpot(it,rowLabel){
+  clearTimeout(spotTimer);
+  spotEl.classList.add('swap');               /* 正文开始淡出 */
+  var changed=showStage(it);                  /* 右侧画面立刻开始预载（与文字并行） */
+  spotTimer=setTimeout(function(){
+    // tile：有图标显示图，无图标显示字母（SD）
+    spotTile.innerHTML = it.icon
+      ? '<img src="'+it.icon+'" alt="'+it.abbr+'" draggable="false"/>'
+      : '<span>'+it.abbr+'</span>';
+    spotName.textContent = it.name;
+    /* meta：徽章直接取显式的 tag（不再靠斜杠推断，避免"没写斜杠就没徽章"） */
+    spotMeta.innerHTML='<i>'+(it.tag||'')+'</i>'+(it.meta||'');
+    /* eyebrow：多词标签中间插品牌绿圆点 —— 'AI TOOLS' → 'AI <b>·</b> TOOLS'
+       （静态 HTML 里就是这个写法，之前 JS 会把它还原成没有圆点的 'AI TOOLS'）
+       只在标签真的变了时才重写：同一行内它不会变，无脑重写反而多闪一下。 */
+    var lb=rowLabel.trim().replace(/\s*[\/&]\s*/g,' ').split(/\s+/).join(' <b>·</b> ');
+    if(spotEyebrow.dataset.label!==lb){
+      spotEyebrow.dataset.label=lb;
+      spotEyebrow.innerHTML=lb;
+    }
+    spotEl.classList.remove('swap');          /* 换完内容才淡入 */
+  }, SPOT_OUT);
+  return changed;
+}
+
+const loop1=new LogoLoop(document.getElementById('loop1'),{
+  items:ROW1, speed:30, direction:'left', gap:12, logoHeight:42, hoverSpeed:0,
+  magnify:1.2, magDistance:100, magLift:0,
+  onItemHover: it=>userPick(it,'AI TOOLS')
+});
+const loop2=new LogoLoop(document.getElementById('loop2'),{
+  items:ROW2, speed:30, direction:'right', gap:12, logoHeight:42, hoverSpeed:0,
+  magnify:1.2, magDistance:100, magLift:0,
+  onItemHover: it=>userPick(it,'SOFTWARE')
+});
+
+/* ============================================================
+   自动巡播（自动切换 · 鼠标接管）
+   ------------------------------------------------------------
+   · 无人交互 → 每 STEP_MS 切下一个（4 秒）；ROW1 走完接 ROW2，如此循环
+   · 鼠标碰到某个图标 → 立刻停在那一个，视频 loop 无限循环（不切走）
+   · 鼠标离开 → 0.5s 后从「刚停留的那一个」继续往下
+   · 鼠标停在主角位 / 右侧画面 → 也暂停（说明他在看画面）
+   · 鼠标移到两行任意位置 → 暂停自动（但先不改当前显示）
+   ============================================================ */
+let STEP_MS = 4000;          /* 周期，**含过渡**：从「新片开始露面」到「下一次开始溶解」的整个跨度 */
+let PLAY_RATE = 1;           /* 播放速度倍率。加速 = 同一个周期内把 7.29s 的片子播完 */
+/* 只改「当前两个 video 元素」上的速度，不动 PLAY_RATE 本身。
+   自动巡播走 PLAY_RATE；鼠标停下来细看时临时切回 1.0 原速（见 autoPause / userPick）。 */
+function setRate(r){
+  [stageMedia,stageMedia2].forEach(function(v){ if(v){ try{ v.playbackRate=r; }catch(_){} } });
+}
+const XFADE_MS = 450;        /* 交叉溶解时长，与 .stage__media 的 transition 对齐 */
+const PLAY_LAG  = 60;        /* playing 事件相对「过渡开始」的平均延迟（实测约 60ms），
+                                从计时里扣掉，整周期才真的落在 STEP_MS 以内 */
+const QUEUE = ROW1.map(it=>({it,label:'AI TOOLS'}))
+             .concat(ROW2.map(it=>({it,label:'SOFTWARE'})));
+let autoOn=false, autoIdx=0, autoTimer=null, resumeTimer=null;
+
+function qIndex(it){ for(let i=0;i<QUEUE.length;i++) if(QUEUE[i].it===it) return i; return -1; }
+let fallbackTimer=null, waitPlay=false;
+function scheduleAuto(){        /* 计时起点就是「过渡开始」那一刻，所以 STEP_MS 本身就含过渡 */
+  clearTimeout(autoTimer); clearTimeout(fallbackTimer);
+  waitPlay=false;
+  if(!autoOn) return;
+  autoTimer=setTimeout(autoStep, Math.max(600, STEP_MS - PLAY_LAG));
+}
+function advanceQueue(){        /* 换到 autoIdx 这一项；等视频真的起播再开始计时 */
+  clearTimeout(autoTimer); clearTimeout(fallbackTimer);
+  waitPlay=true;
+  const q=QUEUE[autoIdx];
+  const changed=showSpot(q.it,q.label);
+  /* 同一条视频（例如鼠标离开后从原地恢复）不会触发 playing → 直接开始计时，不必白等兜底 */
+  if(!changed){ scheduleAuto(); return; }
+  /* 兜底：2.5s 内没等到 playing 也照常计时，避免网络异常时卡死 */
+  fallbackTimer=setTimeout(function(){ if(autoOn&&waitPlay) scheduleAuto(); }, 2500);
+}
+function autoStep(){
+  if(!autoOn) return;
+  autoIdx=(autoIdx+1)%QUEUE.length;
+  advanceQueue();
+}
+function autoBegin(idx){
+  autoIdx=(typeof idx==='number')?idx:0;
+  autoOn=true;
+  setRate(PLAY_RATE);              /* 交还给自动 → 恢复巡播倍率 */
+  advanceQueue();
+}
+function autoPause(tag){
+  autoOn=false; clearTimeout(autoTimer); autoTimer=null;
+  setRate(1);                      /* 停下来 → 切回原速，完整播 7.29s */
+}
+function userPick(it,label){
+  const i=qIndex(it);
+  if(i>=0) autoIdx=i;
+  autoOn=false; clearTimeout(autoTimer); autoTimer=null;
+  showSpot(it,label);
+  setRate(1);                      /* 鼠标停下来细看 → 原速 */
+}
+function resumeSoon(){
+  clearTimeout(resumeTimer);
+  resumeTimer=setTimeout(function(){ if(!autoOn) autoBegin(autoIdx); }, 500);
+}
+['loop1','loop2'].forEach(function(id){
+  const el=document.getElementById(id);
+  if(!el) return;
+  el.addEventListener('mouseenter', function(){ clearTimeout(resumeTimer); autoPause('浏览中'); });
+  el.addEventListener('mouseleave', resumeSoon);
+});
+[spotEl, document.querySelector('.stage')].forEach(function(el){
+  if(!el) return;
+  el.addEventListener('mouseenter', function(){ clearTimeout(resumeTimer); autoPause('细看中'); });
+  el.addEventListener('mouseleave', resumeSoon);
+});
+/* 视频真的开始播了 → 从这一刻起算 STEP_MS（换源要下载，不能从换源就开始倒计时）
+   注意：**两个 video 元素都要挂**。只挂一个的话，轮到另一个时事件不触发，
+   只能等 2.5s 兜底 —— 周期会在 5.0s / 7.5s 之间来回跳。 */
+[stageMedia, stageMedia2].forEach(function(v){
+  if(!v) return;
+  v.addEventListener('playing', function(){
+    if(waitPlay && autoOn) scheduleAuto();
+  });
+});
+/* 进入页面 1.5s 后自动开始 */
+setTimeout(function(){ if(!autoOn) autoBegin(0); }, 1500);
+
+/* ============================================================
+   调参面板
+   ============================================================ */
+const $=id=>document.getElementById(id);
+const bind=(id,outId,fn,fmt)=>{
+  const el=$(id), out=$(outId);
+  const apply=()=>{ const v=parseFloat(el.value); fn(v); out.textContent=fmt?fmt(v):v; };
+  el.addEventListener('input',apply);
+  apply();
+};
+
+/* 环形：尺寸由 --ring-size 控制；字号控制圆环文字粗细（viewBox 单位） */
+let ringSize=120;                /* 面板"环尺寸"的基础值（= 标题满字号 104px 时的尺寸） */
+let ringDx=69, ringDy=23;        /* 环心把手拖出来的平移量（与 3D 角度参数完全独立） */
+let ringK=1;                     /* 环随标题字号的缩放比，由 layoutRing() 写入 */
+/* 把缩放比同步到 CSS：--ring-s = 生效环尺寸，--ring-k 供所有偏移项相乘 */
+function applyRingMetrics(){
+  const root=document.documentElement;
+  root.style.setProperty('--ring-k', ringK);
+  root.style.setProperty('--ring-s', (ringSize*ringK)+'px');
+  placeRingHub();
+}
+/* 图标行上下高度 / 两行间距：写进根元素变量，.logoloop 与 .loops 实时跟随。 */
+const notifyResize=()=>{ try{ window.parent.postMessage({type:'resize'}, '*'); }catch(e){} };
+bind('cLoopPad','o-cLoopPad', v=>{ document.documentElement.style.setProperty('--loop-pad', v+'px'); notifyResize(); }, v=>v+'px');
+bind('cLoopGap','o-cLoopGap', v=>{ document.documentElement.style.setProperty('--loop-gap', v+'px'); notifyResize(); }, v=>v+'px');
+bind('cSpeed','o-cSpeed', v=>curved.set('speed',v),          v=>v.toFixed(1));
+bind('cRing', 'o-cRing',  v=>{ ringSize=v; applyRingMetrics(); }, v=>v+'px');
+bind('cSize', 'o-cSize',  v=>curved.set('ringFont',v),       v=>v.toFixed(1));
+bind('cGap',  'o-cGap',   v=>{ curved.set('gap',v);      applyRingMetrics(); }, v=>v+'°');
+bind('cGapA', 'o-cGapA',  v=>{ curved.set('gapAngle',v); applyRingMetrics(); }, v=>v+'°');
+bind('l1Speed','o-l1Speed',v=>loop1.set('speed',v),      v=>v+' px/s');
+bind('l2Speed','o-l2Speed',v=>loop2.set('speed',v),      v=>v+' px/s');
+bind('gap',   'o-gap',    v=>{ loop1.set('gap',v); loop2.set('gap',v);
+                               document.documentElement.style.setProperty('--gap',v+'px');
+                               setTimeout(()=>{loop1._dims();loop2._dims();},0); }, v=>v+'px');
+/* 3D 角度（弧形文字）—— 单独微调，通过 CSS 变量驱动 .curved-wrap 的 transform */
+const curve3d={rx:0,ry:0,rz:-30,persp:500,tx:26,ty:-8};
+const setCurveVar=(k,v)=>{ document.documentElement.style.setProperty(k,v); };
+bind('cRx',  'o-cRx',   v=>{ setCurveVar('--c-rx',v+'deg');  curve3d.rx=v;   }, v=>v+'°');
+bind('cRy',  'o-cRy',   v=>{ setCurveVar('--c-ry',v+'deg');  curve3d.ry=v;   }, v=>v+'°');
+bind('cRz',  'o-cRz',   v=>{ setCurveVar('--c-rz',v+'deg');  curve3d.rz=v;   }, v=>v+'°');
+bind('cPersp','o-cPersp',v=>{ setCurveVar('--c-persp',v+'px'); curve3d.persp=v; }, v=>v+'px');
+bind('cTx',  'o-cTx',   v=>{ setCurveVar('--c-tx',v+'px');  curve3d.tx=v;   }, v=>v+'px');
+bind('cTy',  'o-cTy',   v=>{ setCurveVar('--c-ty',v+'px');  curve3d.ty=v;   }, v=>v+'px');
+
+bind('logoH', 'o-logoH',  v=>{ loop1.set('logoHeight',v); loop2.set('logoHeight',v);
+                               document.documentElement.style.setProperty('--logoH',v+'px');
+                               setTimeout(()=>{loop1._dims();loop2._dims();},0); }, v=>v+'px');
+
+$('btnDir').addEventListener('click',()=>{
+  const d=loop2.opt.direction==='left'?'right':'left';
+  loop2.set('direction',d);
+  $('btnDir').textContent = d==='right' ? '第二行正向' : '第二行反向';
+});
+
+$('btnCopy').addEventListener('click',async()=>{
+  const cfg={
+    curved:{speed:curved.opt.speed, ...curve3d, ring:true, ringSize:ringSize, ringFont:curved.opt.ringFont, text:CURVED_TEXT, gap:curved.opt.gap, gapAngle:curved.opt.gapAngle, ringDx:Math.round(ringDx), ringDy:Math.round(ringDy)},
+    loop1:{speed:loop1.opt.speed, direction:loop1.opt.direction, gap:loop1.opt.gap, logoHeight:loop1.opt.logoHeight},
+    loop2:{speed:loop2.opt.speed, direction:loop2.opt.direction, gap:loop2.opt.gap, logoHeight:loop2.opt.logoHeight},
+    loops:{logoH:parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--logoH'))||52,
+           pad:parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--loop-pad'))||16,
+           gap:parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--loop-gap'))||22}
+  };
+  const txt=JSON.stringify(cfg,null,2);
+  try{ await navigator.clipboard.writeText(txt); $('btnCopy').textContent='已复制 ✓'; }
+  catch(e){ $('btnCopy').textContent='复制失败'; console.log(txt); }
+  setTimeout(()=>$('btnCopy').textContent='复制参数',1600);
+});
+
+/* ============================================================
+   环心拖动把手
+   只在根元素上写 --ring-dx / --ring-dy（CSS 用它去加减 .curved-wrap 的 left/top），
+   不碰 --c-rx / --c-ry / --c-rz / --c-persp / --c-tx / --c-ty —— 所以拖动后角度参数原样保留。
+   ============================================================ */
+(function(){
+  const hub=$('ringHub'); if(!hub) return;
+  const root=document.documentElement;
+  const readVar=k=>parseFloat(getComputedStyle(root).getPropertyValue(k))||0;
+  let dragging=false, sx=0, sy=0, bx=0, by=0;
+  const apply=(x,y)=>{
+    root.style.setProperty('--ring-dx', x+'px');
+    root.style.setProperty('--ring-dy', y+'px');
+    ringDx=x; ringDy=y;
+  };
+  hub.addEventListener('pointerdown', e=>{
+    dragging=true; sx=e.clientX; sy=e.clientY;
+    bx=readVar('--ring-dx'); by=readVar('--ring-dy');
+    hub.classList.add('is-drag');
+    try{ hub.setPointerCapture(e.pointerId); }catch(_){}
+    e.preventDefault();
+  });
+  hub.addEventListener('pointermove', e=>{
+    if(!dragging) return;
+    apply(bx+(e.clientX-sx), by+(e.clientY-sy));
+  });
+  const stop=()=>{ if(!dragging) return; dragging=false; hub.classList.remove('is-drag'); };
+  hub.addEventListener('pointerup', stop);
+  hub.addEventListener('pointercancel', stop);
+  /* 双击把环形位置归零（角度同样不动） */
+  hub.addEventListener('dblclick', ()=>apply(0,0));
+})();
+
+/* ============================================================
+   环心把手的定位
+   从圆弧路径上采样三点求"外心"，即圆弧真正的圆心（viewBox 用户单位），
+   再按 ringSize/100 换算成像素写到把手的内联 left/top。
+   为什么不能写死：_circlePath 用 "A r,r 0 1,1" 画弧，缺口角度一变，
+   浏览器会选到另一侧的圆心（圆心会从 x=-26 跳到 x=+85 之类），环整体翻到另一边，
+   任何固定的补偿值都会失效 —— 所以每次缺口/尺寸变化后都重新测一次。
+   ============================================================ */
+function placeRingHub(){
+  const hub=document.getElementById('ringHub');
+  const pathEl=curved && curved.path;
+  if(!hub || !pathEl) return;
+  let L=0;
+  try{ L=pathEl.getTotalLength(); }catch(_){}
+  if(!L) return;
+  const p1=pathEl.getPointAtLength(L*0.05),
+        p2=pathEl.getPointAtLength(L*0.5),
+        p3=pathEl.getPointAtLength(L*0.95);
+  const d=2*(p1.x*(p2.y-p3.y)+p2.x*(p3.y-p1.y)+p3.x*(p1.y-p2.y));
+  if(Math.abs(d)<1e-9) return;
+  const q1=p1.x*p1.x+p1.y*p1.y, q2=p2.x*p2.x+p2.y*p2.y, q3=p3.x*p3.x+p3.y*p3.y;
+  const ux=(q1*(p2.y-p3.y)+q2*(p3.y-p1.y)+q3*(p1.y-p2.y))/d;
+  const uy=(q1*(p3.x-p2.x)+q2*(p1.x-p3.x)+q3*(p2.x-p1.x))/d;
+  /* 用"生效尺寸" --ring-s（= 面板值 × 缩放比），不是面板基础值 */
+  const eff=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ring-s'))||ringSize;
+  const s=eff/100;                      /* viewBox 0 0 100 100 → eff 见方 */
+  hub.style.left=(ux*s)+'px';
+  hub.style.top =(uy*s)+'px';
+}
+/* ============================================================
+   把环「绑定」到 MY SKILLS 文字上
+   锚点 = 标题文字的实测包围盒中心（相对 .skills 的左/上边），写进 --ring-anchor-x/-y。
+   标题字号随内容宽等比变化（见 .title）：视口变窄时字变小、文字也变窄，
+   所以锚点必须实测，不能写成「左缘 + 固定 303px」。
+   注意 <h1> 是块级元素、它的 rect 宽度是整行宽，所以要用 Range 量「文字本身」的宽度。
+   ============================================================ */
+/* 标题字号基准 = 对应「环尺寸 176px」那个已调好的构图。
+   原来是 104（旧标题满字号）；2026-09-12 标题字号改成与屏2 一致后（屏2 画布 99px × 1440/1972 = 72.3px），
+   基准必须同步改，否则 ringK = 72.3/104 = 0.696，环会被连带缩小到 122px。
+   72.38 = 屏2 标题的实际显示字号（也是屏3 在宽屏下的封顶字号），
+   取它作基准 → 宽屏下 ringK≈1，环保持 176px；窄屏时仍随标题等比缩小。 */
+const TITLE_FS_MAX=72.38;
+function layoutRing(){
+  const sec=document.querySelector('.skills');
+  const title=document.querySelector('.skills__hd .title');
+  if(!sec||!title) return;
+  const sr=sec.getBoundingClientRect();
+  let tr=null;
+  try{ const rg=document.createRange(); rg.selectNodeContents(title); tr=rg.getBoundingClientRect(); }catch(_){}
+  if(!tr || !tr.width) tr=title.getBoundingClientRect();
+  if(!tr || !tr.width) return;
+  const root=document.documentElement;
+  root.style.setProperty('--ring-anchor-x', (tr.left + tr.width/2 - sr.left)+'px');
+  root.style.setProperty('--ring-anchor-y', (tr.top  + tr.height/2 - sr.top )+'px');
+  /* 等比缩放：标题满字号 104px 时比例 = 1（即用户调好的构图） */
+  const fs=parseFloat(getComputedStyle(title).fontSize)||TITLE_FS_MAX;
+  ringK=fs/TITLE_FS_MAX;
+  applyRingMetrics();
+}
+
+/* ============================================================
+   主角位：把左侧方形瓦片"缩小"到与右侧文字块等高。
+   实测 .spotlight__body 的自然高度写进 --tile（瓦片是 aspect-ratio:1 的正方形），
+   父级 .spotlight 是 align-items:center → 瓦片与文字块上下居中对齐、上下边缘齐平。
+   ============================================================ */
+function layoutSpot(){
+  const body=document.querySelector('.spotlight__body');
+  if(!body) return;
+  const h=Math.round(body.getBoundingClientRect().height);
+  if(h>0) document.documentElement.style.setProperty('--tile', h+'px');
+}
+
+/* ============================================================
+   右侧媒体窗口的垂直几何
+   top  = 左侧页眉（03 / SKILLS）的顶边；height = 到下方内容块（聚光灯行）的底边。
+   因为图片是 height:100% + 4:3，所以窗口变高 = 图片等比放大。
+   左右由 CSS 公式算（右缘贴内容右缘、宽 = 内容宽×54%），跟随视口。
+   ============================================================ */
+function layoutStage(){
+  const sec=document.querySelector('.skills');
+  const eyebrow=document.querySelector('.skills__hd .eyebrow');   /* 左侧页眉 */
+  const spotBox=document.querySelector('.spotlight');
+  if(!sec||!eyebrow||!spotBox) return;
+  const sr=sec.getBoundingClientRect();
+  const er=eyebrow.getBoundingClientRect();
+  const pr=spotBox.getBoundingClientRect();
+  const root=document.documentElement;
+  root.style.setProperty('--stage-top', Math.round(er.top - sr.top)+'px');
+  root.style.setProperty('--stage-h', Math.max(120, Math.round(pr.bottom - er.top))+'px');
+}
+
+function relayout(){ layoutStage(); layoutSpot(); layoutRing(); }
+relayout();                                       /* 初始化 */
+/* 首图（HTML 里写死的）也走开关。注意 applyLiftFilter 的签名是 (元素, key) ——
+   旧版遗留的单参数调用会在这里抛 TypeError，把后面所有初始化全部打断。 */
+applyLiftFilter(stageMedia, 'liblibai');
+/* 首图若已在缓存里加载完，loadeddata 不会再触发 → 这里补一次显示（原 markStageOn 的作用） */
+if(stageCur && stageCur.readyState>=2) stageCur.classList.add('is-on');
+requestAnimationFrame(relayout);                  /* 布局稳定后再校正一次 */
+setTimeout(relayout, 400);                        /* 字体（Lexend）晚到时再校正 */
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(relayout);
+let _ringRzT=0;
+window.addEventListener('resize', ()=>{ clearTimeout(_ringRzT); _ringRzT=setTimeout(relayout, 80); });
+
+// 面板折叠 / 拖动
+$('panelToggle').addEventListener('click',()=>{
+  const p=$('panel'); p.classList.toggle('collapsed');
+  $('panelToggle').textContent=p.classList.contains('collapsed')?'+':'–';
+});
+(function(){
+  const hd=$('panelHd'), panel=$('panel');
+  let sx=0,sy=0,ox=0,oy=0,drag=false;
+  hd.addEventListener('pointerdown',e=>{
+    if(e.target.id==='panelToggle') return;
+    drag=true; sx=e.clientX; sy=e.clientY;
+    const r=panel.getBoundingClientRect(); ox=r.left; oy=r.top;
+    panel.style.right='auto'; panel.style.left=ox+'px'; panel.style.top=oy+'px';
+    hd.setPointerCapture(e.pointerId);
+  });
+  hd.addEventListener('pointermove',e=>{
+    if(!drag) return;
+    panel.style.left=(ox+e.clientX-sx)+'px';
+    panel.style.top =Math.max(0,(oy+e.clientY-sy))+'px';
+  });
+  hd.addEventListener('pointerup',()=>{drag=false;});
+})();
+</script>
+
+<script>
+/* 嵌入主站时：把鼠标坐标实时发给父页面，由父站统一绘制绿点光标。
+   iframe 是独立文档，父站的 cursor:none 和跟随点都管不到里面，
+   不同步的话 iframe 内会显示系统箭头、父站绿点卡在进入边缘。协议与屏2 一致。 */
+if (window.parent !== window) {
+  var sendCursor = function(x, y, visible){
+    try { window.parent.postMessage({ type:'cursor', x:x, y:y, visible:visible }, '*'); } catch(e){}
+  };
+  window.addEventListener('mousemove', function(e){ sendCursor(e.clientX, e.clientY, true); }, { passive:true });
+  window.addEventListener('mouseleave', function(){ sendCursor(0, 0, false); });
+}
+</script>
+<!-- 调参面板：线上默认隐藏；需要调试时在网址后加 ?edit=1 -->
+<script>
+(function(){
+  if(/[?&]edit=1/.test(location.search)) return;   /* ?edit=1 = 调试模式：面板和环心把手都显示 */
+  var hide=function(){
+    var p=document.getElementById('panel');
+    if(p) p.style.display='none';
+    /* 环心拖动把手只用于调试定位，正式版隐藏（它会压在标题上） */
+    var hub=document.querySelector('.ring-hub-layer');
+    if(hub) hub.style.display='none';
+  };
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',hide);
+  else hide();
+})();
+</script>
+</body>
+</html>
