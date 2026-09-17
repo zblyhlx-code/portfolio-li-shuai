@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>视频作品 — LI SHUAI</title>
 <meta name="description" content="李帅（LI SHUAI）视频作品：品牌视频、情感短片、电商主图视频、动效与推广视频。BASED IN BEIJING 2026" />
-<meta name="theme-color" content="#0A0A0A" />
+<meta name="theme-color" content="#111111" />
 
 <!-- 与主站同一套自托管字体。⚠️ 必须用相对路径：写绝对地址（127.0.0.1 / 本地端口）上线后会全部 404 -->
 <link rel="preload" href="assets/fonts/lexend-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin />
@@ -26,11 +26,13 @@
    ⚠️ 改完本文件，记得把主站 index.html 里引入本页的 ?v= 版本号一起改掉，否则浏览器用缓存。
    ========================================================================== */
 :root{
-  --bg:        #0A0A0A;
+  /* 底色必须跟主站一致：主站 --bg-primary = #111111（body / 各 section / 屏2 iframe 元素都是它）。
+     原来是 #0A0A0A，在手机上切到屏2 会比其它屏明显更黑一块。 */
+  --bg:        #111111;
   --accent:    #CCFF00;
   --ink:       #FFFFFF;
   --ink-2:     rgba(255,255,255,0.62);
-  --ink-3:     rgba(255,255,255,0.55);   /* 原 .38 在 #0A0A0A 上只有 3.50:1（不达 AA）→ .55 约 6.3:1 */
+  --ink-3:     rgba(255,255,255,0.55);   /* 原 .38 只有 3.50:1（不达 AA）→ .55 约 6:1 */
   --line:      rgba(255,255,255,0.14);
   --pad:       24px;
   --font-en:   "Fira Sans", "Helvetica Neue", Arial, sans-serif;
@@ -297,7 +299,7 @@ html,body{
   flex:0 0 auto; width:26px; height:1px;
   background:linear-gradient(to right, var(--accent), rgba(204,255,0,0));
 }
-.cta:active .cta__icon{ background:var(--accent); color:#0A0A0A; }
+.cta:active .cta__icon{ background:var(--accent); color:var(--bg); }
 
 /* ─────────────────────  角落装饰  ───────────────────── */
 /* v3（2026-09-16 用户定稿）：移除参考图里的绿色 3D 液体装饰——
