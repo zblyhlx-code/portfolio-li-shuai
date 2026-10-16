@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>创作工具 — LI SHUAI</title>
+<meta name="description" content="李帅（LI SHUAI）创作工具与技能体系：AI 工具、设计、3D、视频全链路。" />
+<meta name="theme-color" content="#111111" />
+
+<!-- 与主站同一套自托管字体。⚠️ 必须用相对路径：写绝对地址上线后会全部 404 -->
+<link rel="preload" href="assets/fonts/lexend-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin />
+<link rel="preload" href="assets/fonts/fira-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
+<link href="assets/fonts/fonts.css" rel="stylesheet" />
+
+<style>
+/* ============================================================================
+   手机端屏3 — MY SKILLS（手机竖屏版）
+   ----------------------------------------------------------------------------
+   ≤640px 时由主站 index.html 用 iframe 引入本页（替代电脑端长页 skills-stage）。
+   设计原点：390pt 宽，左右边距 24px。
+
+   与电脑端 skills-stage.html 的对应关系（本页所有视觉规格都从它取）：
+     · 字体：Lexend（标题/工具名/缩写） + Fira Sans（正文/眉标/数字）
+     · 左侧信息区 = 电脑端 .spotlight（图标瓦片 + 组名 + 工具名 + [标签]描述）
+     · 自动巡播：STEP_MS = 4000，19 项循环（与电脑端同周期）
+     · 媒体：media/<key>.mp4，双缓冲交叉淡入（与电脑端同思路，防闪）
+   数据 TOOLS 与电脑端 ROW1 + ROW2 逐项一致，未做改写。
+
+   ⚠️ 改完本文件，记得把主站 index.html 里引入本页的 ?v= 版本号一起改掉。
+   ========================================================================== */
+:root{
+  /* 底色与主站一致（主站 --bg-primary = #111111）——手机上切屏时不能有明显色差 */
+  --bg:        #111111;
+  --accent:    #CCFF00;
+  --ink:       #FFFFFF;
+  --ink-2:     rgba(255,255,255,0.62);
+  --ink-3:     rgba(255,255,255,0.48);
+  --line:      rgba(255,255,255,0.14);
+  --panel:     rgba(255,255,255,0.045);
+  --pad:       24px;
+  --font-en:   "Fira Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-dis:  "Lexend", "Helvetica Neue", Arial, sans-serif;
+  --font-cn:   "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+  --ease:      cubic-bezier(.22,.61,.36,1);
+}
+
+*{ margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+html,body{
+  /* ⚠️ 2026-09-19 按用户要求换成「透明度 0」（与电脑端 skills-stage.html 同步处理，
+     想先看背景视频会不会影响屏3 的画面）。
+     **原值不删，保留在这里，随时换回来**：background:var(--bg);   （--bg = #111111） */
+  background:rgba(0,0,0,0); color:var(--ink);
+  font-family:var(--font-cn);
+  -webkit-font-smoothing:antialiased;
+  overflow:hidden;                 /* 滚动交给 .scroll，底部 rail 常驻 */
+  height:100%;
+}
+
+.screen{
+  position:relative;
+  width:100%; max-width:430px; margin:0 auto;
+  height:100svh; min-height:520px;
+  display:flex; flex-direction:column;
+  /* 顶部要躲开主站的固定导航（.nav 是 position:fixed、手机端实测高 80px、半透明背景）。
+     本页始终由 iframe 引入，且 iframe 顶部与视口顶对齐，不留出这段就会把 MY SKILLS 压住。
+     底部安全区由 .rail 自己处理（它已有 env(safe-area-inset-bottom)），这里不要重复加。 */
+  padding-top:calc(80px + env(safe-area-inset-top, 0px));
+}
+
+/* ─────────────────── 滚动内容区 ─────────────────── */
+/* 内容区**不吸满**：flex:0 1 auto（原来 flex:1）。
+   原来轨道被推到屏幕最底，结果「工具区 ↔ 图标轨道」之间空一大块（实测 159px），
+   而轨道下方只剩 10px → 上下留白极不协调。
+   改成不 grow 后：图标轨道紧跟内容，多余空间自然留在轨道下方。 */
+.scroll{
+  flex:0 1 auto; min-height:0;
+  overflow-y:auto; overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  padding:22px var(--pad) 6px;
+}
+.scroll::-webkit-scrollbar{ display:none; }
+
+/* 眉标 */
+.eyebrow{
+  display:flex; align-items:center; gap:8px;
+  font-family:var(--font-en); font-size:11px; font-weight:500;
+  letter-spacing:.22em; text-transform:uppercase;
+}
+.eyebrow .idx{ color:var(--accent); }
+.eyebrow .sl{ color:rgba(255,255,255,.28); }
+.eyebrow .gr{ color:var(--ink-3); }
+
+/* 大标题 —— Lexend 800 + uppercase，与电脑端 .title 同一套规格 */
+.title{
+  margin-top:8px;
+  font-family:var(--font-dis); font-weight:800;
+  font-size:clamp(44px, 12.6vw, 54px);
+  line-height:.94; letter-spacing:-.03em;
+  text-transform:uppercase;
+}
+.title em{ display:block; font-style:normal; color:var(--accent); }
+
+/* 描述 */
+.sub{ display:flex; gap:12px; margin-top:14px; }
+.sub .bar{ width:2px; flex:none; background:var(--accent); border-radius:2px; opacity:.9; }
+.sub p{
+  font-family:var(--font-en); font-size:12.5px; line-height:1.55;
+  color:var(--ink-2); letter-spacing:.005em;
+}
+
+/* ─────────────────── 媒体卡 ─────────────────── */
+/* 不要边框、不要底色、不要阴影（用户 2026-09-17）：
+   画面四周用 mask 羽化后直接融进页面背景，看不出"这里有一块卡片"。
+   底色原来是 #0B0B0B（比页面 #111111 暗），即使去掉边框仍是个可见的暗块 → 一并去掉。 */
+.media{
+  position:relative; overflow:hidden;
+  width:100%; aspect-ratio:3/2;
+  margin-top:16px;
+  background:transparent;
+}
+/* 双缓冲：两条 video 完全重叠，交叉淡入避免切换时闪黑 */
+/* 四边羽化（与电脑端 .stage__media 同一做法，只是羽化带更宽一点）：
+   双层 linear-gradient 做横向 + 纵向渐隐，mask-composite 取交集 → 四边同时虚化，
+   画面边缘直接融进背景，看不出画布边界。 */
+.media__v{
+  position:absolute; inset:0; width:100%; height:100%;
+  object-fit:cover; opacity:0;
+  transition:opacity .45s var(--ease);
+  -webkit-mask-image:
+    linear-gradient(to right, rgba(0,0,0,0) 0, #000 8%, #000 92%, rgba(0,0,0,0) 100%),
+    linear-gradient(to bottom, rgba(0,0,0,0) 0, #000 8%, #000 92%, rgba(0,0,0,0) 100%);
+          mask-image:
+    linear-gradient(to right, rgba(0,0,0,0) 0, #000 8%, #000 92%, rgba(0,0,0,0) 100%),
+    linear-gradient(to bottom, rgba(0,0,0,0) 0, #000 8%, #000 92%, rgba(0,0,0,0) 100%);
+  -webkit-mask-composite: source-in;
+          mask-composite: intersect;
+}
+.media__v.is-on{ opacity:1; }
+
+/* 占位态（工具无素材，或视频加载失败）：网格 + 缩写大字 */
+.media__ph{
+  position:absolute; inset:0; display:none;
+  align-items:center; justify-content:center;
+}
+.media.is-ph .media__ph{ display:flex; }
+.media__ph .grid{
+  position:absolute; inset:0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+  background-size:26px 26px;
+}
+.media__ph .abbr{
+  position:relative;
+  font-family:var(--font-dis); font-weight:800;
+  font-size:clamp(48px, 15vw, 68px); line-height:1;
+  color:rgba(255,255,255,.20); letter-spacing:-.02em;
+}
+
+/* 左上角分类标签 */
+.media__badge{
+  position:absolute; top:12px; left:12px; z-index:3;
+  font-family:var(--font-en); font-size:9px; font-weight:500;
+  letter-spacing:.16em; text-transform:uppercase;
+  color:rgba(255,255,255,.62);
+  border:1px solid rgba(255,255,255,.18);
+  background:rgba(11,11,11,.55);
+  -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px);
+  border-radius:6px; padding:4px 8px;
+}
+.media__badge:empty{ display:none; }
+
+/* （原「底部渐变柔化」已删 —— 四边羽化后边缘已融进背景，
+   再叠一层 rgba(11,11,11,.55) 的暗角只会让底部偏暗、和其余部分不一致） */
+
+/* ─────────────────── 工具信息区（= 电脑端 .spotlight） ─────────────────── */
+.spot{
+  display:flex; align-items:center; gap:16px;
+  margin-top:18px;
+  transition:opacity .24s var(--ease), transform .24s var(--ease);
+}
+.spot.swap{ opacity:.35; transform:translateY(4px) scale(.99); transition-duration:.1s; }
+
+.spot__tile{
+  flex:none; width:64px; height:64px; border-radius:16px;
+  background:var(--panel); border:1px solid var(--line);
+  display:flex; align-items:center; justify-content:center;
+  overflow:hidden;
+  box-shadow:0 18px 40px -18px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.05);
+}
+.spot__tile img{
+  width:58%; height:58%; object-fit:contain;
+  filter:drop-shadow(0 3px 10px rgba(0,0,0,.5));
+}
+/* 无图标（原数据 icon 为 null，如 Stable Diffusion）→ 用缩写 */
+.spot__tile span{
+  font-family:var(--font-dis); font-weight:800;
+  font-size:calc(64px * 0.42); line-height:1;
+  color:rgba(255,255,255,.80);
+}
+.spot__tile span:empty{ display:none; }
+
+.spot__body{ min-width:0; }
+
+/* 组名（AI · TOOLS / DESIGN · 3D · VIDEO），前置 22px 绿线 —— 同电脑端 eyebrow */
+.spot__eyebrow{
+  display:flex; align-items:center; gap:8px;
+  font-family:var(--font-en); font-size:9.5px; font-weight:500;
+  letter-spacing:.22em; text-transform:uppercase; color:var(--ink-3);
+}
+.spot__eyebrow::before{ content:""; width:22px; height:1px; background:var(--accent); flex:none; }
+.spot__eyebrow b{ color:var(--accent); font-weight:600; }
+
+/* 工具名 —— Lexend 800，与电脑端 .spotlight__name 同族 */
+.spot__name{
+  margin-top:6px;
+  font-family:var(--font-dis); font-weight:800;
+  font-size:clamp(26px, 7.6vw, 32px);
+  line-height:.98; letter-spacing:-.02em; color:var(--ink);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+
+/* [标签] 描述 */
+.spot__meta{
+  margin-top:8px;
+  display:flex; align-items:center; gap:8px;
+  font-family:var(--font-en); font-size:12.5px; color:var(--ink-2); letter-spacing:.02em;
+}
+.spot__meta i{
+  font-style:normal; color:var(--accent);
+  border:1px solid rgba(204,255,0,.42); border-radius:99px;
+  padding:3px 9px; font-size:9.5px; font-weight:500; letter-spacing:.14em;
+  text-transform:uppercase; flex:none;
+}
+
+/* （CTA「VIEW MORE」已按用户要求移除 —— 2026-09-17） */
+
+/* ─────────────────── 底部常驻栏 ─────────────────── */
+/* （进度行 10/19 + SWIPE 已按用户要求移除 —— 2026-09-17）
+   只保留图标轨道：原来靠 .count 撑开的顶部留白改由 padding 给足。 */
+.rail{
+  flex:none; position:relative;
+  background:rgba(17,17,17,.94);
+  -webkit-backdrop-filter:blur(20px); backdrop-filter:blur(20px);
+  border-top:1px solid rgba(255,255,255,.08);
+  padding:10px 0 calc(10px + env(safe-area-inset-bottom, 0px));
+}
+
+.rail-wrap{ position:relative; }
+.rail-track{
+  display:flex; gap:10px; align-items:center;
+  padding:5px 50px; height:74px;
+  overflow-x:auto; scroll-behavior:smooth;
+  scroll-snap-type:x proximity;
+}
+.rail-track::-webkit-scrollbar{ display:none; }
+
+.chip{
+  flex:none; width:50px; height:50px; border-radius:14px;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--font-dis); font-size:15px; font-weight:600;
+  color:var(--ink); letter-spacing:-.01em;
+  background:rgba(255,255,255,.045);
+  border:1px solid rgba(255,255,255,.13);
+  scroll-snap-align:center; cursor:pointer;
+  position:relative; padding:0;
+  transition:width .22s var(--ease), height .22s var(--ease), border-radius .22s var(--ease),
+             color .22s var(--ease), background .22s var(--ease), box-shadow .22s var(--ease),
+             border-color .22s var(--ease);
+}
+.chip.on{
+  width:64px; height:64px; border-radius:18px; font-size:19px;
+  color:var(--accent);
+  background:linear-gradient(160deg, rgba(204,255,0,.18), rgba(204,255,0,.03));
+  border-color:rgba(204,255,0,.62);
+  box-shadow:0 0 26px rgba(204,255,0,.26);
+}
+.chip:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+/* hover 保持品牌绿，不变灰 */
+@media (hover:hover){
+  .chip:hover{ border-color:rgba(255,255,255,.32); }
+  .chip.on:hover{ border-color:rgba(204,255,0,.85); color:var(--accent); }
+}
+
+.arrow{
+  position:absolute; top:9px; width:44px; height:64px; z-index:3;
+  display:flex; align-items:center; justify-content:center;
+  font-size:20px; color:var(--ink-2); cursor:pointer;
+  border:0; background:transparent; font-family:var(--font-en);
+}
+.arrow.l{ left:0; background:linear-gradient(90deg, rgba(17,17,17,.98) 42%, transparent); }
+.arrow.r{ right:0; background:linear-gradient(270deg, rgba(17,17,17,.98) 42%, transparent); }
+.arrow:active{ color:var(--accent); }
+
+/* 跨组提示（AI · TOOLS → DESIGN · 3D · VIDEO） */
+.glabel{
+  position:absolute; top:-4px; left:50%; transform:translateX(-50%);
+  font-family:var(--font-en); font-size:8px; font-weight:500; letter-spacing:.2em;
+  color:var(--accent); white-space:nowrap; pointer-events:none;
+  opacity:0; transition:opacity .35s var(--ease);
+}
+.glabel.show{ opacity:1; }
+
+/* 减少动效偏好 */
+@media (prefers-reduced-motion: reduce){
+  .media__v, .spot, .chip{ transition-duration:.01ms !important; }
+  .media__v{ transition:none !important; }
+}
+</style>
+</head>
+<body>
+<div class="screen">
+
+  <main class="scroll" id="scroll">
+    <div class="eyebrow">
+      <span class="idx">02</span><span class="sl">/</span><span class="gr">SKILLS</span>
+    </div>
+
+    <h1 class="title">MY<em>SKILLS</em></h1>
+
+    <div class="sub">
+      <span class="bar"></span>
+      <p>工具是思维的延伸，创意是解决问题的钥匙。覆盖商业视觉全链路的创作工具与技能体系。</p>
+    </div>
+
+    <!-- 媒体卡：当前工具的演示片，双缓冲交叉淡入 -->
+    <div class="media" id="media">
+      <video class="media__v" id="mvA" muted playsinline preload="auto" webkit-playsinline></video>
+      <video class="media__v" id="mvB" muted playsinline preload="none" webkit-playsinline></video>
+      <div class="media__ph">
+        <div class="grid"></div>
+        <div class="abbr" id="phAbbr"></div>
+      </div>
+      <span class="media__badge" id="badge"></span>
+    </div>
+
+    <!-- 工具信息：图标瓦片 + 组名 + 工具名 + [标签]描述  —— 同电脑端左侧 -->
+    <div class="spot" id="spot">
+      <div class="spot__tile">
+        <img id="spotIcon" alt="" draggable="false" /><span id="spotAbbr"></span>
+      </div>
+      <div class="spot__body">
+        <div class="spot__eyebrow" id="spotEyebrow"></div>
+        <h2 class="spot__name" id="spotName"></h2>
+        <div class="spot__meta"><i id="spotTag"></i><span id="spotMeta"></span></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 底部常驻：图标轨道（进度行已按用户要求移除） -->
+  <footer class="rail">
+    <div class="rail-wrap">
+      <button class="arrow l" id="prev" type="button" aria-label="上一个">‹</button>
+      <button class="arrow r" id="next" type="button" aria-label="下一个">›</button>
+      <div class="rail-track" id="chips"></div>
+      <div class="glabel" id="glabel"></div>
+    </div>
+  </footer>
+</div>
+
+<script>
+/* ============================================================================
+   数据：与电脑端 skills-stage.html 的 ROW1(AI · TOOLS) + ROW2(SOFTWARE) 逐项一致。
+   19 项：ai 组 12 项、d3v 组 7 项。字段 abbr/name/tag/meta/icon/media 全部照搬原文件。
+   · C4D 原文件 media 为 null（暂无演示片）→ 本页走占位态
+   · SD 原文件 icon 为 null → 图标瓦片显示缩写文字
+   ========================================================================== */
+const TOOLS = [
+  // ROW1 — AI · TOOLS
+  {id:'liblibai',  group:'ai', abbr:'L',  name:'LiblibAI',         tag:'AI', meta:'图像生成',  icon:'icons-final/liblibai.png',  media:'liblibai'},
+  {id:'libtv',     group:'ai', abbr:'Lt', name:'LibTV',            tag:'AI', meta:'无限画布',  icon:'icons-final/libtv.png',     media:'libtv'},
+  {id:'midjourney',group:'ai', abbr:'Mj', name:'Midjourney',       tag:'AI', meta:'概念生成',  icon:'icons-final/midjourney.png',media:'midjourney'},
+  {id:'seedance',  group:'ai', abbr:'Sn', name:'Seedance',         tag:'AI', meta:'视频生成',  icon:'icons-final/seedance.png',  media:'seedance'},
+  {id:'kling',     group:'ai', abbr:'Kl', name:'Kling',            tag:'AI', meta:'视频生成',  icon:'icons-final/kling.png',     media:'kling'},
+  {id:'jimeng',    group:'ai', abbr:'Jm', name:'Jimeng',           tag:'AI', meta:'视频生成',  icon:'icons-final/jimeng.png',    media:'jimeng'},
+  {id:'hailuo',    group:'ai', abbr:'H3', name:'Hailuo AI',        tag:'AI', meta:'视频生成',  icon:'icons-final/hailuo.png',    media:'hailuo'},
+  {id:'comfyui',   group:'ai', abbr:'Cu', name:'ComfyUI',          tag:'AI', meta:'节点工作流',icon:'icons-final/comfyui.png',   media:'comfyui'},
+  {id:'chatgpt',   group:'ai', abbr:'GP', name:'ChatGPT',          tag:'AI', meta:'语言对话',  icon:'icons-final/chatgpt.png',   media:'chatgpt'},
+  {id:'suno',      group:'ai', abbr:'Su', name:'Suno',             tag:'AI', meta:'音乐生成',  icon:'icons-final/suno.png',      media:'suno'},
+  {id:'workbuddy', group:'ai', abbr:'WB', name:'WorkBuddy',        tag:'AI', meta:'工作台',    icon:'icons-final/WorkBuddy.png', media:'workbuddy'},
+  {id:'sd',        group:'ai', abbr:'SD', name:'Stable Diffusion', tag:'AI', meta:'图像生成',  icon:null,                        media:'sd'},
+  // ROW2 — DESIGN · 3D · VIDEO
+  {id:'photoshop',   group:'d3v', abbr:'Ps', name:'Photoshop',   tag:'设计', meta:'视觉处理', icon:'icons-final/photoshop.png',  media:'photoshop'},
+  {id:'illustrator', group:'d3v', abbr:'Ai', name:'Illustrator', tag:'设计', meta:'矢量绘制', icon:'icons-final/illustrator.png',media:'illustrator'},
+  {id:'c4d',         group:'d3v', abbr:'C4', name:'Cinema 4D',   tag:'3D',  meta:'三维建模', icon:'icons-final/c4d.png',        media:null},
+  {id:'jianying',    group:'d3v', abbr:'Jy', name:'剪映',        tag:'视频', meta:'视频剪辑', icon:'icons-final/jianying.png',   media:'jianying'},
+  {id:'autocad',     group:'d3v', abbr:'Ac', name:'AutoCAD',     tag:'3D',  meta:'施工图',   icon:'icons-final/autocad.png',    media:'autocad'},
+  {id:'sketchup',    group:'d3v', abbr:'Sk', name:'SketchUp',    tag:'3D',  meta:'空间建模', icon:'icons-final/sketchup.png',   media:'sketchup'},
+  {id:'lumion',      group:'d3v', abbr:'Lu', name:'Lumion',      tag:'3D',  meta:'场景渲染', icon:'icons-final/lumion.png',     media:'lumion'}
+];
+
+const GROUP_LABEL = { ai:'AI · TOOLS', d3v:'DESIGN · 3D · VIDEO' };
+const STEP_MS   = 4000;   /* 自动巡播周期 —— 与电脑端一致（含过渡） */
+const HOLD_MS   = 5200;   /* 用户手动操作后，暂停自动多久再恢复 */
+
+const $ = id => document.getElementById(id);
+const mediaEl=$('media'), scrollEl=$('scroll'), spotEl=$('spot');
+const mvA=$('mvA'), mvB=$('mvB');
+const spotIcon=$('spotIcon'), spotAbbr=$('spotAbbr'),
+      spotEyebrow=$('spotEyebrow'), spotName=$('spotName'),
+      spotTag=$('spotTag'), spotMeta=$('spotMeta'),
+      phAbbr=$('phAbbr'), badge=$('badge'),
+      chips=$('chips'), glabel=$('glabel');
+
+let cur = 0, lastGroup = null;
+let autoTimer = null, userHold = false;
+let front = mvA, back = mvB;     /* front = 当前显示的 video，back = 预载用的另一条 */
+
+/* ── 图标轨道 ─────────────────────────────────────────────── */
+TOOLS.forEach((t, i) => {
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'chip';
+  b.textContent = t.abbr;
+  b.dataset.i = i;
+  b.title = t.name + ' · ' + t.tag + ' ' + t.meta;
+  b.addEventListener('click', () => { go(i); hold(); });
+  chips.appendChild(b);
+});
+
+/* ── 媒体：双缓冲交叉淡入（同电脑端思路，切换不闪黑） ─────────── */
+function showMedia(t){
+  const ph = () => {
+    mediaEl.classList.add('is-ph');
+    front.classList.remove('is-on');
+    back.classList.remove('is-on');
+    return false;
+  };
+  if (!t.media) return ph();
+
+  const src = 'media/' + t.media + '.mp4';
+  if (front.getAttribute('src') === src) return false;   /* 已经是这条，不动 */
+
+  const next = back, old = front;
+  mediaEl.classList.remove('is-ph');
+
+  let done = false;
+  const cross = () => {
+    if (done) return;
+    done = true;
+    next.removeEventListener('loadeddata', cross);
+    next.removeEventListener('canplay', cross);
+    next.classList.add('is-on');
+    old.classList.remove('is-on');
+    setTimeout(() => { try{ old.pause(); }catch(_){} }, 500);
+    front = next; back = old;                            /* 交换角色 */
+  };
+  const fail = () => {
+    if (done) return;
+    done = true;
+    next.removeEventListener('loadeddata', cross);
+    next.removeEventListener('canplay', cross);
+    next.removeEventListener('error', fail);
+    ph();                                                /* 素材缺失 → 占位态 */
+  };
+
+  next.addEventListener('loadeddata', cross, { once:false });
+  next.addEventListener('canplay', cross, { once:false });
+  next.addEventListener('error', fail, { once:false });
+
+  next.muted = true;
+  next.setAttribute('src', src);
+  try { next.load(); } catch(_){}
+  const pr = next.play && next.play();
+  if (pr && pr.catch) pr.catch(() => {});                /* 自动播放被拦不报错，静默等交互 */
+
+  if (next.readyState >= 2) cross();                     /* 已在缓存里，直接切 */
+  else setTimeout(() => { if (!done && next.readyState >= 1) cross(); }, 2000);  /* 网慢兜底 */
+  return true;
+}
+
+/* ── 渲染一项 ─────────────────────────────────────────────── */
+function render(i){
+  const t = TOOLS[i];
+
+  /* 左侧信息 = 电脑端 .spotlight：组名 / 工具名 / [标签] 描述 */
+  spotEyebrow.innerHTML = (GROUP_LABEL[t.group] || '').replace('·', '<b>·</b>');
+  spotName.textContent = t.name;
+  spotTag.textContent  = t.tag || '';
+  spotTag.style.display = t.tag ? '' : 'none';
+  spotMeta.textContent = t.meta || '';
+
+  /* 图标瓦片：有图标用图标，没有就用缩写（原数据 icon 为 null 的那项） */
+  if (t.icon) {
+    spotIcon.src = t.icon;
+    spotIcon.alt = t.name;
+    spotIcon.style.display = '';
+    spotAbbr.textContent = '';
+  } else {
+    spotIcon.removeAttribute('src');
+    spotIcon.style.display = 'none';
+    spotAbbr.textContent = t.abbr;
+  }
+
+  badge.textContent = t.tag || '';
+  phAbbr.textContent = t.abbr;
+
+  showMedia(t);
+
+  [...chips.children].forEach((c, k) => c.classList.toggle('on', k === i));
+  const active = chips.children[i];
+  if (active) {
+    const target = active.offsetLeft - chips.clientWidth / 2 + active.offsetWidth / 2;
+    chips.scrollTo({ left: Math.max(0, target), behavior: 'smooth' });
+  }
+}
+
+/* ── 切换（带"沉一下"过渡，同电脑端 showSpot 的节奏） ────────── */
+let swapT = null;
+function go(i){
+  i = (i + TOOLS.length) % TOOLS.length;
+  const g = TOOLS[i].group;
+
+  if (lastGroup !== null && lastGroup !== g) {           /* 跨组时闪一下组名 */
+    glabel.textContent = GROUP_LABEL[g];
+    glabel.classList.add('show');
+    clearTimeout(go._t);
+    go._t = setTimeout(() => glabel.classList.remove('show'), 1200);
+  }
+  lastGroup = g;
+  cur = i;
+
+  clearTimeout(swapT);
+  spotEl.classList.add('swap');                          /* 退场 0.1s（只压到 .35，不全消）*/
+  swapT = setTimeout(() => {                             /* 在最暗处换内容 */
+    render(i);
+    spotEl.classList.remove('swap');                     /* 入场 0.24s 回位 */
+  }, 100);
+}
+
+/* ── 自动巡播（与电脑端同节奏：每 4 秒一项，19 项循环） ───────── */
+function scheduleAuto(){
+  clearTimeout(autoTimer);
+  if (userHold) return;
+  autoTimer = setTimeout(() => { if (!userHold) { go(cur + 1); scheduleAuto(); } }, STEP_MS);
+}
+function hold(ms){                                       /* 用户操作后暂停一会儿，别"手还没走就切了" */
+  userHold = true;
+  clearTimeout(autoTimer);
+  clearTimeout(hold._t);
+  hold._t = setTimeout(() => { userHold = false; scheduleAuto(); }, ms || HOLD_MS);
+}
+
+/* ── 交互 ─────────────────────────────────────────────────── */
+$('prev').addEventListener('click', () => { go(cur - 1); hold(); });
+$('next').addEventListener('click', () => { go(cur + 1); hold(); });
+
+/* 整屏横向滑动切换（只认明显的横向意图，纵向滚动不受影响） */
+let sx = 0, sy = 0, tracking = false;
+scrollEl.addEventListener('touchstart', (e) => {
+  const t = e.touches[0];
+  sx = t.clientX; sy = t.clientY;
+  tracking = t.clientX > 24 && t.clientX < window.innerWidth - 24;   /* 边缘让位给 iOS 返回手势 */
+}, { passive:true });
+
+scrollEl.addEventListener('touchend', (e) => {
+  if (!tracking) return;
+  tracking = false;
+  const dx = e.changedTouches[0].clientX - sx;
+  const dy = e.changedTouches[0].clientY - sy;
+  if (Math.abs(dx) > 34 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+    go(cur + (dx < 0 ? 1 : -1));
+    hold();
+  }
+}, { passive:true });
+
+/* 桌面预览：方向键 */
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft')  { go(cur - 1); hold(); }
+  if (e.key === 'ArrowRight') { go(cur + 1); hold(); }
+});
+
+/* 页面不可见时停表，回来再续（省电、也避免后台空转） */
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { clearTimeout(autoTimer); }
+  else if (!userHold) { scheduleAuto(); }
+});
+
+/* 有些浏览器首次不允许自动播放：首次触摸时补一次 play() */
+document.addEventListener('touchstart', function once(){
+  document.removeEventListener('touchstart', once);
+  try { front.muted = true; const p = front.play(); if (p && p.catch) p.catch(()=>{}); } catch(_){}
+}, { passive:true, once:true });
+
+/* ── 启动 ─────────────────────────────────────────────────── */
+go(0);
+scheduleAuto();
+</script>
+</body>
+</html>

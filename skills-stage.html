@@ -63,7 +63,11 @@
             translateY(calc(var(--c-ty,0px) * var(--ring-k)));
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{background:var(--bg);}
+/* ⚠️ 2026-09-19 按用户要求换成「透明度 0」：想先看背景视频会不会影响屏3 的画面。
+   **原值不删，保留在这里，随时换回来**：background:var(--bg);   （--bg = #111111）
+   注意：--bg 变量本身没动，其它用到它的地方（如 .ring-hub::before/::after 的 #111111）
+   不受影响，改的只是这一层实际应用的底色。 */
+html,body{background:rgba(0,0,0,0);}
 body{
   cursor:none;                  /* 嵌入主站时由父站统一画绿点光标（见文件末尾的坐标同步） */
   color:var(--txt);
@@ -75,8 +79,14 @@ body{
 
 .skills{
   /* 顶部留白 120 → 88px：与屏2 的"眉标距区块顶"统一为 88px（原来 120 vs 227，两屏不一致）。
-     88 是下限——导航 fixed 高 80px，再小内容会被导航压住。底部 140px 未动。 */
-  padding:88px 0 140px;
+     88 是下限——导航 fixed 高 80px，再小内容会被导航压住。
+     底部 140 → 120px（用户 2026-09-22）：屏3 底部留白原本 140，而下一屏（屏4 服务区，
+     .section 的 padding-top）是 120 —— 两个数字不一样，视觉上黑底那段（140）比
+     浅底那段（120）更空，看起来不齐。统一成 120 后两段留白一致。
+     ⚠️ 顶部 88px 是当初为对齐屏2 特意调的，不要跟着一起改。
+     2026-10-14 18:1x 用户：底部留白改由面板「底部留白（丝带下方）」控制
+     （--skills-pad-b，默认 120）—— 他要把红框里那段空白调高/调低。 */
+  padding:88px 0 var(--skills-pad-b, 120px);
   position:relative;
 }
 
@@ -181,14 +191,17 @@ body{
 
 /* ---------- 工具滚动行（LogoLoop） ---------- */
 /* 内容压在媒体残影之上（残影是环境光晕，属于背景层；不给 z-index 会被它轻微盖住） */
-.loops{display:flex;flex-direction:column;gap:var(--loop-gap,22px);position:relative;z-index:1}
+/* 2026-09-23 用户要求：两行图标整体下移。
+   第一轮先加了 20px；第二轮用户看图后说"再往下一点，约一个灰色图标的高度" → 累加到 60px。
+   原值无 margin-top（= 0），保留在这行注释里方便回退：margin-top: 0; */
+.loops{display:flex;flex-direction:column;gap:var(--loop-gap,22px);position:relative;z-index:1;margin-top:60px}
+/* ⚠️ 两行的【外层容器】不参与命中（2026-10-14 实测根因）：
+   在 cLoopGap<0 + rY1/rY2 偏移下，两行视觉重叠；.loop-row 是空壳容器、
+   在 z 序上会盖住另一行的可见区域并把点击【吞掉】（点击无反应 / 判定成别行）。
+   容器设为 none、行本体（#loop1/#loop2）显式恢复 auto。 */
+.loop-row{pointer-events:none}
+#loop1,#loop2{pointer-events:auto}
 .loop-row{position:relative;width:100%}
-.loop-label{
-  width:min(1440px,100%);padding-left:var(--page-margin);padding-right:var(--page-margin);margin:0 auto 12px;
-  font-size:11px;letter-spacing:.24em;text-transform:uppercase;color:var(--txt-3);
-  display:flex;align-items:center;gap:10px;
-}
-.loop-label::after{content:"";flex:1;height:1px;background:var(--line)}
 
 .logoloop{
   position:relative;overflow:hidden;width:100%;
@@ -250,10 +263,20 @@ body{
 .logoloop--scale-hover .logoloop__item:hover .skill__icon,
 .logoloop--scale-hover .logoloop__item.is-hovered .skill__icon{color:var(--accent)}
 
-/* 边缘淡出 */
+/* 边缘淡出
+   ⚠️ 2026-09-19 改法：原来是用「背景色色块」做假淡出 —— ::before/::after 铺一条
+   linear-gradient(var(--fade) → transparent) 把两端的图标盖住，而 --fade 就是背景色 #111111。
+   但页面底已经改成透明的背景视频了，那个固定的 #111111 就从"隐形遮罩"变成了
+   一条看得见的不透明色带（用户反馈"三屏下面自动滚动那里有个不透明的条"）。
+   现在改成给滚动行本身加 mask：让**图标自己在两端淡出**，
+   跟背景是什么颜色、是视频还是纯色都无关。旧的色块遮罩停用（保留规则但 display:none）。 */
+.logoloop--fade{
+  -webkit-mask-image:linear-gradient(to right,rgba(0,0,0,0) 0,#000 8%,#000 92%,rgba(0,0,0,0) 100%);
+  mask-image:linear-gradient(to right,rgba(0,0,0,0) 0,#000 8%,#000 92%,rgba(0,0,0,0) 100%);
+}
 .logoloop--fade::before,.logoloop--fade::after{
   content:"";position:absolute;top:0;bottom:0;width:clamp(40px,10%,160px);
-  pointer-events:none;z-index:10;
+  pointer-events:none;z-index:10;display:none;   /* 原色块遮罩已停用 */
 }
 .logoloop--fade::before{left:0;background:linear-gradient(to right,var(--fade) 0%,rgba(0,0,0,0) 100%)}
 .logoloop--fade::after{right:0;background:linear-gradient(to left,var(--fade) 0%,rgba(0,0,0,0) 100%)}
@@ -347,8 +370,20 @@ body{
      再取内容区（宽 - 2×margin）的右侧 --stage-ratio。窄屏时左缘退化为 page-margin。
      ⚠️ 画面大小由"宽度"决定（视频 16:9 级 → 按宽撑满）；改高度不会让画面变大。 */
   --stage-ratio:0.62;
-  left:calc(max((100% - 1440px) / 2, 0px) + var(--page-margin) + (min(1440px, 100%) - var(--page-margin) * 2) * (1 - var(--stage-ratio)));
-  width:calc((min(1440px, 100%) - var(--page-margin) * 2) * var(--stage-ratio));
+  /* 2026-09-23 用户要求：窗口的**右缘对齐下方图标行那条横线的右端**。
+     原来宽度也用 --stage-ratio（0.62），右缘只到 1369，比横线右端（1425）少 56px。
+     ⚠️ 不能直接调大 --stage-ratio —— 左缘公式里也用了它，一改左缘会跟着往左跑。
+     所以宽度单独给一个系数 --stage-w：**左缘仍按原 0.62 算（左边不动），只把右边推开**。
+     换算：内容区宽 1313 × 0.6626 ≈ 870 → 右缘 = 555 + 870 = 1425 ✓（原系数 0.62 对应 814）*/
+  --stage-w:0.6626;
+  /* ⚠️ 2026-10-14 17:1x【右上角锚定】：
+     用户要求"右上角固定、向下（左）等比放大"。改为 right 定位 ——
+     右缘公式与旧的"左缘+宽"代数等价（V=1902 实测右缘 1672 ✓）：
+       右缘 = A + M + C×1.0426  ⟹  right = 100% − (A + M + C×1.0426)
+     宽度走 --stage-w2（JS 按"高度×原比例"写入；无 JS 时退回原公式兜底）。 */
+  left:auto;
+  right:calc(100% - (max((100% - 1440px) / 2, 0px) + var(--page-margin) + (min(1440px, 100%) - var(--page-margin) * 2) * 1.0426));
+  width:var(--stage-w2, calc((min(1440px, 100%) - var(--page-margin) * 2) * var(--stage-w)));
   top:var(--stage-top,170px);
   height:var(--stage-h,400px);
   display:flex;align-items:center;justify-content:flex-end;  /* 图片右缘贴齐窗口右缘（右边不留空） */
@@ -414,7 +449,7 @@ body{
 /* ---------- 调参面板 ---------- */
 .panel{
   position:fixed;top:18px;right:18px;z-index:999;
-  width:270px;padding:16px 16px 12px;
+  width:300px;padding:16px 16px 12px;
   background:rgba(20,20,20,.94);border:1px solid var(--line);border-radius:12px;
   backdrop-filter:blur(12px);
   font-size:12px;color:var(--txt-2);
@@ -467,6 +502,16 @@ input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer}
 .btn--go{background:var(--accent);color:#111111;border-color:var(--accent);font-weight:600}
 .btn--go:hover{background:#d9ff33;color:#111111}
 .panel__hint{margin-top:10px;font-size:10px;line-height:1.6;color:var(--txt-3)}
+
+/* 右下角浮动按钮：任何时候都能开合调参面板（生产域名自动隐藏） */
+.panel-fab{
+  position:fixed;right:18px;bottom:18px;z-index:1000;
+  padding:9px 15px;border-radius:999px;cursor:pointer;
+  background:rgba(20,20,20,.92);border:1px solid var(--line);color:var(--txt-2);
+  font-size:12px;letter-spacing:.02em;backdrop-filter:blur(12px);
+  transition:border-color .25s,color .25s;
+}
+.panel-fab:hover{border-color:var(--accent);color:var(--accent)}
 
 /* ---------- 无障碍：尊重系统减弱动效 ---------- */
 @media (prefers-reduced-motion: reduce){
@@ -569,7 +614,6 @@ input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer}
        第二排标签：整行已按需求删除。要恢复标签就把文字填回 div 里。 -->
   <div class="loops">
     <div class="loop-row">
-      <div class="loop-label" aria-hidden="true"></div>
       <div id="loop1"></div>
     </div>
     <div class="loop-row">
@@ -587,70 +631,158 @@ input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer}
   </div>
   <div class="panel__body">
 
-    <div class="panel__sec">环形文字 · CurvedLoop</div>
-    <div class="ctl">
-      <div class="ctl__row"><label>旋转速度</label><output id="o-cSpeed"></output></div>
-      <input type="range" id="cSpeed" min="0" max="8" step="0.1" value="0.3">
-    </div>
-    <div class="ctl">
-      <div class="ctl__row"><label>环尺寸</label><output id="o-cRing"></output></div>
-      <input type="range" id="cRing" min="120" max="460" step="4" value="120">
-    </div>
-    <div class="ctl">
-      <div class="ctl__row"><label>字号</label><output id="o-cSize"></output></div>
-      <input type="range" id="cSize" min="3" max="12" step="0.2" value="12">
-    </div>
-    <div class="ctl">
-      <div class="ctl__row"><label>缺口大小</label><output id="o-cGap"></output></div>
-      <input type="range" id="cGap" min="0" max="180" step="1" value="180">
-    </div>
-    <div class="ctl">
-      <div class="ctl__row"><label>缺口朝向</label><output id="o-cGapA"></output></div>
-      <input type="range" id="cGapA" min="0" max="360" step="1" value="349">
-    </div>
-
-    <div class="panel__sec">工具行 · LogoLoop</div>
+    <div class="panel__sec">工具行 · Ribbon 丝带（原 LogoLoop 已替换）</div>
     <div class="ctl">
       <div class="ctl__row"><label>第一行速度</label><output id="o-l1Speed"></output></div>
-      <input type="range" id="l1Speed" min="0" max="220" step="5" value="30">
+      <input type="range" id="l1Speed" min="0" max="200" step="5" value="55">
     </div>
     <div class="ctl">
       <div class="ctl__row"><label>第二行速度</label><output id="o-l2Speed"></output></div>
-      <input type="range" id="l2Speed" min="0" max="220" step="5" value="30">
+      <input type="range" id="l2Speed" min="0" max="200" step="5" value="55">
     </div>
     <div class="ctl">
-      <div class="ctl__row"><label>卡片间距</label><output id="o-gap"></output></div>
-      <input type="range" id="gap" min="12" max="90" step="2" value="12">
+      <div class="ctl__row"><label>项间距</label><output id="o-gap"></output></div>
+      <input type="range" id="gap" min="0" max="200" step="2" value="56">
     </div>
     <div class="ctl">
-      <div class="ctl__row"><label>卡片高度</label><output id="o-logoH"></output></div>
-      <input type="range" id="logoH" min="24" max="86" step="2" value="42">
-    </div>
-
-    <div class="panel__sec">环形 · 3D 角度（俯仰/摆角/旋转/透视/偏移）</div>
-    <div class="ctl">
-      <div class="ctl__row"><label>俯仰角</label><output id="o-cRx"></output></div>
-      <input type="range" id="cRx" min="-30" max="30" step="1" value="0">
+      <div class="ctl__row"><label>图标与文字的距离</label><output id="o-rIconGap"></output></div>
+      <input type="range" id="rIconGap" min="0" max="120" step="2" value="42">
     </div>
     <div class="ctl">
-      <div class="ctl__row"><label>左右摆角</label><output id="o-cRy"></output></div>
-      <input type="range" id="cRy" min="-30" max="30" step="1" value="0">
+      <div class="ctl__row"><label>图标大小（屏幕px）</label><output id="o-logoH"></output></div>
+      <input type="range" id="logoH" min="10" max="90" step="1" value="11">
     </div>
     <div class="ctl">
-      <div class="ctl__row"><label>平面旋转</label><output id="o-cRz"></output></div>
-      <input type="range" id="cRz" min="-30" max="30" step="1" value="-30">
+      <div class="ctl__row"><label>显示名称</label><output id="o-rNames"></output></div>
+      <input type="range" id="rNames" min="0" max="1" step="1" value="1">
     </div>
     <div class="ctl">
-      <div class="ctl__row"><label>透视强度</label><output id="o-cPersp"></output></div>
-      <input type="range" id="cPersp" min="500" max="3000" step="50" value="500">
+      <div class="ctl__row"><label>悬停变绿</label><output id="o-rTint"></output></div>
+      <input type="range" id="rTint" min="0" max="1" step="1" value="1">
     </div>
     <div class="ctl">
-      <div class="ctl__row"><label>横向偏移</label><output id="o-cTx"></output></div>
-      <input type="range" id="cTx" min="-200" max="200" step="2" value="26">
+      <div class="ctl__row"><label>选中亮度（盖白强度）</label><output id="o-rLift"></output></div>
+      <input type="range" id="rLift" min="0" max="1" step="0.05" value="1">
     </div>
     <div class="ctl">
-      <div class="ctl__row"><label>纵向偏移</label><output id="o-cTy"></output></div>
-      <input type="range" id="cTy" min="-120" max="120" step="2" value="-8">
+      <div class="ctl__row"><label>图标亮度（存在感）</label><output id="o-rAlpha"></output></div>
+      <input type="range" id="rAlpha" min="0" max="1" step="0.05" value="1">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>文字比例（占图标高）</label><output id="o-rName"></output></div>
+      <input type="range" id="rName" min="0.3" max="2.5" step="0.05" value="2.5">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>文字粗细</label><output id="o-rWeight"></output></div>
+      <input type="range" id="rWeight" min="300" max="900" step="50" value="900">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>点击拧转</label><output id="o-rCT"></output></div>
+      <input type="range" id="rCT" min="0" max="1" step="1" value="1">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>字母间距（em）</label><output id="o-rLS"></output></div>
+      <input type="range" id="rLS" min="-0.15" max="0.3" step="0.01" value="0">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>扭转速度</label><output id="o-rTS"></output></div>
+      <input type="range" id="rTS" min="0" max="1" step="0.02" value="0.34">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>流动速度（px/s）</label><output id="o-rSpeed"></output></div>
+      <input type="range" id="rSpeed" min="0" max="200" step="5" value="45">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>形状起伏（流）</label><output id="o-rFlow"></output></div>
+      <input type="range" id="rFlow" min="0" max="1" step="0.05" value="0.85">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>渲染质量（清晰度/性能）</label><output id="o-rQual"></output></div>
+      <input type="range" id="rQual" min="0.5" max="1" step="0.05" value="1">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>暂停（看细节）</label><output id="o-rPause"></output></div>
+      <input type="range" id="rPause" min="0" max="1" step="1" value="0">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>整体缩放</label><output id="o-rScale"></output></div>
+      <input type="range" id="rScale" min="0.1" max="1" step="0.02" value="0.7">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>实体缎带（0/1）</label><output id="o-rBand"></output></div>
+      <input type="range" id="rBand" min="0" max="1" step="1" value="1">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>缎带宽</label><output id="o-rWidth"></output></div>
+      <input type="range" id="rWidth" min="60" max="320" step="2" value="88">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>波浪高度</label><output id="o-rAmp"></output></div>
+      <input type="range" id="rAmp" min="0" max="160" step="4" value="0">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>波浪个数</label><output id="o-rFreq"></output></div>
+      <input type="range" id="rFreq" min="0" max="2" step="0.05" value="0">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>前后深度</label><output id="o-rDepth"></output></div>
+      <input type="range" id="rDepth" min="0" max="600" step="10" value="0">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>第一行倾斜</label><output id="o-rTilt1"></output></div>
+      <input type="range" id="rTilt1" min="-50" max="50" step="1" value="0">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>第二行倾斜</label><output id="o-rTilt2"></output></div>
+      <input type="range" id="rTilt2" min="-50" max="50" step="1" value="0">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>第一行旋转（交叉）</label><output id="o-rRoll1"></output></div>
+      <input type="range" id="rRoll1" min="-30" max="30" step="1" value="0">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>第二行旋转（交叉）</label><output id="o-rRoll2"></output></div>
+      <input type="range" id="rRoll2" min="-30" max="30" step="1" value="0">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>持续扭转</label><output id="o-rTwist"></output></div>
+      <input type="range" id="rTwist" min="0" max="0.5" step="0.01" value="0">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>自动翻转</label><output id="o-rAutoOn"></output></div>
+      <input type="range" id="rAutoOn" min="0" max="1" step="1" value="1">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>自动翻转间隔（秒）</label><output id="o-rAuto"></output></div>
+      <input type="range" id="rAuto" min="0" max="30" step="0.2" value="13">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>自动翻滚速度（快慢）</label><output id="o-rWave"></output></div>
+      <input type="range" id="rWave" min="0.05" max="0.6" step="0.01" value="0.37">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>自动翻转幅度（圈）</label><output id="o-rRoll"></output></div>
+      <input type="range" id="rRoll" min="0" max="1" step="0.02" value="0.3">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>翻滚波宽度</label><output id="o-rSpan"></output></div>
+      <input type="range" id="rSpan" min="0.03" max="0.3" step="0.005" value="0.085">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>悬停减速</label><output id="o-rHover"></output></div>
+      <input type="range" id="rHover" min="0" max="1" step="0.05" value="0.2">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>缎面高光</label><output id="o-rSheen"></output></div>
+      <input type="range" id="rSheen" min="0" max="1" step="0.05" value="0.1">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>缎面明暗</label><output id="o-rShade"></output></div>
+      <input type="range" id="rShade" min="0" max="1" step="0.05" value="1">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>透视（FOV）</label><output id="o-rFov"></output></div>
+      <input type="range" id="rFov" min="5" max="60" step="1" value="5">
     </div>
 
     <div class="ctl">
@@ -659,7 +791,31 @@ input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer}
     </div>
     <div class="ctl">
       <div class="ctl__row"><label>两行间距</label><output id="o-cLoopGap"></output></div>
-      <input type="range" id="cLoopGap" min="0" max="80" step="1" value="0">
+      <input type="range" id="cLoopGap" min="-60" max="80" step="1" value="-60">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>底部留白（丝带下方）</label><output id="o-rBotPad"></output></div>
+      <input type="range" id="rBotPad" min="0" max="360" step="4" value="80">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>第一行高度（上下移）</label><output id="o-rY1"></output></div>
+      <input type="range" id="rY1" min="-200" max="200" step="1" value="32">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>第二行高度（上下移）</label><output id="o-rY2"></output></div>
+      <input type="range" id="rY2" min="-200" max="200" step="1" value="11">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>视频区高度（右上下展开）</label><output id="o-rStageH"></output></div>
+      <input type="range" id="rStageH" min="-300" max="300" step="4" value="68">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>主角位大小（0=自动）</label><output id="o-rTile"></output></div>
+      <input type="range" id="rTile" min="0" max="320" step="4" value="0">
+    </div>
+    <div class="ctl">
+      <div class="ctl__row"><label>主角位位置（上下移）</label><output id="o-rSpotY"></output></div>
+      <input type="range" id="rSpotY" min="-300" max="300" step="1" value="55">
     </div>
 
   </div><!-- /.panel__body：只装滑轨，内容超高时在内部滚动 -->
@@ -667,15 +823,19 @@ input[type=range]{width:100%;accent-color:var(--accent);cursor:pointer}
   <!-- 按钮与提示放在滚动区【外面】→ 固定在面板底部，永远够得着、不会被裁掉 -->
   <div class="panel__btns">
     <button class="btn" id="btnDir" type="button">第二行反向</button>
+    <button class="btn" id="btnReset" type="button">重置丝带</button>
     <button class="btn btn--go" id="btnCopy" type="button">复制参数</button>
   </div>
   <div class="panel__hint">
-    拖动滑块找手感 → 点「复制参数」把数值发我，我写进正式版。<br>
-    弧形文字可用鼠标左右拖拽。<br>
-    3D 角度可单独微调弧形文字的俯仰 / 摆角 / 旋转 / 透视 / 偏移。
+    本面板只含丝带控制。拖动即时生效；调乱可点「重置丝带」回到默认。<br>
+    满意后点「复制参数」把数值发我，我固化进正式版。
   </div>
 </div>
 
+<!-- Ribbon Type 丝带引擎（两行工具图标）—— React Bits Pro 组件的原生复刻。
+     原生复刻的原因写在 ribbon-rows.js 文件头：本站零构建、无 React、且原组件要付费授权 key。 -->
+<script src="assets/vendor/three.min.js"></script>
+<script src="ribbon-rows.js?v=20261014k"></script>
 <script>
 /* ============================================================
    CurvedLoop —— React Bits 组件的无依赖原生 JS 改写
@@ -1258,14 +1418,20 @@ function showSpot(it,rowLabel){
   return changed;
 }
 
-const loop1=new LogoLoop(document.getElementById('loop1'),{
-  items:ROW1, speed:30, direction:'left', gap:12, logoHeight:42, hoverSpeed:0,
-  magnify:1.2, magDistance:100, magLift:0,
+/* ============================================================
+   2026-10-13：两行工具图标行 → Ribbon Type 丝带
+   LogoLoop 换成 RibbonRow（原生复刻）。对外接口 opt / set() / _dims() 保持同名同签名，
+   所以下面的「自动巡播」、「#loop1/#loop2 mouseenter 暂停」、「面板拉杆 / btnDir / btnCopy」
+   全部零修改继续工作。
+   所有视觉参数集中在 ribbon-rows.js 顶部的 CONFIG（＝用户给的那份 exact configuration）。
+   ============================================================ */
+const loop1=new RibbonRow(document.getElementById('loop1'),{
+  items:ROW1, ribbonIndex:0, direction:'left',
   onItemHover: it=>userPick(it,'AI TOOLS')
 });
-const loop2=new LogoLoop(document.getElementById('loop2'),{
-  items:ROW2, speed:30, direction:'right', gap:12, logoHeight:42, hoverSpeed:0,
-  magnify:1.2, magDistance:100, magLift:0,
+const loop2=new RibbonRow(document.getElementById('loop2'),{
+  items:ROW2, ribbonIndex:1, direction:'right',
+  twistDir: -1,                                   /* 翻滚波反向：与第一行"交叉"（用户 2026-10-14） */
   onItemHover: it=>userPick(it,'SOFTWARE')
 });
 
@@ -1365,15 +1531,27 @@ setTimeout(function(){ if(!autoOn) autoBegin(0); }, 1500);
 const $=id=>document.getElementById(id);
 const bind=(id,outId,fn,fmt)=>{
   const el=$(id), out=$(outId);
+  if(!el) return;                       /* 控件被删时静默跳过（面板只保留丝带组后，其余 bind 全部走这里） */
   const apply=()=>{ const v=parseFloat(el.value); fn(v); out.textContent=fmt?fmt(v):v; };
   el.addEventListener('input',apply);
-  apply();
+  /* ⚠️ 2026-10-14：初始化这一次 apply 必须【隔离异常】——
+     曾因某控件 fn 抛 ReferenceError(TDZ)，异常上抛中断整个 script，它之后的所有 bind 全部静默失效
+     （表现：rTile 滑杆"没反应"、__tileManual 永远 undefined）。单个控件初始化失败不应拖垮其余控件。 */
+  try{ apply(); }catch(err){ console.error('[panel] 控件 "'+id+'" 初始化失败：', err); }
 };
 
 /* 环形：尺寸由 --ring-size 控制；字号控制圆环文字粗细（viewBox 单位） */
 let ringSize=120;                /* 面板"环尺寸"的基础值（= 标题满字号 104px 时的尺寸） */
 let ringDx=69, ringDy=23;        /* 环心把手拖出来的平移量（与 3D 角度参数完全独立） */
 let ringK=1;                     /* 环随标题字号的缩放比，由 layoutRing() 写入 */
+/* 标题字号基准 = 对应「环尺寸 176px」那个已调好的构图。
+   原来是 104（旧标题满字号）；2026-09-12 标题字号改成与屏2 一致后（屏2 画布 99px × 1440/1972 = 72.3px），
+   基准必须同步改，否则 ringK = 72.3/104 = 0.696，环会被连带缩小到 122px。
+   72.38 = 屏2 标题的实际显示字号（也是屏3 在宽屏下的封顶字号），
+   取它作基准 → 宽屏下 ringK≈1，环保持 176px；窄屏时仍随标题等比缩小。
+   ⚠️ 2026-10-14 从 layoutRing 下方【上移】到此：bind('rStageH') 在绑定时就调 relayout()
+   → layoutRing() 读它；声明留在下面（TDZ）会抛 ReferenceError，把之后所有 bind 静默中断。 */
+const TITLE_FS_MAX=72.38;
 /* 把缩放比同步到 CSS：--ring-s = 生效环尺寸，--ring-k 供所有偏移项相乘 */
 function applyRingMetrics(){
   const root=document.documentElement;
@@ -1385,6 +1563,9 @@ function applyRingMetrics(){
 const notifyResize=()=>{ try{ window.parent.postMessage({type:'resize'}, '*'); }catch(e){} };
 bind('cLoopPad','o-cLoopPad', v=>{ document.documentElement.style.setProperty('--loop-pad', v+'px'); notifyResize(); }, v=>v+'px');
 bind('cLoopGap','o-cLoopGap', v=>{ document.documentElement.style.setProperty('--loop-gap', v+'px'); notifyResize(); }, v=>v+'px');
+/* 底部留白（丝带下方那段）：改的是 .skills 的 padding-bottom → 会改变内容总高度，
+   必须 notifyResize() 让主站重算 iframe 高度。用户 2026-10-14 18:1x。 */
+bind('rBotPad','o-rBotPad', v=>{ document.documentElement.style.setProperty('--skills-pad-b', v+'px'); notifyResize(); }, v=>v+'px');
 bind('cSpeed','o-cSpeed', v=>curved.set('speed',v),          v=>v.toFixed(1));
 bind('cRing', 'o-cRing',  v=>{ ringSize=v; applyRingMetrics(); }, v=>v+'px');
 bind('cSize', 'o-cSize',  v=>curved.set('ringFont',v),       v=>v.toFixed(1));
@@ -1409,6 +1590,97 @@ bind('logoH', 'o-logoH',  v=>{ loop1.set('logoHeight',v); loop2.set('logoHeight'
                                document.documentElement.style.setProperty('--logoH',v+'px');
                                setTimeout(()=>{loop1._dims();loop2._dims();},0); }, v=>v+'px');
 
+/* Ribbon 丝带：两行同参数，只有内容（ROW1/ROW2）与方向不同 → 一次改两个实例。
+   ⚠️ bind() 在绑定时就会用 input 的 value 覆盖一次 —— 所以下面每个 range 的 value
+      必须与 ribbon-rows.js 里 CONFIG 的值一字不差，否则页面一打开就被面板改掉。
+      ⚠️ 例外：上面的「文字大小」是【屏幕像素】，不是 CONFIG 的 textScale（0.42）；
+         151×0.42×0.55(缩放) ≈ 35px，所以默认 35。见 ribbon-rows.js 里 logoHeight 那段。 */
+const RB=(k,id,outId,fmt)=>bind(id,outId,v=>{ loop1.set(k,v); loop2.set(k,v); },fmt);
+RB('scale',      'rScale','o-rScale',v=>Math.round(v*100)+'%');
+RB('showNames',  'rNames','o-rNames', v=>v?'显示名称':'纯图标');
+RB('iconGap',    'rIconGap','o-rIconGap', v=>v+'px');
+RB('hoverTint',  'rTint', 'o-rTint',  v=>v?'开':'关');
+/* 选中亮度：盖白强度（0~1），不受 shading 压制 —— 用户 2026-10-14 14:4x 新增 */
+RB('hoverLift',  'rLift', 'o-rLift', v=>Math.round(v*100)+'%');
+RB('iconAlpha',  'rAlpha','o-rAlpha', v=>Math.round(v*100)+'%');
+RB('nameScale',  'rName', 'o-rName', v=>Math.round(v*100)+'%');
+RB('fontWeight', 'rWeight','o-rWeight', v=>String(v));
+RB('clickTwist', 'rCT',   'o-rCT',   v=>v?'开':'关');
+RB('letterSpacing','rLS','o-rLS',    v=>v.toFixed(2)+'em');
+RB('twistSpeed', 'rTS',   'o-rTS',   v=>v.toFixed(2));
+RB('speed',      'rSpeed','o-rSpeed',v=>Math.round(v)+'px/s');
+RB('flow',       'rFlow', 'o-rFlow', v=>v.toFixed(2));
+RB('quality',    'rQual', 'o-rQual', v=>v.toFixed(2));
+RB('paused',     'rPause','o-rPause',v=>v?'已暂停':'运行中');
+RB('band',       'rBand', 'o-rBand', v=>v?'实体缎带':'只有文字');
+RB('ribbonWidth','rWidth','o-rWidth', v=>v+'px');
+RB('amplitude',  'rAmp',  'o-rAmp',  v=>v+'px');
+RB('frequency',  'rFreq', 'o-rFreq', v=>v.toFixed(2));
+RB('depth',      'rDepth','o-rDepth',v=>v+'px');
+bind('rTilt1','o-rTilt1', v=>loop1.set('tilt',v), v=>v+'°');
+bind('rTilt2','o-rTilt2', v=>loop2.set('tilt',v), v=>v+'°');
+/* 视频区高度（偏移）：右上角固定、下边往下展开 + 宽度等比 */
+bind('rStageH','o-rStageH', v=>{ window.__stageHOffset = v; relayout(); }, v=>v?((v>0?'+':'')+v+'px'):'自动');
+/* 主角位大小：0=自动（瓦片与文字块等高联动）；>0 = 手动值。
+   ⚠️ 手动模式也必须 relayout()：translateY 是按旧高度算的，不重算底边会漂
+   （用户要求"主角位底边与视频下边缘对齐"）。relayout 内 layoutSpot 会因
+   __tileManual=true 跳过写 --tile，手动值不被覆盖。 */
+bind('rTile','o-rTile', v=>{
+  if(v>0){ window.__tileManual = true; document.documentElement.style.setProperty('--tile', v+'px'); }
+  else{ window.__tileManual = false; }
+  relayout();
+}, v=>v?v+'px':'自动');
+/* 主角位位置（上下移）：叠加在"自动对齐底边"之上的手动偏移 ——
+   0 = 自动（底边对齐视频下边缘），正数往下、负数往上。用户 2026-10-14 17:3x：想把它往下放。 */
+bind('rSpotY','o-rSpotY', v=>{ window.__spotYOffset = v; relayout(); }, v=>v?((v>0?'+':'')+v+'px'):'自动');
+/* 画面内旋转（交叉试验）：一行 +8°、一行 -8° 就是 X 形交叉 */
+bind('rRoll1','o-rRoll1', v=>loop1.set('roll',v), v=>v+'°');
+bind('rRoll2','o-rRoll2', v=>loop2.set('roll',v), v=>v+'°');
+RB('twist',      'rTwist','o-rTwist',v=>v.toFixed(2));
+/* 自动翻转：开关只管 0/非0（关掉时记住上次的间隔，重新打开时恢复）；
+   间隔滑杆在"开着"时直接生效、关着时只暂存。 */
+let autoSpan=3.2, autoOff=false;
+bind('rAutoOn','o-rAutoOn', v=>{
+  autoOff = !v;
+  const t = v ? autoSpan : 0;
+  loop1.set('autoTwist', t); loop2.set('autoTwist', t);
+}, v=>v?'开':'关');
+bind('rAuto','o-rAuto', v=>{
+  autoSpan = v;
+  if(!autoOff){ loop1.set('autoTwist', v); loop2.set('autoTwist', v); }
+}, v=>v?v+' s':'关');
+/* 自动翻滚【速度】——与间隔解耦（2026-10-14 用户：「间隔和速度是一个控制，帮我分开」）：
+   间隔管"多久翻一次"，速度管"波滚多快"（参数/秒）。点击波速同样跟随它。 */
+RB('waveSpeed', 'rWave', 'o-rWave', v=>v.toFixed(2));
+RB('rollMax',    'rRoll', 'o-rRoll', v=>v.toFixed(2)+' 圈');
+RB('rollSpan',   'rSpan', 'o-rSpan', v=>v.toFixed(3));
+/* 两行各自的上下位移：transform 纯视觉（不改变布局与 iframe 高度，避免连锁） */
+bind('rY1','o-rY1', v=>{ const el=$('loop1'); if(el) el.style.transform='translateY('+v+'px)'; }, v=>v+'px');
+bind('rY2','o-rY2', v=>{ const el=$('loop2'); if(el) el.style.transform='translateY('+v+'px)'; }, v=>v+'px');
+RB('hoverSpeed', 'rHover','o-rHover',v=>'×'+v.toFixed(2));
+RB('sheen',      'rSheen','o-rSheen',v=>v.toFixed(2));
+RB('shading',    'rShade','o-rShade',v=>v.toFixed(2));
+RB('perspective','rFov',  'o-rFov',  v=>v+'°');
+
+/* ⚠️ 2026-10-14 18:3x：logoH 的 textScale 依赖 ribbonWidth × scale（见 ribbon-rows.js 的 set('logoHeight')：
+   `textScale = v / (ribbonWidth × scale)`），而 bind 顺序里 logoH 排在 rScale / rWidth 之前 ——
+   初始化时它会用 CONFIG 的旧值（60 × 0.9）算，导致"图标大小 14"实际渲染成 15.97px（+14%），
+   与滑杆语义（14 = 14px 屏幕高度）不符。这里在所有 bind 跑完后按最终值重放一次，
+   保证「滑杆数字 = 屏幕像素高」。用户拖 logoH 时本来就是实时重算的，不受影响。 */
+(function(){
+  const el=$('logoH'); if(!el) return;
+  const v=parseFloat(el.value); if(!(v>0)) return;
+  loop1.set('logoHeight',v); loop2.set('logoHeight',v);
+})();
+
+/* ?exact=1 = 完全照用户原文那套（band 关 / 每 0.5s 翻一整圈 / 翻滚不封顶）。
+   ⚠️ 上面每个 RB() 在绑定那一刻已经用 slider 的 value 覆盖过 opt 一次，
+      所以这里必须【把 slider 也拨过去】再派发 input —— 否则面板显示和实际跑的是两回事。 */
+if(/[?&]exact=1/.test(location.search)){
+  const setCtl=(id,v)=>{ const el=$(id); if(!el) return; el.value=v; el.dispatchEvent(new Event('input')); };
+  setCtl('rAuto',0.5); setCtl('rRoll',1); setCtl('rSpan',0.22);
+}
+
 $('btnDir').addEventListener('click',()=>{
   const d=loop2.opt.direction==='left'?'right':'left';
   loop2.set('direction',d);
@@ -1416,14 +1688,16 @@ $('btnDir').addEventListener('click',()=>{
 });
 
 $('btnCopy').addEventListener('click',async()=>{
-  const cfg={
-    curved:{speed:curved.opt.speed, ...curve3d, ring:true, ringSize:ringSize, ringFont:curved.opt.ringFont, text:CURVED_TEXT, gap:curved.opt.gap, gapAngle:curved.opt.gapAngle, ringDx:Math.round(ringDx), ringDy:Math.round(ringDy)},
-    loop1:{speed:loop1.opt.speed, direction:loop1.opt.direction, gap:loop1.opt.gap, logoHeight:loop1.opt.logoHeight},
-    loop2:{speed:loop2.opt.speed, direction:loop2.opt.direction, gap:loop2.opt.gap, logoHeight:loop2.opt.logoHeight},
-    loops:{logoH:parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--logoH'))||52,
-           pad:parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--loop-pad'))||16,
-           gap:parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--loop-gap'))||22}
-  };
+  /* 2026-10-14 更新：原导出还是 LogoLoop 时代的旧字段（speed/logoHeight），
+     现在导出【丝带面板的全部滑杆值】—— 复制发我即可一一固化。 */
+  const cfg={};
+  ['logoH','rNames','rTint','rLift','rAlpha','rName','rWeight','rCT','rLS','rTS','rSpeed','rFlow',
+   'rQual','rPause','rScale','rBand','rWidth','rAmp','rFreq','rDepth','rTilt1','rTilt2',
+   'rTwist','rAutoOn','rAuto','rWave','rRoll1','rRoll2','rRoll','rSpan','rHover','rSheen','rShade','rFov',
+   'gap','rIconGap','cLoopPad','cLoopGap','rBotPad','rY1','rY2','rStageH','rTile','rSpotY'].forEach(id=>{
+    const el=$(id); if(el) cfg[id]=parseFloat(el.value);
+  });
+  cfg['第二行反向']=(loop2.opt.direction==='right');
   const txt=JSON.stringify(cfg,null,2);
   try{ await navigator.clipboard.writeText(txt); $('btnCopy').textContent='已复制 ✓'; }
   catch(e){ $('btnCopy').textContent='复制失败'; console.log(txt); }
@@ -1499,12 +1773,8 @@ function placeRingHub(){
    所以锚点必须实测，不能写成「左缘 + 固定 303px」。
    注意 <h1> 是块级元素、它的 rect 宽度是整行宽，所以要用 Range 量「文字本身」的宽度。
    ============================================================ */
-/* 标题字号基准 = 对应「环尺寸 176px」那个已调好的构图。
-   原来是 104（旧标题满字号）；2026-09-12 标题字号改成与屏2 一致后（屏2 画布 99px × 1440/1972 = 72.3px），
-   基准必须同步改，否则 ringK = 72.3/104 = 0.696，环会被连带缩小到 122px。
-   72.38 = 屏2 标题的实际显示字号（也是屏3 在宽屏下的封顶字号），
-   取它作基准 → 宽屏下 ringK≈1，环保持 176px；窄屏时仍随标题等比缩小。 */
-const TITLE_FS_MAX=72.38;
+/* TITLE_FS_MAX 已上移到「面板配置区」顶部（ringK 声明处）——
+   原因见那里的说明（TDZ 中断事故）。 */
 function layoutRing(){
   const sec=document.querySelector('.skills');
   const title=document.querySelector('.skills__hd .title');
@@ -1531,6 +1801,9 @@ function layoutRing(){
 function layoutSpot(){
   const body=document.querySelector('.spotlight__body');
   if(!body) return;
+  /* ⚠️ 2026-10-14 17:1x：面板「主角位大小」有手动值时不再覆盖（用户要求"可改高度"）。
+     手动值 = 0 表示"自动"（回到"瓦片与文字块等高"的联动）。 */
+  if(window.__tileManual) return;
   const h=Math.round(body.getBoundingClientRect().height);
   if(h>0) document.documentElement.style.setProperty('--tile', h+'px');
 }
@@ -1545,13 +1818,45 @@ function layoutStage(){
   const sec=document.querySelector('.skills');
   const eyebrow=document.querySelector('.skills__hd .eyebrow');   /* 左侧页眉 */
   const spotBox=document.querySelector('.spotlight');
-  if(!sec||!eyebrow||!spotBox) return;
+  const loopsEl=document.querySelector('.loops');
+  if(!sec||!eyebrow||!spotBox||!loopsEl) return;
   const sr=sec.getBoundingClientRect();
   const er=eyebrow.getBoundingClientRect();
-  const pr=spotBox.getBoundingClientRect();
   const root=document.documentElement;
   root.style.setProperty('--stage-top', Math.round(er.top - sr.top)+'px');
-  root.style.setProperty('--stage-h', Math.max(120, Math.round(pr.bottom - er.top))+'px');
+  /* ============================================================
+     2026-10-14 16:4x 用户要求（截图标注）：
+       ① 视频窗口：右上角固定，向下（含左）放大，**下边缘停在"丝带顶边 - 半个丝带高度"**
+       ② 左侧主角位（图标+文字）：整体下移，**底边与视频窗口下边缘对齐**
+       ③ 两者以"丝带顶 - 27"为【共同底边锚点】——避免"视频由主角位推导、
+          主角位又对齐视频"的死循环。
+     （原来 --stage-h = (spotlight底 - 页眉顶) × 1.0687 —— 旧公式随内容浮动的时代结束）
+     ============================================================ */
+  const HALF_BAND = 27;                          /* 半个丝带高度（带宽60 × scale0.9 ÷ 2 ≈ 27） */
+  const targetBottom = Math.round(loopsEl.getBoundingClientRect().top - HALF_BAND);
+  /* ⚠️ 2026-10-14 17:1x：面板「视频区高度」是【偏移量】（0=自动/锚定）。
+     拖大 → 右上角固定、下边缘往下走，宽度按原比例（880/478 ≈ 1.841）等比放大。 */
+  const RATIO = 1.841;
+  const hOff = window.__stageHOffset || 0;
+  /* ① 主角位下移：先清 transform 再量（幂等，relayout 多次调用安全）。
+     + 叠加面板「主角位位置」的手动偏移（0=自动；用户想往下放时用）——
+       transform 纯视觉，不改布局、不改变 --stage-h 与 iframe 高度。 */
+  spotBox.style.transform = '';
+  const pr = spotBox.getBoundingClientRect();
+  const spotYOff = Math.round(window.__spotYOffset || 0);
+  const shift = Math.round(targetBottom - pr.bottom) + spotYOff;
+  spotBox.style.transform = 'translateY(' + shift + 'px)';
+  /* ② 视频：上边不动（= 页眉顶），下边 = 锚点 → 高度直算 */
+  const topPx = Math.round(er.top - sr.top);
+  const h = Math.max(120, targetBottom - Math.round(sr.top) - topPx + hOff);
+  root.style.setProperty('--stage-h', h + 'px');
+  /* 宽度等比（上限：内容宽 ×0.92，避免窄视口下溢出）；0 偏移时用 CSS 原公式即可 */
+  if (hOff) {
+    const contentW = Math.min(1440, sr.width) - 2 * 56;
+    root.style.setProperty('--stage-w2', Math.round(Math.min(h * RATIO, contentW * 0.92)) + 'px');
+  } else {
+    root.style.removeProperty('--stage-w2');
+  }
 }
 
 function relayout(){ layoutStage(); layoutSpot(); layoutRing(); }
@@ -1603,19 +1908,82 @@ if (window.parent !== window) {
   window.addEventListener('mouseleave', function(){ sendCursor(0, 0, false); });
 }
 </script>
-<!-- 调参面板：线上默认隐藏；需要调试时在网址后加 ?edit=1 -->
+<button class="panel-fab" id="panelFab" type="button">⚙ 丝带调节</button>
+
+<!-- 调参面板：右下角按钮可开合；?edit=1 直接展开 -->
 <script>
+/* ⚡ 手机性能（2026-10-16 实测「手机端很卡」）：iframe 离开视野时暂停内部所有动画循环。
+   屏3 的丝带是 WebGL，即使滚到屏 5~8 仍在每帧 render —— 手机上白烧 GPU。
+   做法：每 200ms 查一次自己在父页的位置（同源可用 window.frameElement / parent.innerHeight）；
+   独立打开时 frameElement 为 null → 恒为「在屏」。
+   ⚠️ 循环里用 window.__skillsPageOn 判断（ribbon-rows.js 是独立文件，走全局标志通信）；
+      所有循环的 dt 基准（_last）照常更新，恢复时不会跳变。 */
 (function(){
-  if(/[?&]edit=1/.test(location.search)) return;   /* ?edit=1 = 调试模式：面板和环心把手都显示 */
-  var hide=function(){
-    var p=document.getElementById('panel');
-    if(p) p.style.display='none';
-    /* 环心拖动把手只用于调试定位，正式版隐藏（它会压在标题上） */
-    var hub=document.querySelector('.ring-hub-layer');
-    if(hub) hub.style.display='none';
+  window.__skillsPageOn = true;
+  var vids = Array.prototype.slice.call(document.querySelectorAll('video'));
+  var tick = function(){
+    var fe = window.frameElement;
+    if (!fe) { window.__skillsPageOn = true; return; }
+    try {
+      var r = fe.getBoundingClientRect();
+      var vh = (window.parent && window.parent.innerHeight) || 900;
+      var on = (r.bottom > -300) && (r.top < vh + 300);
+      /* ⚡ 视频同样离屏即停（手机解码很贵；实测滚到屏 5~8 时这里仍有 1 个在播）*/
+      if (on !== window.__skillsPageOn) {
+        vids.forEach(function (v) {
+          if (on) { if (v.dataset.wasPlaying === '1') { v.dataset.wasPlaying = ''; v.play().catch(function(){}); } }
+          else { v.dataset.wasPlaying = v.paused ? '' : '1'; if (!v.paused) v.pause(); }
+        });
+      }
+      window.__skillsPageOn = on;
+    } catch (e) { window.__skillsPageOn = true; }
   };
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',hide);
-  else hide();
+  tick();
+  setInterval(tick, 200);
+})();
+(function(){
+  var editing=/[?&]edit=1/.test(location.search);   /* ?edit=1 = 面板直接展开 */
+  /* 2026-10-16 用户要求：默认【隐藏】（本机/测试站/生产一律不显示），只有 ?edit=1 才出现。
+     需要调参时独立打开 skills-stage.html?edit=1 */
+  var isProd=/github\.io$/.test(location.hostname);
+  var open=!!editing;
+  function apply(){
+    var p=document.getElementById('panel');
+    var hub=document.querySelector('.ring-hub-layer');
+    var fab=document.getElementById('panelFab');
+    if(p) p.style.display=open?'':'none';
+    if(hub) hub.style.display=open?'':'none';       /* 环心把手只在面板开着时可拖 */
+    if(fab){ fab.style.display=editing?'':'none'; fab.textContent=open?'✕ 收起':'⚙ 丝带调节'; }
+  }
+  function init(){
+    var fab=document.getElementById('panelFab');
+    if(fab) fab.addEventListener('click', function(){ open=!open; apply(); });
+    /* 重置丝带：把丝带相关滑杆恢复到页面载入时的值（= 出厂默认）。
+       ⚠️ 必须等所有 bind() 跑完再快照 —— 放在 load 之后最保险。 */
+    var snap=null;
+    var IDS=['logoH','rNames','rTint','rLift','rAlpha','rName','rWeight','rCT','rLS','rTS','rSpeed',
+             'rFlow','rQual','rPause','rScale','rBand','rWidth','rAmp','rFreq','rDepth','rTilt1','rTilt2',
+             'rTwist','rAutoOn','rAuto','rWave','rRoll1','rRoll2','rRoll','rSpan','rHover','rSheen','rShade','rFov',
+             'gap','rIconGap','cLoopPad','cLoopGap','rBotPad','rY1','rY2','rStageH','rTile','rSpotY'];
+    function takeSnap(){
+      snap={};
+      IDS.forEach(function(id){ var el=document.getElementById(id); if(el) snap[id]=el.value; });
+    }
+    var br=document.getElementById('btnReset');
+    if(br) br.addEventListener('click', function(){
+      if(!snap) takeSnap();
+      IDS.forEach(function(id){
+        var el=document.getElementById(id);
+        if(!el || snap[id]==null || el.value===snap[id]) return;
+        el.value=snap[id];
+        el.dispatchEvent(new Event('input'));       /* 触发既有 bind 的 apply */
+      });
+    });
+    takeSnap();
+    apply();
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',init);
+  else init();
 })();
 </script>
 </body>

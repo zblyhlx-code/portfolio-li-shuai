@@ -44,7 +44,9 @@
 *{ margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 
 html,body{
-  background:var(--bg);
+  /* 改成透明：让主站的背景视频透进来（与电脑端 video-stage.css 同一处理，2026-09-18）。
+     原值 var(--bg) = #111111 实色，会在 iframe 里形成一块挡光的黑框。 */
+  background:transparent;
   color:var(--ink);
   font-family:var(--font-cn);
   -webkit-font-smoothing:antialiased;

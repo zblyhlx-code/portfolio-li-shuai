@@ -12,7 +12,9 @@
 <style>
   :root {
     --bg-primary: #111111;
-    --bg-secondary: #151515;
+    /* 原来 #151515 —— 比其它黑屏亮 4 个灰阶，实测像素 (21,21,21) vs 其它屏 (17,17,17)，
+       用户反馈"最后一屏和上面几屏的黑色不一样"。统一到 --bg-primary，全站黑屏一致。 */
+    --bg-secondary: #111111;
     --bg-light: #F4F4F1;
     --bg-light-alt: #EAEAE7;
     --text-primary: #FFFFFF;
@@ -87,8 +89,11 @@
   .page { max-width: 1440px; margin: 0 auto; padding: 0 var(--margin); }
   .section { padding-top: 120px; padding-bottom: 120px; }
   .section--light { background: var(--bg-light); color: var(--text-dark); }
-  .section--dark { background: var(--bg-primary); color: var(--text-primary); }
-  .section--secondary { background: var(--bg-secondary); color: var(--text-primary); }
+  /* 黑色屏一律改透明 → 让 body 的 #111111 底 + 全屏固定的 Metaballs 流体透出来，
+     其它黑屏就不用各自再做背景动画了（用户 2026-09-17）。
+     亮色屏（section--light）保持实色 → 自然遮住流体，形成明暗对比。 */
+  .section--dark { background: transparent; color: var(--text-primary); }
+  .section--secondary { background: transparent; color: var(--text-primary); }
 
   .eyebrow {
     font-size: 14px; font-weight: 600; letter-spacing: 0.04em;
@@ -169,13 +174,41 @@
     min-height: 100vh;
     min-height: 100svh;
     display: flex; flex-direction: column;
+    /* ── 屏1 主视觉的**统一尺寸基准**（2026-10-02 修）──
+       宽度 9vw 与高度 11vh 取小，再夹在 56~120px。标题 SVG 和右侧圆**共用**它。
+       ⚠️ 为什么必须有这个变量：原来圆是 `height:100%` 撑「行高」，而行高又由标题
+          高度反推 —— 于是 grid 里形成**循环依赖**：
+              列宽(1fr) → 标题宽 → 标题高 → 圆宽(=行高) → 列2(auto) → 列宽(1fr)
+          CSS 规范对这种环**没有规定解**，各引擎自己猜。Chrome 解出来是对的
+          （实测 660~1440 全正常），但 Safari 解成「圆撑满整个 hero 高度」→
+          平板上圆巨大、往上顶、右缘被屏幕裁掉（用户 2026-10-02 实测）。
+       现在圆和标题都由 --hero-unit 直接推导，尺寸链是**单向**的，任何引擎结果一致。
+       注意：这不是「平板断点」，也没有写死任何平板尺寸 —— 纯流式，宽度自适应。 */
+    --hero-unit: clamp(56px, min(9vw, 11vh), 120px);
     /* 只下移 1 个大字符高度（原值 + 52px），随视口缩放 */
     padding-top: calc(clamp(104px, 10vh, 144px) + 52px);
     padding-bottom: clamp(40px, 5vh, 68px);
     position: relative; overflow: hidden;
   }
+  /* 全站背景视频（原屏1 的"光带"）：固定铺满视口。
+     用户 2026-09-18 澄清——他要"全局跟随"的就是这条视频，不是流体球。
+     亮色屏（section--light）是实色底会自然遮住它，所以只在黑屏上可见，正好符合预期。
+     z-index:-1 → 落到所有内容之下（容器挂在 body 直下，不受 .hero__wrap 的 z-index:2 影响）。 */
   .hero__video-bg {
-    position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    /* 高度拉到 150vh（用户 2026-09-19）：多出来的 50vh 就是滚动视差的滑动余量。
+       ⚠️ 宽度保持 100% **不放** —— 视频用 object-fit: fill 只做纵向拉伸，
+       这样两侧光带的横向位置完全不动（之前用等比 scale(1.5) 会连宽度一起放大，
+       把光带推出视口，用户明确要求"高度改但宽度不变"）。 */
+    position: fixed; left: 0; right: 0; top: 0; height: 150vh;
+    z-index: -1; pointer-events: none;
+    /* ⚠️ 必须是实色 #111111，不能是 transparent：
+       下面 video 上是 mix-blend-mode:screen，而 screen 的混合对象是**本容器的背景**
+       （容器自身是 fixed + z-index，会形成独立层叠上下文，混合不会外溢到 body）。
+       原来这里是 transparent → 等于"和透明混合"= 没混合 → 视频原样贴上，
+       视频里的黑色部分就显示成纯黑 (0,0,0)。
+       实测：屏2 iframe 下方那块留白是 (0,0,0)，而屏2/屏3 内部是 (17,17,17)，
+       用户因此看出"背景黑和二三屏不一样"。
+       给容器铺 #111111 后：黑区经 screen 抬回 #111111 ✓，光带部分照旧发亮 ✓ */
     background: var(--bg-primary);
   }
   /*
@@ -184,10 +217,22 @@
     brightness 只压非零像素，纯黑 (0) 经 brightness 仍是 0，不会把黑场抬灰露底。
   */
   .hero__video-bg video {
-    width: 100%; height: 100%; object-fit: cover;
+    width: 100%; height: 100%;
+    /* object-fit: fill —— 视频纵向拉满 150vh 的容器，**横向一点不动**。
+       ⚠️ 不能用 cover：容器变高后 cover 会改成按高度撑满，横向会裁掉约 40%，
+       两侧的光带直接没了。背景本来就是虚化光带，纵向拉伸肉眼看不出来，
+       但"宽度不变"是关键（用户 2026-09-19 明确要求）。 */
+    object-fit: fill;
+    /* 镜像：左右翻一次 + 上下翻一次（合起来等于把画面旋转 180°）—— 用户 2026-09-19。
+       ⚠️ 用**独立的 scale 属性**，不要挤进 transform：
+       底部脚本要往 transform 里写视差位移（translateY），写一起会互相覆盖。
+       scale / rotate / translate 这几个独立属性会在 transform **之前**应用，两者互不干扰。 */
+    scale: -1 -1;
     mix-blend-mode: screen;
     opacity: 1;
     filter: contrast(1.05) brightness(0.5);
+    /* 底部脚本每帧会同时改 transform（视差位移）和 filter（渐进模糊），两个都提权 */
+    will-change: transform, filter;
   }
   /*
     justify-content 改成 flex-start：老张要求内容整体「往上贴」，
@@ -237,9 +282,10 @@
   }
   .hero__title .line.muted { color: var(--text-muted); }
   /* hero gooey 标题：底色品牌白/灰，内部动效品牌绿 */
-  /* 尺寸同时受宽度(9vw)和高度(11vh)约束：矮屏上按高度收缩，否则第一屏会被撑出视口 */
+  /* 尺寸同时受宽度(9vw)和高度(11vh)约束：矮屏上按高度收缩，否则第一屏会被撑出视口。
+     基准值统一走 --hero-unit（见 .hero），右侧圆的尺寸也从它推导 —— 两者同源。 */
   .hero__title-svg {
-    width: min(100%, calc(6.2 * clamp(56px, min(9vw, 11vh), 120px)));
+    width: min(100%, calc(6.2 * var(--hero-unit, clamp(56px, min(9vw, 11vh), 120px))));
     height: auto; display: block; overflow: visible;
     opacity: 0; transform: translateY(40px);
     animation: heroTitleIn 1.05s cubic-bezier(.16,1,.3,1) .2s forwards;
@@ -252,14 +298,17 @@
     align-items 必须是 center：用 stretch 的话圆的宽度会被拉伸到栏宽，
     而高度由标题决定，两者不等时圆会被压成椭圆。
   */
-  .hero__visual { display: flex; flex-direction: column; align-items: center; padding-top: 0; position: relative; }
+  /* justify-content:center —— 圆与标题等高，居中后即便有 1px 取整差也不会贴顶。 */
+  .hero__visual { display: flex; flex-direction: column; align-items: center; justify-content: center; padding-top: 0; position: relative; }
   @property --reveal-r { syntax: '<length>'; inherits: false; initial-value: 0px; }
   /*
-    高度撑满 hero__top（align-items:stretch on grid），配合 aspect-ratio:1 自动成正圆，
-    上下边缘即与左侧标题对齐。flex:none 防止被横向拉伸。
+    尺寸由 --hero-unit 直接推导，**不再靠「撑满行高」**（见 .hero 里循环依赖的说明）：
+    标题宽 = 6.2 × unit，viewBox 是 720×520 → 高 = 6.2 × unit × (520/720) = 4.47778 × unit。
+    用同一个基准，圆与标题天然等高、上下边缘对齐。flex:none 防止被横向拉伸。
   */
   .hero__circle {
-    height: 100%; width: auto; aspect-ratio: 1;
+    width: calc(4.47778 * var(--hero-unit, clamp(56px, min(9vw, 11vh), 120px)));
+    height: auto; aspect-ratio: 1;
     flex: none;
     border-radius: 50%;
     position: relative; overflow: hidden;
@@ -267,7 +316,26 @@
     cursor: none;
     transition: transform 0.8s cubic-bezier(.16,1,.3,1);
     isolation: isolate;
+    /* 触屏（2026-10-02 第二版，用户要求）：
+       手指落在圆内时**整条手势归圆**，页面不跟随滚动 ——
+       等效桌面端「鼠标在圆内滑动」的体验：只有圆在响应。
+       旧版写的是 pan-y（纵向划动让浏览器滚页），结果手指在圆里滑动时
+       页面跟着上下滚 + 圆自身被带着抖，用户描述为「屏幕会随着滑动上下晃动」。
+       ⚠️ touch-action:none 必须在手势**开始前**就位（浏览器在 touchstart 那一刻
+          就定死这条手势的归属，中途改不回来），所以这里不能用「先放行再收回」的写法。
+       圆外区域（首屏其余部分）不受影响，正常上下滚动。 */
+    touch-action: none;
   }
+  /* 触屏专属的附属项：只作用于 coarse pointer，**桌面端一个字都不动**。
+     理由：圆里有 `.hero__name`（LI SHUAI 那行字），若把 user-select 写进基础规则，
+     电脑端也会跟着变成选不中 —— 没必要。 */
+  @media (pointer: coarse) {
+    .hero__circle { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  }
+  /* ⚠️ 这里曾多出一个孤立的 `}`（2026-10-03 修）。
+     后果不是「无害的解析错误」：浏览器会把它紧跟着的下一条规则整条丢掉 ——
+     丢的正好是 `.hero__base`（绿圆底色），于是屏1 的圆变成透明的。
+     教训：CSS 增删规则后必须数 `{` `}` 配平（见 PITFALLS.md）。 */
   /* 默认：纯绿色实心圆，完全无人物（呼应最初版本） */
   .hero__base {
     position: absolute; inset: 0;
@@ -295,6 +363,10 @@
     box-shadow: inset 0 0 60px rgba(0,0,0,0.45); pointer-events: none; z-index: 3;
   }
   .hero__circle:hover { transform: scale(1.03); }
+  /* 触屏（平板/手机）：手指按住圆面期间的等效「hover」——
+     用 .is-touch 类而不是 :hover：触屏的 :hover 是「粘滞」的（tap 后一直挂着），不可控。 */
+  .hero__circle.is-touch .hero__lens { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+  .hero__circle.is-touch { transform: scale(1.03); }
   .hero__name {
     position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
     font-size: 13px; font-weight: 600; color: var(--text-primary);
@@ -304,22 +376,12 @@
   }
   .hero__visual { position: relative; }
   .hero__circle { z-index: 1; }
-  /* 圆形外围流体环（Metaballs） */
-  .hero__fluid {
-    position: absolute;
-    inset: -20%;
-    z-index: -1;
-    border-radius: 50%;
-    overflow: hidden;
-    pointer-events: none;
-    -webkit-mask-image: radial-gradient(circle, transparent 80%, black 92%);
-    mask-image: radial-gradient(circle, transparent 80%, black 92%);
-  }
-  .hero__fluid canvas {
-    width: 100% !important;
-    height: 100% !important;
-    display: block;
-  }
+  /* 流体球（Metaballs）已按用户要求移除（2026-09-18）：
+     用户澄清「我说的全局跟随是屏1 背后那个**视频**动画，我不要那个球流体」。
+     所以 #heroFluid 容器、这里的 CSS、底部控制显隐的脚本全部清掉，
+     背景改由「全站背景视频」(.hero__video-bg，挂在 body 直下 fixed) 承担。
+     metaballs.js 的 <script> 引用保留但已无作用（脚本里 `if(!container) return` 会直接退出），
+     以后想恢复流体：把容器加回 body 直下 + 恢复这段 CSS 即可。 */
   /* 底部右侧个人信息 */
   .hero__info {
     display: flex;
@@ -366,7 +428,7 @@
     /* ---------- Selected Works / Interactive Video Stage ---------- */
   .video-stage {
     position: relative; width: 100%; min-height: 100vh;
-    background: var(--bg-primary);
+    background: transparent;   /* 让全屏流体透出（屏2 的实色底在 iframe 内部） */
     display: flex; align-items: center; justify-content: center;
     padding: 80px 24px; overflow: hidden;
   }
@@ -394,7 +456,10 @@
     display: flex; align-items: center; justify-content: center;
     padding: 0;
   }
-  .video-stage__frame { width: 100%; height: auto; aspect-ratio: 1972 / 980; border: 0; display: block; background: #111111; }
+  /* iframe 元素自身的底色也必须是透明的 —— 否则它会挡住里面那张透明的页面，
+     主站背景视频仍旧透不进来（2026-09-18：屏2 的黑框问题，内外两处都要改）。
+     注意屏3（.skills-embed__frame）保持 #111111 不动：屏3 的素材图就是用这个黑做的底。 */
+  .video-stage__frame { width: 100%; height: auto; aspect-ratio: 1972 / 980; border: 0; display: block; background: transparent; }
   /* 手机（≤640px）换成竖屏版 mobile-screen2.html：横版 1972×980 画布压到手机宽度只剩 ~190px 高、
      字全糊，所以手机上整屏改用独立竖屏排版。断点由页面末尾那段脚本切 src（含高度同步）。 */
   @media (max-width: 640px) {
@@ -404,12 +469,22 @@
        比参考图宽一倍、还会把竖屏版整体压窄。
        用双类名提权：下面（更靠后）还有一条 .video-stage{padding:90px 24px} 会盖掉单类名规则。 */
     .video-stage.video-stage--embed { padding-left: 0; padding-right: 0; }
+    /* 03 SKILLS：手机上换成竖屏版 mobile-screen3.html（断点由页面末尾那段脚本切 src）。
+       竖屏版是「一屏高 + 底部常驻图标轨道 + 内部滚动」，所以 iframe 必须固定成视口高度；
+       若按内容高度同步，底部轨道会被推到屏幕外，要滚动才看得见。
+       用双类名提权：后面（更靠下）还有一条 .skills-embed__frame{height:1020px}，
+       媒体查询本身不提升优先级，单类名会被它盖掉。 */
+    .skills-embed .skills-embed__frame { height: 100svh; }
   }
   /* 03 SKILLS（屏3 iframe）：屏3 是响应式布局、高度随宽度变，写死 aspect-ratio 会裁切，
      所以高度交给 JS 按内部内容同步；这里的 height 只是加载前的兜底值。
-     背景 #111111 必须与屏3 内部的 --bg 一致，否则会露出一块色差方块。 */
-  .skills-embed { background: #111111; }
-  .skills-embed__frame { width: 100%; height: 1020px; border: 0; display: block; background: #111111; }
+     ⚠️ 底色 2026-09-19 按用户要求改为「透明度 0」—— 想先看背景视频会不会影响屏3 的画面。
+     **原值不删，保留在下面这行注释里，随时换回来**：
+         background: #111111;
+     （当初设 #111111 是因为屏3 的素材图就是在那个黑上做的，怕露色差；
+      改透明后如果觉得素材图和背景脱节了，把那行改回来即可。） */
+  .skills-embed { background: transparent; }   /* iframe 外层本来就该透，实色底在 iframe 内部 */
+  .skills-embed__frame { width: 100%; height: 1020px; border: 0; display: block; background: rgba(0, 0, 0, 0); }
   /* 老浏览器回退：无 aspect-ratio 支持时退化为整屏 */
   @supports not (aspect-ratio: 1 / 1) {
     .video-stage__frame { height: 100vh; }
@@ -537,19 +612,6 @@
     .video-card { transition: opacity .2s ease; }
   }
 
-  /* ---------- Services ---------- */
-  .service {
-    display: grid; grid-template-columns: 80px 1fr 40px; gap: 40px; align-items: center;
-    padding: 32px 0; transition: padding-left 0.35s ease;
-  }
-  .service + .service { border-top: 1px solid var(--line-light); }
-  .service:hover { padding-left: 16px; }
-  .service__num { font-size: 24px; font-weight: 700; color: var(--accent); }
-  .service__title { font-size: 32px; font-weight: 600; font-family: var(--font-en); }
-  .service__cn { font-size: 16px; color: var(--text-muted); font-family: var(--font-cn); margin-top: 4px; }
-  .service__arrow { font-size: 32px; font-weight: 300; color: var(--text-muted); text-align: right; transition: transform 0.35s ease; }
-  .service:hover .service__arrow { transform: translateX(8px); color: var(--text-dark); }
-
   /* ---------- Experience ---------- */
   .exp__item {
     display: grid; grid-template-columns: 200px 1fr; gap: 40px;
@@ -624,7 +686,7 @@
   .footer {
     display: flex; justify-content: space-between; align-items: center;
     padding: 40px var(--margin); border-top: 1px solid var(--line-dark);
-    background: var(--bg-primary);
+    background: transparent;   /* 让全屏流体透出 */
   }
   .footer__brand .name { font-size: 18px; font-weight: 700; }
   .footer__brand .role { font-size: 10px; font-weight: 500; color: var(--text-muted); letter-spacing: 0.08em; margin-top: 4px; }
@@ -642,25 +704,17 @@
   /* ---------- Responsive ---------- */
   @media (max-width: 1024px) {
     :root { --margin: 32px; }
-    .hero__top { grid-template-columns: 1fr; grid-template-rows: auto auto auto; padding-right: 0; }
-    .hero__eyebrow, .hero__title-svg, .hero__visual { grid-column: 1; grid-row: auto; }
-    .hero__visual { align-items: flex-start; }
-    /* 单列时 stretch 会让 height:100% 失去参照（父高由内容定），必须改回固定尺寸 */
-    .hero__circle { width: 240px; height: 240px; aspect-ratio: auto; }
-    .hero__bottom { grid-template-columns: 1fr; gap: 32px; }
-    .hero__info { display: none; }
-    .hero__meta { text-align: left; }
-    .hero__scroll { display: none; }
+    /* ⚠️ hero 的单列规则已整体挪到 ≤640（见下）。
+       原因：iPad 横屏就是 1024、竖屏 768~834，原来全都会掉进这个断点变成"手机式单列"，
+       平板上第一屏排版就变样了（用户实测反馈）。现在 641px 以上一律走电脑端的两列排版。 */
     .about__grid { grid-template-columns: 1fr; gap: 48px; }
     .sp__info { grid-template-columns: 1fr; gap: 40px; }
     .music-card { grid-template-columns: 1fr; }
     .music-card__cover { width: 100%; height: auto; aspect-ratio: 1; }
   }
 
-  @media (max-width: 900px) {
-    .hero__top { grid-template-columns: 1fr; gap: 0 48px; }
-    .hero__visual { padding-top: 0; margin-top: 48px; }
-  }
+  /* 原 @media (max-width: 900px) 里的两条 hero 单列规则（hero__top 单列、hero__visual 上边距）
+     已一并并入 ≤640 —— 平板竖屏 768/810/834 也在 900 以下，不能在这里变单列。 */
 
   @media (max-width: 640px) {
     :root { --margin: 20px; --grid-gap: 16px; }
@@ -670,6 +724,18 @@
     .nav__links { display: none; }
     .nav__menu { display: flex; }
     .hero { padding-top: 140px; }
+    /* ── hero 单列（原在 ≤1024 / ≤900，已收窄到这里）──
+       641px 以上（包含 iPad 横屏 1024、竖屏 768~834）一律走电脑端的两列排版：
+       左文案 + 右圆形，不再退化成手机式上下堆叠。 */
+    .hero__top { grid-template-columns: 1fr; grid-template-rows: auto auto auto; padding-right: 0; }
+    .hero__eyebrow, .hero__title-svg, .hero__visual { grid-column: 1; grid-row: auto; }
+    .hero__visual { align-items: flex-start; padding-top: 0; margin-top: 48px; }
+    /* 单列时父高由内容决定，height:100% 失去参照 → 必须改回固定尺寸 */
+    .hero__circle { width: 240px; height: 240px; aspect-ratio: auto; }
+    .hero__bottom { grid-template-columns: 1fr; gap: 32px; }
+    .hero__info { display: none; }
+    .hero__meta { text-align: left; }
+    .hero__scroll { display: none; }
     .hero__title .line { letter-spacing: -0.01em; }
     /* 手机端标题跟随屏宽放大：
        基础规则是 width: min(100%, 6.2 × clamp(56px, min(9vw,11vh), 120px))，
@@ -681,8 +747,6 @@
     .hero__title-svg { width: min(100%, calc(6.2 * max(56px, min(14vw, 11vh)))); }
     .exp__item { grid-template-columns: 1fr; gap: 8px; }
     .exp__year { font-size: 56px; }
-    .service { grid-template-columns: 50px 1fr 30px; gap: 20px; }
-    .service__title { font-size: 24px; }
     .sp__hero { height: 420px; }
     .sp__meta { flex-wrap: wrap; gap: 24px; }
     .contact { padding-top: 96px; padding-bottom: 96px; }
@@ -691,9 +755,957 @@
     .footer__right { text-align: left; }
   }
 
-</style>
+
+/* ============================================================
+   屏4 · SELECTED WORKS（扇形卡片 + 文件夹列表）
+   2026-09-27 从 _standalone-works4.html 合并进来。
+   ⚠️ 提取时已剔除 .page / .section / .section--light 三条通用规则（主站已有同值定义），
+      所以这里的选择器全部是 .gw* 专用，不会污染其他屏。
+   ============================================================ */
+
+/* 屏4 需要的补充变量（主站 :root 里没有的）：--u = 1 个「设计稿像素」，1440 下正好 1px */
+/* --s4lift：屏4 内容的「垂直微调」量（px），面板「内容偏移」滑块控制，**默认 65**。
+   来历（一段反复）：
+     · 9-29 设 65 —— 想让卡片视觉主体居中，但当时 `.page` 锚点是 50vh（**整屏**中线），
+       且 section 高度也按整屏 100vh 算，**没算顶部固定导航栏**，用户在真实可视区里觉得偏下。
+     · 9-30 归 0 —— 先把"高度对不对齐"这件事修好（引入 --navH），位置退回原样。
+     · 9-30 再设回 65 —— 高度修好后参照系对了（`.page` 锚点 = 可视区中线），
+       这 65px 才真正等于"把卡片送到可视区正中"，实测卡片中心 539 → 604 = 可视区中心。
+   放在 :root 是因为 JS（measureS4）也要读它来算「下方收缩」的可用上限。 */
+/* --navH：顶部固定导航栏高度（px）= .nav 的 height（80px，无断点覆盖）。
+   屏4 的 section 高度与内容锚点都要减掉它 —— 否则 section 高 100vh、实际只看得见
+   (100vh − navH)，屏4 永远比"导航栏下面那一屏"多出一截，怎么滚都对不齐（用户 2026-09-30）。 */
+/* --cardShadow：卡片本体投影的**不透明度**（0~1），由面板「卡片阴影」滑块写值。
+   默认 .42 = 改滑块之前写死的那个值，所以不拖滑块时视觉与旧版完全一致。
+   ⚠️ 用独立的 alpha 变量而不是整体 box-shadow —— 颜色里塞 calc() 虽然现代浏览器支持，
+      但把变量收窄到"只有一个数值"最稳，任何浏览器都不会解析失败。
+   --shScale：投影的**尺度系数**（0~2），由面板「阴影大小」滑块写值。
+   基准 1 = 原参数（y 30 / blur 70 / spread -26）；整条阴影**等比缩放**，
+   形状完全不变、只变大小 —— 这样"调大小"可预测，不会改完发现偏移比例也变了。
+   ⚠️ **当前值 .25**（用户 2026-09-30：「阴影大小不要100%改成25%」）→ 实际投影
+      y 7.5 / blur 17.5 / spread -6.5，紧贴卡片、不再糊到右侧栏。 */
+:root { --u: calc(min(100vw, 1440px) / 1440); --s4lift: 65; --navH: 80; --cardShadow: .42; --shScale: .25; }
+
+  /* ============ 04 GRAPHIC WORKS（屏4 改版草稿，未上线） ============
+     布局：左侧扇形卡片舞台 + 右侧「文件夹」列表，底部进度条与翻页控件。
+     关键点：主卡**正视、完整、不变形**（案例图必须让人看清），
+     左侧 3 张才是斜切缩小的 —— 它们是"将要看的"（下一张/下下张/下下下张）。
+     翻页方向：**整体往右推进**，旧主卡向右移出，新主卡从左侧补位。 */
+  .gw {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) calc(var(--sideW, 412) * 1px);
+    gap: 56px;
+    align-items: center;
+    padding: 8px 0 40px;
+    /* ============ 视觉主体「垂直居中」（2026-09-29 加 → 9-30 归零 → 9-30 再启用）============
+       起因：用户"屏4 里的内容整体不在这一屏的中间高度"。
+       实测：.gw 本身居中，但它内部是「舞台 + 底部控件」上下两段、卡片又被「卡片垂直 −46」上抬，
+       加上右栏 `.gw__side` 还有「右栏垂直」的自身上移 → **卡片中心比可视区中心高 65px**（右栏高 72px），
+       所以整块看上去偏上。做法：把 .gw 整体往下带 --s4lift(65px)，让**卡片这个视觉主体**落回正中。
+       实测（1288 视口）：卡片中心 539 → **604 = 可视区中心** ✅；右栏中心 532 → 597（≈604）✅。
+       ⚠️ 9-30 曾短暂归零：那 65px 是在 `.page` 锚点还是 50vh、且没算导航栏时用的，
+          参照系错了 → 用户觉得"靠下"。**先把对齐修好（引入 --navH）、再把锚点改成可视区中线**，
+          这时 65px 才真的等于"送到正中"。两件事有先后，不能只看这个数值。
+       ⚠️ 只能"整块带"，不能去改 --cardY 的值：
+          卡片现在高 506 已经超过舞台的 470，单独把它往下推会直接压到底部箭头控件上；
+          而整块一起走，内部（卡片 ↔ 控件 ↔ 右栏）的相对关系分毫不变。
+       ⚠️ 会撑高 min-height 公式（里面有 + --s4lift）：实测 1288 视口下 min-height 1006 < section 1208，
+          **不生效、section 高度不受影响**；但**视口 < ~883px 就会触底撑高**（宁可撑高也不能裁内容）。
+       ⚠️ ≤1100px 断点是单列堆叠、内容本来就高过一屏，那里把 top 归零（见下方媒体查询）。 */
+    position: relative;
+    top: calc(var(--s4lift, 65) * 1px);
+  }
+
+  /* —— 扇形舞台 —— */
+  .gw__left { min-width: 0; }   /* 左列容器：舞台 + 底部控件 */
+
+  .gw__stage {
+    position: relative;
+    height: 470px;
+    /* ⚠️ perspective 从 1900 收到 1100（第二版）：值越小透视越强。
+       第一版 1900 时左侧那几张几乎是平的，看不出"侧着排"的纵深感，用户指出"差点意思"。 */
+    perspective: var(--persp, 500px);       /* 面板「透视强度」控制 */
+  }
+  .gw__card {
+    /* ⚠️ 这一层只管**定位与 3D 排布**（位置 / 角度 / 缩放 / 透明度）。
+       所有「看起来像卡片」的视觉 —— 底色、圆角、投影、厚度带、镜面光边、内容 ——
+       全部下移到内层 .gw__tilt。
+       原因（用户 2026-09-28 指出）：hover 倾斜必须作用在**卡片本体**上，
+       早先把倾斜放在内层，结果是外框静止、里面的内容自己晃，看着不对。 */
+    position: absolute;
+    left: 0; top: 50%;
+    width: calc(var(--cardW, 700) * 1px); height: calc(var(--cardH, 456) * 1px);
+    /* 垂直定位 = 居中(-卡高一半) + 面板「卡片垂直」偏移 */
+    margin-top: calc(var(--cardH, 456) * -0.5 * 1px + var(--cardY, -46) * 1px);
+    /* 左缘为轴 —— 这样 rotateY 收窄的是右缘，左缘位置恰好等于 translateX，
+       堆叠的横向位置因此可以精确计算，不会被旋转带偏。 */
+    transform-origin: left center;
+    transition: transform .72s cubic-bezier(.22,.61,.36,1),
+                opacity .72s ease, filter .72s ease;
+    will-change: transform, opacity;
+  }
+  /* ============ 卡片「厚度」= **左侧切面**（2026-09-27 修正）============
+     卡片是 rotateY(+60deg)、以**左缘为轴**，右缘往屏幕里倒。
+     几何推导：左面法线 (−1,0,0) 旋转后 z = +sin60 > 0 → 朝向观察者；
+               右面法线 (+1,0,0) 旋转后 z = −sin60 < 0 → 背向观察者。
+     ⇒ **可见的侧面是「左侧面」**，右缘那一面根本看不见。
+     而且左侧那两张叠卡只露出左缘，厚度画在右边它们永远看不到（用户指出）。
+     结构（从左到右）：[左侧切面 亮带] → [折角暗线 1px] → [卡面] */
+  .gw__tilt::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+    width: calc(var(--thick, 1) * 1px);
+    background: linear-gradient(90deg,
+      rgba(255,255,255,.46) 0%, rgba(255,255,255,.24) 55%, rgba(255,255,255,.38) 100%);
+    pointer-events: none; z-index: 6;
+  }
+  /* 折角暗线：切面与卡面之间的转折自阴影，紧贴切面右缘 */
+  .gw__tilt::after {
+    content: ''; position: absolute; top: 0; bottom: 0;
+    left: calc(var(--thick, 1) * 1px);
+    width: 1px;
+    background: rgba(0,0,0,.20);
+    pointer-events: none; z-index: 6;
+  }
+
+  /* ============ 卡片本体层：卡面视觉 + hover 倾斜（原生复刻 TiltedCard）============
+     这一层 = 「卡片本身」：底色、圆角、投影、裁切（overflow）、厚度带、镜面光边、内容
+     全在这里，所以 hover 倾斜时**整张卡一起动**。
+     倾斜用 CSS 变量驱动（--tiltX / --tiltY），不直接改 transform ——
+     因为外层的 transform 已被 data-pos 占用（位置/角度/缩放），两层各管一头、互不干扰。 */
+  .gw__tilt {
+    position: absolute; inset: 0;
+    border-radius: 14px;
+    overflow: hidden;
+    /* 底色 = 数据里的 c.bg（按案例图主色定）；默认暖黑。
+       --ink* 是文字色，由 JS 按底色明暗自动选（深底→白字，浅底→黑字）。 */
+    background: var(--card-bg, #0A0A0A);
+    /* 只保留大范围柔影。**底部的折角暗线已删除**（用户 2026-09-27："下面这个效果不要"）——
+       卡片只绕 Y 轴旋转，底面投影为零，本来就不该有底边厚度。
+       厚度改由左缘的 ::before / ::after 实现，见上方说明。
+       四个参数各由一个变量控：
+         --shScale    等比缩放 y偏移30 / blur70 / spread-26（面板「阴影大小」0~200%）
+         --cardShadow 只控 alpha（面板「卡片阴影」0~100%）
+       ⚠️ 用计算值写而不是写死 px：改 --shScale 时三项**同比例**变，形状锁定。 */
+    box-shadow:
+      0
+      calc(30px * var(--shScale, 1))
+      calc(70px * var(--shScale, 1))
+      calc(-26px * var(--shScale, 1))
+      rgba(0,0,0, var(--cardShadow, .42));
+    /* ⚠️ transform-origin 必须留在 center（绕卡心倾斜）。
+       不能沿用外层的 left center：绕左缘转 θ 时右缘 Z 位移是 W·sinθ，
+       绕卡心只有 (W/2)·sinθ —— 差一倍，透视缩放的差别肉眼可见，
+       卡片看起来像在"往左倒"而不是"轻轻侧一侧"（TiltedCard 原版也是绕卡心）。 */
+    transform-origin: center;
+    transform: perspective(1100px) rotateX(var(--tiltX, 0deg)) rotateY(var(--tiltY, 0deg));
+    transition: transform .55s cubic-bezier(.22,.61,.36,1);
+    will-change: transform;
+  }
+  /* 跟手时用短过渡，离开后回到 .55s 缓出（同 TiltedCard 的 spring 手感） */
+  .gw__tilt.is-tilting { transition: transform .13s linear; }
+
+  /* ============ 卡片「边缘镜面光」（原生复刻 SpecularButton）============
+     原版是 OGL + WebGL：在片元着色器里算圆角矩形 SDF，用椭圆法线与光线方向
+     做点积，得到"法线朝向光源的那段边"亮起来（对称的两段弧），
+     再乘一个高斯剖面 uThickness 控制宽度。
+     这里用等价的纯 CSS 做法：
+       ① conic-gradient 绕卡心扫一圈，在 --rimA 及其 +180° 各放一段亮弧
+       ② 用 mask 的 content-box / exclude 组合，把整块裁成**只有贴边的一圈**
+       ③ --rimA 由 JS 跟着指针算（就是"卡心→指针"的极角）
+     ⚠️ 近似处：conic-gradient 的角是"以卡心为原点的极角"，
+     而真实法线只在四角附近有偏差（777×506 这种宽卡更明显）——
+     但光弧本身很宽（30°以上），这点偏差肉眼看不出来。 */
+  .gw__spec {
+    /* 2026-09-28 更新：现在**必须放在 .gw__tilt 里面** ——
+       倾斜作用在 .gw__tilt（卡片本体）上，光边只有在它内部才跟着卡片一起动。
+       （早先的坑是"放进倾斜层被 overflow 裁掉"，那是当时 overflow 在外层 .gw__card、
+         而倾斜层自己有 perspective 导致外扩；现在裁切层就是 .gw__tilt 本身，
+         而 .gw__spec 自己没有 transform、不会透视外扩，所以安全。）
+       ⚠️ **inset 要退到厚度带内侧**（厚度带占最外圈 z-index 6），
+       否则 2px 的绿光边和 2px 的厚度带完全重叠、被盖住。
+       边缘顺序（由外到内）：[厚度带 灰] → [镜面光 绿] → [卡面] */
+    position: absolute; inset: calc(var(--thick, 1) * 1px);
+    z-index: 4; pointer-events: none;
+    border-radius: calc(14px - var(--thick, 1) * 1px);
+    padding: var(--specW, 2px);                 /* 光边宽度 */
+    /* 峰值必须落在 `from` 角（0°）及其 +180° 上 —— 写成 44°/224° 会整体偏 44° */
+    background: conic-gradient(from var(--rimA, 210deg),
+      var(--rim, rgba(204,255,0,.9)) 0deg,
+      transparent 34deg, transparent 146deg,
+      var(--rim, rgba(204,255,0,.9)) 180deg,
+      transparent 214deg, transparent 326deg,
+      var(--rim, rgba(204,255,0,.9)) 360deg);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            mask-composite: exclude;
+    opacity: var(--specI, .25);                /* 由 JS 按"指针距离"调 */
+    transition: opacity .4s ease;
+  }
+
+  /* 主位：正视、完整、最大。
+     translateX 272 是收过的 —— 定 300 时右缘贴到舞台边界（916 vs 917），太挤。 */
+  .gw__card[data-pos="0"] {
+    /* ⚠️ A 版这里是写死的 272px；改成读变量，面板「主卡位置」才拖得动 */
+    transform: translate3d(calc(var(--posX, 102) * 1px), 0, 0) rotateY(0deg) scale(1);
+    opacity: 1; z-index: 10; filter: none;
+  }
+  /* 左侧 3 张：将要看的。**每张只露约 60px 的边**（重叠很深，和设计稿一致），
+     同时逐级加大 rotateY + 减小 scale + 压暗，做出"往后排开"的纵深。
+     ⚠️ 横向位置要盯住：最远那张的左缘不能越过舞台左边界，否则被裁掉（第一版栽过）。 */
+  .gw__card[data-pos="-1"] {
+    /* 以主卡 --posX 为基准向左偏移 60px —— 主卡一动，这三张跟着动 */
+    transform: translate3d(calc((var(--posX, 102) - 82 + var(--gapAdd, -14)) * 1px), 0, -30px) rotateY(calc(var(--rotBase, 60) * 1deg)) scale(.95);
+    opacity: 1; z-index: 9; filter: none;
+  }
+  .gw__card[data-pos="-2"] {
+    transform: translate3d(calc((var(--posX, 102) - 164 + var(--gapAdd, -14) * 2) * 1px), 0, -62px) rotateY(calc(var(--rotBase, 60) * 1deg)) scale(.9);
+    opacity: .97; z-index: 8; filter: brightness(.97);
+  }
+  .gw__card[data-pos="-3"] {
+    transform: translate3d(calc((var(--posX, 102) - 246 + var(--gapAdd, -14) * 3) * 1px), 0, -96px) rotateY(calc(var(--rotBase, 60) * 1deg)) scale(.85);
+    opacity: .92; z-index: 7; filter: brightness(.94);
+  }
+  /* out：刚被推出去的（往右移出 + 淡出）。
+     ⚠️ 它的 opacity 归 0，所以下一拍它被重新定位到左侧"待命位"时，
+     那一下瞬移是**看不见**的 —— 这是让"整体往右推进"不出现跳帧的关键。 */
+  .gw__card[data-pos="out"] {
+    transform: translate3d(calc((var(--posX, 102) + 548) * 1px), 0, 150px) rotateY(-13deg) scale(.9);
+    opacity: 0; z-index: 6;
+  }
+  /* wait：还没轮到上场的，停在左侧更远处待命（同样不可见）。
+     它 → "-3" 时会正常过渡，于是表现为"从左边淡入"，衔接自然。 */
+  .gw__card[data-pos="wait"] {
+    transform: translate3d(calc((var(--posX, 102) - 468) * 1px), 0, -250px) rotateY(28deg) scale(.68);
+    opacity: 0; z-index: 5;
+  }
+
+  /* —— 卡片内部：项目信息（正面可读）—— */
+  .gw__face { position: absolute; inset: 0; padding: 34px 34px; display: flex; flex-direction: column; color: var(--ink, #fff); }
+  .gw__logo {
+    width: 34px; height: 34px; border-radius: 8px; flex: none;
+    display: grid; place-items: center; font: 700 17px/1 var(--font-en); color: #111;
+    background: var(--accent);
+  }
+  .gw__pname { font: 700 27px/1.1 var(--font-en); letter-spacing: .02em; margin-top: 30px; }
+  .gw__ptype { font-size: 11px; letter-spacing: .2em; color: var(--ink-3, rgba(255,255,255,.5)); margin-top: 8px; text-transform: uppercase; }
+  .gw__pdesc { font-size: 13px; line-height: 1.75; color: var(--ink-2, rgba(255,255,255,.6)); margin-top: 16px; max-width: 30ch; }
+  .gw__pmeta { margin-top: auto; display: flex; gap: 44px; font-size: 11px; letter-spacing: .1em; color: var(--ink-3, rgba(255,255,255,.42)); }
+  .gw__pmeta b { display: block; font-size: 13px; font-weight: 600; letter-spacing: 0; color: var(--ink, #fff); margin-top: 6px; font-family: var(--font-en); }
+  /* 案例配图占位 = 「黑 + 品牌绿」焦散（caustics）。
+     焦散 = 光穿过水面/玻璃折射后汇聚成的亮纹网。
+     做法：① 底层几个绿光斑（折射汇聚）
+           ② 两个**不同圆心**的同心光环叠加 → 干涉成网状亮纹（焦散的本体）
+           ③ 各自缓慢漂移，形成"水面流动"感，22s/28s 无缝循环
+           ④ 用 mask 把光网压在右半边，左半边留给文字
+     ⚠️ 真实素材到位后，把 .gw__shot 换成 <img> 即可，其余逻辑不用动。 */
+  .gw__shot {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(46% 40% at 74% 24%, var(--ck-1), transparent 66%),
+      radial-gradient(34% 30% at 89% 60%, var(--ck-2), transparent 70%),
+      radial-gradient(54% 44% at 64% 84%, var(--ck-3), transparent 74%),
+      /* 中性明暗做层次：不引入色相，所以任何底色都适用 */
+      linear-gradient(152deg, rgba(255,255,255,.045) 0%, rgba(0,0,0,.16) 52%, rgba(0,0,0,.3) 100%);
+  }
+  .gw__shot::before, .gw__shot::after {
+    content: ''; position: absolute; inset: -32%;
+    mix-blend-mode: screen; pointer-events: none;
+    /* 光网只压右半边，左侧给文字留干净暗区 */
+    -webkit-mask-image: linear-gradient(100deg, transparent 20%, #000 66%);
+            mask-image: linear-gradient(100deg, transparent 20%, #000 66%);
+  }
+  /* 光网用**椭圆**环而不是正圆（水/玻璃折射出来的都是椭圆的），
+     两层间距取**非整数比**（21 : 33）→ 干涉出自然的网状亮线，
+     不会退化成"靶心同心圆"。 */
+  .gw__shot::before {
+    background: repeating-radial-gradient(ellipse 74% 108% at 72% 24%,
+      var(--ck-n1) 0 1.4px, transparent 1.4px 21px);
+    filter: blur(5px);
+    opacity: var(--kx, 2);                    /* 面板「焦散强度」控制 */
+    animation: gwCausticsA 22s ease-in-out infinite;
+  }
+  .gw__shot::after {
+    background: repeating-radial-gradient(ellipse 118% 66% at 20% 76%,
+      var(--ck-n2) 0 1.4px, transparent 1.4px 33px);
+    filter: blur(7px);
+    opacity: calc(var(--kx, 2) * .72);
+    animation: gwCausticsB 28s ease-in-out infinite;
+  }
+  @keyframes gwCausticsA {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+    50%      { transform: translate3d(-2.5%, 1.8%, 0) scale(1.055); }
+  }
+  @keyframes gwCausticsB {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(1.03) rotate(0deg); }
+    50%      { transform: translate3d(2%, -2%, 0) scale(1) rotate(1.5deg); }
+  }
+
+  /* —— 右侧：标题 + 文件夹列表 —— */
+  .gw__eyebrow {
+    /* 统一为全站 .eyebrow：14px / 600 / .04em / 大写 / muted（与屏1 hero 的 / PROFILE 同级） */
+    font-size: 14px; font-weight: 600; letter-spacing: .04em;
+    color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px;
+  }
+  .gw__title {
+    /* 统一为全站 .section-head__title：56px / Lexend / 700 / 1.05 / -.03em（与屏5「经历」完全同规格） */
+    font-family: var(--font-display);
+    font-size: 56px; font-weight: 700; line-height: 1.05; letter-spacing: -.03em;
+    margin: 0;
+  }
+  .gw__title span { color: var(--accent); }
+  .gw__cntitle {
+    /* 统一为全站副标题样式（同屏1 .hero__tagline .sub）：16px / 中文字体 / muted */
+    font-family: var(--font-cn); font-size: 16px; color: var(--text-muted); margin-top: 12px;
+  }
+
+  .gw__cats { list-style: none; margin-top: 30px; padding: 0; }
+  .gw__cat {
+    display: grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: center;
+    padding: 12px 16px 12px 0; border-radius: 9px; cursor: pointer;
+    transition: background .3s ease, color .3s ease, padding-left .3s ease;
+  }
+  .gw__cat em { font-style: normal; font-size: 12px; font-family: var(--font-en); color: var(--text-muted); }
+  /* ⚠️ b / i 必须包在 <span> 里（HTML 已包）——
+     否则 grid 只有 2 列却塞了 3 个子元素，中文会掉到第一列并竖排换行（第一版就是这个 bug）。 */
+  .gw__cat span { min-width: 0; }
+  .gw__cat b { display: block; font-size: 14px; font-weight: 600; letter-spacing: .05em; font-family: var(--font-en); white-space: nowrap; }
+  .gw__cat i { display: block; font-style: normal; font-size: 12px; color: var(--text-muted); margin-top: 3px; font-family: var(--font-cn); white-space: nowrap; }
+  .gw__cat:hover { background: rgba(17,17,17,.05); padding-left: 22px; }
+  /* 高亮项：**主色黑底** + 左侧绿竖线（用户要求：选中框用主色黑）。
+   ⚠️ 必须**向左外扩**（负 margin + 等量 padding，内容位置不变）——
+   底片里框左缘(1300)比序号左缘(1319)靠左 14px，绿竖线再靠左 4px；
+   不扩的话框会直接压在「01」上，看起来就是「窗口偏移」（用户指出过）。 */
+.gw__cat.is-active {
+  background: #0A0A0A;
+  box-shadow: 0 10px 26px -12px rgba(0,0,0,.5);
+  margin-left: -17px;
+  padding-left: 17px;
+}
+  .gw__cat.is-active em { color: var(--accent); }
+  .gw__cat.is-active b { color: #fff; }
+  .gw__cat.is-active i { color: rgba(255,255,255,.55); }
+
+  /* —— 底部：进度条 + 计数 + 箭头 —— */
+  /* ⚠️ 底部横条属于「大卡片」：起点 = 主卡左缘，总宽 = 主卡宽 × 0.58。
+     依据底片：进度条从主卡左缘起、箭头组落在主卡中线附近，
+     整条控件范围 ≈ 主卡的 58%（不是铺满整个左列）。 */
+  .gw__bar {
+    /* ⚠️ 必须 position:relative + 高 z-index。
+       .gw__stage 是 position:relative，而本元素是 static ——
+       同一层叠上下文里「定位元素绘制在非定位元素之上」，
+       结果是舞台整块把这条控件罩住，箭头**点不动**（实测 elementFromPoint 命中的是 .gw__stage）。 */
+    position: relative; z-index: 30;
+    display: flex; align-items: center; gap: 28px;
+    margin-top: calc(var(--barGap, -42) * 1px);
+    /* 居中于**大卡片**：控件左缘 = 主卡中线 - 控件宽/2 */
+    width: calc(var(--cardW, 700) * var(--zoom, 1.11) * 0.58 * 1px);
+    margin-left: calc((var(--posX, 102) + var(--cardW, 700) * .5) * var(--zoom, 1.11) * 1px
+                      - var(--cardW, 700) * var(--zoom, 1.11) * .29 * 1px);
+  }
+  .gw__prog { flex: 1; height: 2px; background: var(--line-light); position: relative; overflow: hidden; }
+  .gw__prog i { position: absolute; left: 0; top: 0; height: 100%; width: 0; background: var(--accent); transition: width .55s cubic-bezier(.22,.61,.36,1); }
+  .gw__nav { display: flex; align-items: center; gap: 18px; flex: none; }
+  .gw__btn {
+    width: 38px; height: 38px; border-radius: 50%; border: 1px solid var(--line-light);
+    background: none; cursor: pointer; color: var(--text-dark); display: grid; place-items: center;
+    transition: border-color .25s ease, background .25s ease;
+  }
+  .gw__btn:hover { border-color: var(--accent); background: rgba(204,255,0,.16); }
+  .gw__btn svg { width: 16px; height: 16px; }
+  .gw__count { font-size: 13px; letter-spacing: .12em; color: var(--text-muted); font-family: var(--font-en); }
+  .gw__count b { color: var(--text-dark); font-weight: 700; }
+
+  /* 窄屏：改单列，扇形舞台降低高度、主卡缩小 */
+  @media (max-width: 1100px) {
+    .gw { grid-template-columns: 1fr; gap: 40px; top: 0; }   /* 单列堆叠：不参与居中补偿 */
+    .gw__stage { height: 360px; perspective: 1400px; }
+    .gw__card { width: 440px; height: 316px; margin-top: -158px; }
+    .gw__card[data-pos="0"] { transform: translate3d(180px, 0, 0) scale(1); }
+    .gw__cat.is-active { background: #fff; box-shadow: 0 3px 14px -5px rgba(30,34,20,.22); }
+  }
+
+
+/* ============================================================
+   参考图垫底层 + 调参面板（本独立页新增，不属于主站代码）
+   ============================================================ */
+.gw__ref{
+  position:fixed; left:50%; top:0; transform:translateX(-50%);
+  /* ⚠️ 让「底片的内容区」与「本页内容区」严格重合，这样开着 REF 才能逐像素校对。
+     底片 1920×960、内容区 50~1870（1820 宽）；本页内容区 1328 宽（1440-56×2）。
+     换算系数 k = 1328/1820 = 0.72967
+       → 图宽 = 1920 × k = 1401
+       → 图左缘应为 56 - 50×k = 19.5 —— 而这正好等于「1401 居中」的左缘 (1440-1401)/2 = 19.5，
+         所以只要宽度对，居中即对齐，不需要额外偏移。
+     min(1401px, 97.29vw) 保证窄视口等比缩。 */
+  width:min(1401px, 97.29vw); height:auto;
+  z-index:9998; pointer-events:none;
+  opacity:.42; transition:opacity .2s ease;
+}
+.gw__ref.is-off{ opacity:0; }
+.gw__reftoggle{
+  position:fixed; left:16px; bottom:16px; z-index:9991;
+  padding:9px 15px; border-radius:20px; border:1px solid rgba(0,0,0,.22);
+  background:rgba(255,255,255,.92); cursor:pointer;
+  font:600 11px/1 var(--font-en); letter-spacing:.12em; color:#111;
+  box-shadow:0 4px 14px -6px rgba(0,0,0,.3); transition:opacity .2s ease;
+}
+.gw__reftoggle:hover{ border-color:#111; }
+.gw__reftoggle.is-off{ opacity:.4; }
+
+/* ============ 右侧栏 ============
+   ⚠️ 这个样式块曾在某轮批量替换中**整个丢失**（只剩 HTML 里的 class），
+   后果：① --sideX「右栏水平」完全没有 CSS 读它，调了没反应；
+        ② align-self: stretch 丢失，列表背景盖不住横穿的卡片。
+   这里重建，把该有的都写回来。 */
+.gw__side {
+  align-self: stretch;                     /* 撑满行高，背景才盖得住卡片 */
+  /* 垂直 -72：底片页眉在 y56，本页原来在 y128 → 整组上移对齐底片。
+     水平 -18：按底片反推（底片右侧文字左缘 1319/1920 → 本页 985）。
+     原来写 -200，是把右栏推到 777、压住主卡（主卡右缘 904）——
+     那个 -200 是在 --sideX 还没被 CSS 读取时记下的，是无效状态下的值。 */
+  transform: translateX(calc(var(--sideX, 0) * 1px))
+             translateY(calc(var(--sideY, -56) * 1px));
+  min-width: 0;
+  padding-top: calc(4.9 * var(--u));
+  padding-left: 26px;
+  position: relative; z-index: 20;
+  /* ============ 背景改透明（用户 2026-09-29）============
+     这块原本铺的是 var(--bg-light) = #F4F4F1，
+     而屏4 的 section 本身就是 .section--light（同一个 #F4F4F1）——
+     两者**同色**，所以这层背景在画面上一丁点都看不出来，
+     它唯一的实际作用就是：**把卡片右缘的投影硬切一刀**。
+     实测（视口 1902，y=750 一行）：卡片右缘 1170 起投影平滑渐隐，
+     到 x=1212 时亮度 234 → 243 突变 9 级，形成一条笔直的硬边。
+     改成 transparent 后：同色 → 画面零变化，投影恢复自然渐隐（x1212→1255 平滑过渡）。
+     ⚠️ 副作用（当前不会触发）：如果日后把「主卡位置」拉得很大、让主卡真的横穿到右栏底下，
+        卡片会从文字后面透出来（文字仍在上层、可读）。当前 --posX=102，
+        主卡右缘 1170 < 右栏左缘 1196，不重叠。 */
+  background: transparent;
+}
+
+/* ⚠️ 面板 = 调试用浮层，**不参与布局**。
+   【踩坑记录】这一块曾被替换成缺 `}` 的写法，结果是灾难性的：
+   现代浏览器支持 CSS Nesting，`.gw__panel{` 不闭合会把**后面所有规则**
+   当成它的后代选择器 → `.gw__ruler` / `.gw__rulertoggle` 的 position:fixed 失效，
+   变成普通块占了 84px 文档流，把整页往下推；面板自己的折叠也失效。
+   → 教训：改 CSS 块一律"整块替换"，并且替换后必须检查 `{` `}` 配平。 */
+.gw__panel{
+  /* 位置：贴内容区右缘、落在右栏下方（列表底 ~440 往下都是空的），不挡任何内容。
+     right 用 max(0px,100vw-1440px)/2 + 56 —— 宽屏（带鱼屏）时自动跟着内容区走。 */
+  position:fixed; z-index:9999; width:452px;   /* 两列布局，高度减半才不压到列表 */
+  right: calc(max(0px, 100vw - 1440px) / 2 + 56px);
+  bottom: 16px;
+  background:rgba(255,255,255,.96); border:1px solid rgba(0,0,0,.14);
+  border-radius:10px; box-shadow:0 10px 30px -12px rgba(0,0,0,.28);
+  font-family:var(--font-en); overflow:hidden;
+}
+
+.gw__panel-hd{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 13px; border-bottom:1px solid rgba(0,0,0,.08);
+  font-size:12px; font-weight:600; letter-spacing:.04em; color:#16180f;
+}
+.gw__panel-hd button{ width:20px; height:20px; border:0; background:none; cursor:pointer; font-size:15px; line-height:1; color:#777; }
+/* 两列：13 个滑块压成 7 行，整体高度从 410 降到 ~270，落在列表下方不遮挡 */
+.gw__panel-bd{
+  padding:9px 13px 10px;
+  display:grid; grid-template-columns:1fr 1fr; gap:0 16px; align-items:center;
+}
+.gw__panel.is-fold .gw__panel-bd{ display:none; }
+.gw__row{ display:grid; grid-template-columns:56px 1fr 42px; gap:8px; align-items:center; margin-bottom:0; }
+.gw__row label{ font-size:11px; color:#555; }
+.gw__row input[type=range]{ width:100%; height:3px; accent-color:#CCFF00; cursor:pointer; }
+.gw__row i{ font-size:11px; font-style:normal; text-align:right; color:#111; font-variant-numeric:tabular-nums; }
+.gw__copy{
+  grid-column:1 / -1;
+  width:100%; margin-top:4px; padding:6px 0; border-radius:6px; cursor:pointer;
+  border:1px solid rgba(0,0,0,.18); background:#16180f; color:#CCFF00;
+  font:600 11px/1 var(--font-en); letter-spacing:.08em;
+}
+
+/* ============ 标尺/参考线（调试用，点右下角 RULER 开关）============
+   显示主站的宽度基准：内容区 1440 - 边距56×2 = 1328；
+   以及屏2（video-stage，aspect-ratio 1972/980 → 1328 宽时高 660）
+   和屏3（skills-embed__frame height:1020px）的内容高度，方便对位置。 */
+.gw__ruler{ position:fixed; inset:0; z-index:9990; pointer-events:none; display:none; }
+.gw__ruler.is-on{ display:block; }
+.gw__ruler *{ font-family:var(--font-en); font-size:10px; letter-spacing:.06em; }
+.gw__ruler__col{
+  position:absolute; top:0; bottom:0; width:calc(100% - 112px);
+  max-width:1328px; left:50%; transform:translateX(-50%);
+  border-left:1px dashed #E24B4A; border-right:1px dashed #E24B4A;
+}
+.gw__ruler__col b{ position:absolute; top:6px; left:6px; color:#E24B4A; font-weight:600; }
+.gw__ruler__col i{ position:absolute; top:6px; right:6px; color:#E24B4A; font-style:normal; }
+.gw__ruler__row{ position:absolute; left:0; right:0; border-top:1px solid #3B8BD4; }
+.gw__ruler__row b{ position:absolute; left:6px; top:4px; color:#3B8BD4; font-weight:600; }
+.gw__ruler__vw{ position:absolute; left:0; right:0; top:0; bottom:0; }
+.gw__ruler__vw::before{
+  content:'1440 视口'; position:absolute; left:50%; bottom:8px; transform:translateX(-50%);
+  color:#E24B4A;
+}
+.gw__rulertoggle{
+  position:fixed; left:16px; bottom:58px; z-index:9991;
+  padding:9px 15px; border-radius:20px; border:1px solid rgba(0,0,0,.22);
+  background:rgba(255,255,255,.92); cursor:pointer;
+  font:600 11px/1 var(--font-en); letter-spacing:.12em; color:#111;
+  box-shadow:0 4px 14px -6px rgba(0,0,0,.3);
+}
+
+/* ============ 屏4 调试件：默认隐藏 ============
+   用户 2026-09-28 首次要求隐藏；2026-09-29 为了让他自己拖「下方收缩」滑块又临时恢复；
+   **2026-09-30 再次隐藏**（原话：「这个调节可以隐藏掉了暂时不用了」）。
+   隐藏的三样（HTML 都还在，只是不绘制）：
+     · .gw__panel       右下角调参面板
+     · .gw__rulertoggle 左下角 RULER 按钮（标尺本身默认就是关的）
+     · .gw__reftoggle   左下角 REF 按钮（参考底片默认也是关的）
+   ⚠️ 用 `:root:not(.dbg)` **限定作用域**，而不是干巴巴一条 `display:none !important`。
+      好处：要重新调参时，JS 只要给 <html> 加个 .dbg 类，这三样就整体恢复，
+      **不用回来改 CSS**，也**不用管它们各自原本的 display 是多少**。
+   ⚠️ 重新调参见下方 JS：网址后加 `?debug=1`。
+   ⚠️ 正式上线（GitHub Pages / 生产）前，这三样连同 HTML 和 JS 一起删掉。 */
+:root:not(.dbg) .gw__panel,
+:root:not(.dbg) .gw__rulertoggle,
+:root:not(.dbg) .gw__reftoggle { display: none !important; }
+
+
+  /* ============================================================================
+     屏4B 左列：DriftWall 漂移照片墙（2026-10-02 新增）
+     —— 原组件是 React（DriftWall.jsx + .css），主站是**纯静态 HTML、无 React 运行时**，
+        这里按原算法**手写原生 JS 等效实现**，props 逐项对应，视觉/行为一致：
+          columns / tileWidth / tileHeight / gap / radius / tilt / turn / roll /
+          perspective / depth / speed / direction / variance / parallax /
+          lift / fade / dim / overlayColor
+     参数（用户 2026-10-02 给定）：
+        columns 5 · tile 156×130 · gap 22 · tilt 30 · turn 10 · perspective 1200
+        depth 0 · speed 38 · direction up · variance .45 · parallax 2 · lift 36
+        fade .5 · dim .7 · overlay #000000 · radius 17 · roll -9
+     ⚠️ parallax 原组件用「deg」直接加在 tilt/turn 上（maxTilt = parallax*8 = 16°），
+        2 是原文给的强跟随值，照抄；嫌晃就把 --dw-parallax 调到 0.6。
+     ⚠️ 本页是浅色 section，所以遮罩用**浅色**（--dw-mask-bg 默认白），
+        而不是原组件的暗底 —— 否则墙上会出现一圈灰角。
+     ⚠️ 图片尺寸按 156×130 ≈ 6:5 排布；素材到位后按下表填 .dwall__ph 的 background。
+     ============================================================================ */
+  .dwall {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    perspective: calc(var(--dw-perspective, 1200) * 1px);
+    perspective-origin: 50% 50%;
+    --dw-tile-w: 156px;
+    --dw-tile-h: 130px;
+    --dw-gap: 22px;
+    --dw-radius: 17px;
+    --dw-lift: 36px;
+    --dw-dim: .7;
+    --dw-overlay: #000;
+    --dw-parallax: 2;
+    --dw-tilt: 30;
+    --dw-turn: 10;
+    --dw-roll: -9;
+    --dw-depth: 0;
+    --dw-mask-bg: #F4F4F1;      /* 必须 = 所在 section 底色（mask 方案下仅作兜底，不再用于覆盖） */
+    --dw-mask-inset: 22%;       /* 上/下 羽化厚度：见下方 .dwall__fade 的取舍说明 */
+    /* ★ 上下羽化 = **真遮罩（mask-image）**，不是覆盖层。
+       ⚠️ 演进过程（2026-10-02 一天内改了 4 版，别再往回改）：
+          ① radial(78% 82%) + linear(to top) 两层 mask → 左右各吃掉 ~25%、整墙像被雾包住
+          ② radial(ellipse 100% 100%) → 左右不额外裁，但椭圆在左右方向**仍会淡出**
+          ③ `.dwall::after` 同色覆盖做上下渐隐 → 左右干净了，但**上下各留一条可见的灰线**！
+             原因：::after 是"盖一层底色"，覆盖层的起止边界会在浅底上露出一条渐变带。
+             实测把 ::after 设 display:none → 灰线立刻消失（证明就是它）。
+          ④ **现在（终版）：mask-image 纵向渐变**。让内容**自身变透明**，
+             不存在"覆盖层边界"，因此**既无灰线、又有渐隐**。
+       ⚠️ 代价（已知并接受）：mask 会连带裁掉 hover 浮起时的 box-shadow。
+          浅色底 + 浅阴影下几乎不可见，换取"无灰线"是划算的。
+       ⚠️ 单条 mask 不需要 mask-composite（那个只在多层 mask 求交时才要）。 */
+    -webkit-mask-image:
+      linear-gradient(to bottom, transparent 0%, #000 var(--dw-mask-inset), #000 calc(100% - var(--dw-mask-inset)), transparent 100%);
+    mask-image:
+      linear-gradient(to bottom, transparent 0%, #000 var(--dw-mask-inset), #000 calc(100% - var(--dw-mask-inset)), transparent 100%);
+    /* ⚠️ --dw-scale：见 JS 里 SCALE 的注释（用户给的 156×130 是最终尺寸，不该再放大）。 */
+    --dw-scale: 1;
+  }
+  /* ★ 上下羽化：已改为 .dwall 上的 **mask-image**（见上方注释④）。
+     ⚠️ 这里原来是 `.dwall::after { background: linear-gradient(bg → transparent) }` 的
+        **同色覆盖**方案 —— 它会在上下各留**一条可见的灰线**
+        （实测：把 ::after 设 display:none，灰线立刻消失，证明就是它）。
+        所以该规则已**整块删除**，改用真遮罩。**不要把它加回来。**
+     ⚠️ --dw-mask-inset 的取舍（22%）仍适用：
+        · 每排 tile 的上下边界因 rotateZ(-9°) 是**斜线**（实测同排各列 top 为 11/24/37/51/67，
+          跨度 56px），所以水平渐隐**无法完美贴合**斜边 —— 必然有一截露在外面。
+        · 14% 太薄 → 第一排横截面露出；34% 能盖住斜边但中间只剩 ~32% 实心、格子发灰
+        · **22% 是折中**
+     ⚠️ 用户已明确"两边暴露就暴露吧" → **左右两侧的半个格子是有意保留的**，
+        不要为了消除它去改 tileWidth/columns（5 列 890px 本就宽于容器 827px，每边超 31.5px）。
+     ⚠️ 若今后要彻底干净：把 roll 收到 0（排布变水平，渐隐可薄且不留边），
+        或 tileWidth 156→143（5 列正好 827px）。**改动前先问用户。** */
+
+  .dwall__plane {
+    position: absolute;
+    top: 50%; left: 50%;
+    display: flex; flex-direction: row;
+    transform-style: preserve-3d;
+    transform-origin: 50% 50%;
+    will-change: transform;
+  }
+  .dwall__col {
+    position: relative;
+    width: calc(var(--dw-tile-w) + var(--dw-gap));
+    transform-style: preserve-3d;
+  }
+  .dwall__track {
+    display: flex; flex-direction: column;
+    transform-style: preserve-3d;
+    will-change: transform;
+  }
+  .dwall__tile {
+    position: relative; display: block;
+    width: 100%;
+    height: calc(var(--dw-tile-h) + var(--dw-gap));
+    flex: 0 0 auto;
+    outline: none;
+    transform-style: preserve-3d;
+  }
+  .dwall__inner {
+    position: absolute;
+    inset: calc(var(--dw-gap) / 2);
+    display: block;
+    border-radius: calc(var(--dw-radius) * 1px);
+    overflow: hidden;
+    background: #0b0b12;
+    opacity: var(--dw-dim);
+    transform: translateZ(0);
+    transition: transform .42s cubic-bezier(.22,1,.36,1),
+                opacity   .42s cubic-bezier(.22,1,.36,1),
+                box-shadow .42s cubic-bezier(.22,1,.36,1);
+  }
+  /* 图片模式 */
+  .dwall__tile img {
+    width: 100%; height: 100%;
+    object-fit: cover; display: block;
+    filter: saturate(.92);
+    transition: filter .42s cubic-bezier(.22,1,.36,1);
+    user-select: none; -webkit-user-drag: none;
+  }
+  /* 占位模式（素材到位前）：真实素材到位后把 img 插进来，gradient 会被盖住 */
+  .dwall__ph {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(46% 40% at 74% 24%, var(--ck-1, #CCFF00), transparent 66%),
+      radial-gradient(34% 30% at 89% 60%, var(--ck-2, #7de0ff), transparent 70%),
+      linear-gradient(152deg, rgba(255,255,255,.10) 0%, rgba(0,0,0,.20) 52%, rgba(0,0,0,.38) 100%),
+      var(--dw-ph-bg, #1A1A1A);
+  }
+  .dwall__overlay {
+    position: absolute; inset: 0;
+    background: var(--dw-overlay);
+    opacity: .42;
+    pointer-events: none;
+    transition: opacity .42s cubic-bezier(.22,1,.36,1);
+  }
+  /* hover / 键盘聚焦：浮起 + 变亮 + 去遮罩 */
+  .dwall__tile.is-active .dwall__inner,
+  .dwall__tile:focus-visible .dwall__inner {
+    opacity: 1;
+    transform: translateZ(calc(var(--dw-lift) * 1px));
+    box-shadow: 0 24px 60px -18px rgba(0,0,0,.55);
+  }
+  .dwall__tile.is-active img,
+  .dwall__tile:focus-visible img { filter: saturate(1.05); }
+  .dwall__tile.is-active .dwall__overlay,
+  .dwall__tile:focus-visible .dwall__overlay { opacity: 0; }
+  @media (prefers-reduced-motion: reduce) {
+    .dwall__plane, .dwall__track { will-change: auto; }
+  }
+  /* 左列容器：给漂移墙一个明确高度（原组件靠外层 height:600 撑）
+     ⚠️ 用户 2026-10-02：「4B 屏幕多高你就做多高的」—— 墙要跟这一屏一样高，不要矮一截。
+     ⚠️ **不能用 --s4content（625）**：那是屏4 `.page` 的高，而 .gw 的内容行由"最高的一列"决定，
+        直接给墙 625 → .gw 被撑到 666、.page 也变 666，
+        连**右栏都被拉长到 618**（原来 577），破坏了「屏4B 右栏与屏4 逐像素相同」这个前提。
+        实测：墙 470 → .page 625（对）；墙 618 → .page 666（错，高 41）。
+     ✅ 正确值 = **518**，即**屏4 左列（.gw__left）的实测高度** ——
+        与屏4 左列等高 → .gw 行高仍是 625 → .page 625 → 右栏 577，**全部与屏4 对齐**。
+        （实测对拍：墙 518 时 s4b_page/s4b_gw = 625、s4b_side = 577，与屏4 逐项相同。） */
+  .gw__drift { min-width: 0; height: 518px; }
+  /* 屏4B 的左列改为漂移墙后，.gw 行高由它 + 右栏共同决定；
+     min-height 仍锁 --s4content，保证与屏4 落点一致。 */
+  @media (max-width: 1100px) {
+    /* 窄屏 .gw 退化为单列，墙不再与右栏并排 → 给一个独立视口比例高 */
+    .gw__drift { height: 62vh; min-height: 380px; }
+  }
+
+  /* ============================================================================
+     第四屏 · 滚动叙事（2026-10-13 从 _draft-s4-scroll.html 接入）
+     A 圆柱文字（浅底）→ B 句号长大成通道口 → C 黑底照片隧道
+     ⚠️ 作用域：**只进过 .s4sec / .s4 / .lb 这些自带前缀的类名**，不碰主站任何既有选择器。
+        draft 里的 `*{box-sizing}` / `html,body` / `:root` / `body` 四条全局规则已剔除
+        （主站已有同值定义），`var(--ink)` 已改为主站的 `var(--text-dark)`（同色 #111111）。
+     ⚠️ 这一屏的起点是 #F4F4F1 —— 与主站 --bg-light 完全同色，所以 A 段接在屏3 后面是无缝的。
+     ============================================================================ */
+
+/* ============================================================
+   第四屏 · 滚动叙事 草稿页
+   ------------------------------------------------------------
+   三段（垂直滚动驱动），但 B 段是【过渡】而不是并列的展示段：
+     A  CSS 3D 圆柱文字      —— 对应 React Bits「3D Text Reveal」
+     B  「句号 → 通道口」生长 —— 2026-10-13 重构形态：不再是帧嵌套穿越，
+                                 而是 A 段末尾那个句号滚到画面正中，
+                                 再由一个【圆角矩形 → 5:3 直角矩形】的窗口
+                                 逐步撑开，直接长成 C 段的走廊截面
+     C  Three.js 黑底照片隧道 —— 对应 React Bits「Passage Gallery」
+   ⚠️ B 段凭什么能无缝接上 C 段：走廊的【灭点】在画面正中，
+      与窗口的【中心】完全重合（实测灭点 = 视口 1440×900 的正中 (720,450)）。
+      于是"窗口撑开"和"走廊从灭点向外展开"是同一件事 —— 这就是连贯性的来源，
+      不是靠淡入淡出糊过去的。
+   ⚠️ 窗口为什么是【矩形】而不是圆（2026-10-13 用户提出、已采纳）：
+      走廊里一条曲线都没有 —— 横向格线在屏幕上是水平的、墙面竖线是垂直的、
+      纵深棱线只是汇聚到灭点。圆窗是画面里唯一的曲线，与这几十条直线没有一条平行，
+      属于"外来语汇"；矩形窗口的四条边则正好落在走廊网格的两个方向上，
+      形状语言与内容同源。而且走廊的几何截面就是 5 格宽 × 3 格高 = 5:3
+      （TUN_CFG.lanes / wallLanes），窗口取这个比例＝直接引用走廊本身。
+   ⚠️ 形变为什么能连续无跳变：正圆＝圆角半径等于半短边的圆角矩形，
+      所以"圆"和"直角矩形"同属一个族，一个 t 同时驱动
+      「宽高比 1:1 → 5:3」和「圆角 半短边 → 0」，中间不会出现
+      "圆角已收完、比例还是圆的"这种半路露馅的中间态。
+      形状在 tGrow 的前 60% 定完，之后是纯矩形的等比放大 ——
+      先看清"它变成了一个口"，再看"口张开"。
+   ⚠️ 用 ?win=circle 可切回旧的圆窗版本做 A/B 对照。
+   ⚠️ 2026-10-12 曾删掉原 B 段「Scroll Portal」（帧嵌套穿越、滚动时一次性涌出大量作品）；
+      用户 10-13 要求「保留 B 阶段但重构呈现方式」→ 改成上面的"生长"形态。
+      备份：backups/_draft-s4-scroll-before-B-grow-20261013.html
+   依赖：assets/vendor/three.min.js（已自托管）+ 原生 CSS3D
+   ============================================================ */
+
+/* ---------- 草稿提示条 ---------- */
+.draftbar{
+  position:fixed;left:0;right:0;top:0;z-index:200;
+  height:32px;display:flex;align-items:center;justify-content:center;gap:12px;
+  font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+  background:#111;color:rgba(244,244,241,.72);
+}
+.draftbar b{color:var(--accent);font-weight:600;letter-spacing:.16em}
+
+/* ============================================================
+   滚动容器
+   ============================================================ */
+/* 高度 = 滚动行程。B 段以"点→通道"的形态回来 → 420vh：
+   A 段要保持约 196px/行 的转速（不因行程变长而发飘），B 段也要有一段
+   "能看清黑点真的在长大"的距离。 */
+.s4{position:relative;height:420vh}
+.s4__sticky{
+  position:sticky;top:0;height:100vh;overflow:hidden;
+  background:var(--bg-light);
+}
+.seg{
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  will-change:opacity;
+}
+
+/* ---------- A：CSS 3D 圆柱文字 ---------- */
+.seg--text{perspective:1500px;perspective-origin:50% 50%}
+.t3d{
+  position:relative;width:100%;height:100%;
+  display:flex;align-items:center;justify-content:center;
+  transform-style:preserve-3d;
+}
+.t3d__cyl{position:relative;width:0;height:0;transform-style:preserve-3d}
+.t3d__line{
+  position:absolute;left:0;top:0;
+  transform-origin:50% 50%;
+  white-space:nowrap;
+  font-family:var(--font-display);
+  font-weight:800;
+  font-size:clamp(38px,7.4vw,116px);
+  line-height:1;
+  letter-spacing:-.025em;
+  color:var(--text-dark);
+  will-change:transform,opacity;
+  backface-visibility:hidden;
+}
+.t3d__line.is-accent{color:var(--accent)}
+/* A 段末尾那个「句号」：它跟着圆柱一路滚到画面正中，然后由 B 段的圆窗接手长大。
+   top 的负值是垂直补偿 —— 字符「.」的字形贴在基线上，按几何居中会让它落到中线偏下。
+   ⚠️ 标定要注意：top 是在【布局层】位移，随后整个元素被 translateZ(CYL_R) 透视放大，
+      所以视觉位移 = top 值 × perspective/(perspective−CYL_R) = ×1500/1160 ≈ ×1.293。
+      实测（视口 1440×900、字号 106.56px）：-0.19em 时字形中心比正中低 4.8px，
+      按 1.293 反算再收 3.71px → -0.225em，dy 归零。
+      改 perspective / CYL_R / 字号 都要重标，别凭感觉填。 */
+.t3d__dot{top:-0.225em}
+
+/* ---------- C：Three.js 黑底照片隧道 ---------- */
+.seg--tunnel{background:#111111}
+#tunnel{position:absolute;inset:0;width:100%;height:100%;display:block}
+/* 【B 段的黑色保底】窗口还小的时候，隧道在灭点处只有雾色（偏灰、边缘发虚），
+   而 A 段末尾停在正中的那个句号是纯黑、锐利的 —— 两者尺码一样、质感不一样，
+   交班时就会看成「点缩小/变淡了」。这一层纯黑盖在画布上，随窗口长大再淡出，
+   于是"黑点撑开"这件事从头到尾都是一个颜色，中间没有换手痕迹。 */
+.tun__veil{
+  position:absolute;inset:0;pointer-events:none;
+  background:#111111;z-index:1;
+}
+/* 晕影：四周压暗，强化"隧道口"纵深（中心不动，标题不受影响） */
+.seg--tunnel::after{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  /* 官方靠 fog 收边；这里只补一层很轻的晕影，别把走廊压死 */
+  background:radial-gradient(ellipse at 50% 50%, rgba(17,17,17,0) 52%, rgba(17,17,17,.35) 82%, rgba(17,17,17,.7) 100%);
+}
+.tun__mark{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  text-align:center;pointer-events:none;z-index:2;
+}
+.tun__mark .en{
+  display:block;font-family:var(--font-display);font-weight:800;
+  font-size:clamp(28px,4.4vw,60px);letter-spacing:-.02em;
+  color:rgba(244,244,241,.94);mix-blend-mode:difference;
+}
+.tun__mark .cn{
+  display:block;margin-top:10px;font-family:var(--font-cn);
+  font-size:12px;letter-spacing:.42em;color:var(--accent);
+}
+
+/* ---------- 隧道：悬停浮现 ----------
+   悬停时把【墙上那一块】整体提亮 —— 用一张提亮版的图，靠 matrix3d 精确贴合
+   它在墙上的那个格子的四边形。尺寸取正方形（格子在贴图里就是正方形），
+   所以这里呈现的裁切与墙上那块逐像素一致：看到的是"这张照片亮起来"，
+   而不是"冒出另一张图"。层被 .seg--tunnel 的 clip 一起裁到窗口内，不会漏到白边上。 */
+/* ⚠️ 必须用【绝对定位】而不是 fixed：fixed 的包含块是视口，
+   Chrome 不会拿祖先的 clip-path 去裁它 —— 于是窗口还没铺满时，
+   提亮的照片会溢到隧道口外面的白边上（实测截图一眼就看到了）。
+   放在 .tun__hbox 里当地坐标系的普通后代，才会跟着窗口一起被裁。 */
+.tun__hbox{position:absolute;inset:0;pointer-events:none;z-index:3}
+.tun__hov{
+  position:absolute;left:0;top:0;transform-origin:0 0;
+  pointer-events:none;opacity:0;
+  transition:opacity .16s ease;
+}
+.tun__hov img{
+  display:block;width:100%;height:100%;object-fit:cover;
+  filter:brightness(1.38) saturate(1.05);
+}
+/* ⚠️ 描边必须画在 ::after 上：img 是子元素，会盖住父元素自己的 inset box-shadow，
+   上一版就是这么把绿框"吃"掉的（截图上只看得到提亮，看不见边）。 */
+.tun__hov::after{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:rgba(204,255,0,.07);
+  border:2px solid rgba(204,255,0,.95);
+}
+.tun__hov.on{opacity:1}
+/* 跟随指针的小标签（站内唯一一处"这里能点"的文字提示，克制到只剩一个词） */
+.tun__tip{
+  position:absolute;left:0;top:0;pointer-events:none;z-index:4;
+  padding:5px 10px;opacity:0;white-space:nowrap;
+  font-family:var(--font-en);font-size:10px;letter-spacing:.24em;
+  color:var(--accent);background:rgba(17,17,17,.86);
+  border:1px solid rgba(204,255,0,.45);
+  transition:opacity .16s ease;
+}
+.tun__tip.on{opacity:1}
+
+/* ---------- 点击照片 → 飞到正面看大图 ---------- */
+.lb{
+  position:fixed;inset:0;z-index:300;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(8,8,8,.972);
+  opacity:0;visibility:hidden;
+  transition:opacity .14s ease,visibility 0s linear .14s;
+}
+.lb.on{opacity:1;visibility:visible;transition:opacity .14s ease,visibility 0s}
+.lb__fig{margin:0;max-width:min(84vw,1180px)}
+/* 大图本体不参与入场过渡 —— 它是"飞行动画的落点"，由 .lb__fly 接管；
+   飞行落位后由 JS 加 .shown 揭开，两者位置尺寸严丝合缝，看不出交接。 */
+.lb__img{
+  display:block;max-width:100%;max-height:76vh;
+  object-fit:contain;background:#0d0d0d;
+  box-shadow:0 24px 70px rgba(0,0,0,.72);
+  opacity:0;transition:opacity .16s ease;
+}
+.lb__img.shown{opacity:1}
+/* 飞行层：起点=墙上的格子（正方形 → 与墙面同裁切），终点=大图（图片比例 → cover 自然展开）。
+   width/height 也参与过渡：容器比例从正方形渐变到图片比例，被裁掉的部分随之露出来，
+   所以是"照片展开"，而不是"换成另一张图"。 */
+.lb__fly{
+  position:fixed;left:0;top:0;transform-origin:0 0;
+  overflow:hidden;background:#0d0d0d;pointer-events:none;
+  box-shadow:0 24px 70px rgba(0,0,0,.72);
+  opacity:0;
+}
+.lb__fly img{display:block;width:100%;height:100%;object-fit:cover}
+.lb__fly.on{opacity:1}
+.lb__cap{
+  display:flex;align-items:baseline;justify-content:space-between;gap:24px;
+  margin-top:14px;padding-top:12px;
+  border-top:1px solid rgba(244,244,241,.16);
+  /* 文字条比照片晚半拍浮上来（照片先落位，标题再跟上） */
+  transform:translateY(10px);opacity:0;
+  transition:transform .42s cubic-bezier(.2,.7,.2,1),opacity .42s ease;
+}
+.lb.on .lb__cap{transform:none;opacity:1;transition-delay:.42s}
+.lb__name{
+  font-family:var(--font-en);font-size:12px;letter-spacing:.28em;
+  text-transform:uppercase;color:rgba(244,244,241,.9);
+}
+.lb__idx{
+  font-family:var(--font-display);font-weight:700;font-size:12px;
+  letter-spacing:.16em;color:var(--accent);
+}
+.lb__close{
+  position:absolute;right:28px;top:24px;
+  width:44px;height:44px;padding:0;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-en);font-size:24px;line-height:1;
+  color:rgba(244,244,241,.72);
+  background:transparent;border:1px solid rgba(244,244,241,.22);
+  border-radius:50%;cursor:pointer;
+  transition:color .2s ease,border-color .2s ease,transform .2s ease;
+}
+.lb__close:hover{color:var(--accent);border-color:var(--accent);transform:rotate(90deg)}
+@media (max-width:640px){
+  .lb__fig{max-width:88vw}
+  .lb__img{max-height:62vh}
+  .lb__close{right:16px;top:16px;width:38px;height:38px;font-size:20px}
+  /* 触屏没有 hover：悬停浮现层和小标签一律不出现，点击直接飞 */
+  .tun__hbox,.tun__tip{display:none}
+}
+
+/* ---------- 右侧进度指示 ---------- */
+.s4__rail{
+  position:fixed;right:26px;top:50%;transform:translateY(-50%);
+  z-index:120;display:flex;flex-direction:column;gap:14px;align-items:flex-end;
+  opacity:0;transition:opacity .35s ease;
+}
+.s4__rail i{
+  display:block;width:16px;height:1px;background:rgba(136,136,136,.6);
+  transition:width .3s ease,background .3s ease;
+}
+.s4__rail i.on{width:34px;background:var(--accent)}
+
+@media (max-width:640px){
+  .s4__rail{display:none}
+  .t3d__line{font-size:clamp(34px,11vw,56px)}
+}
+
+  /* ---------- 接入主站后新增（属于第四屏，不动其它屏） ---------- */
+  /* 原 .section 的 120px 上下内边距由这一段承担（叙事本身要满屏贴边，不能加 padding） */
+  /* 大图打开时藏掉主站的自定义光标（绿点）—— 看图时它一直跟着鼠标太碍事 */
+  /* 打开大图时不要藏光标（2026-10-15 用户：「点击后看不到鼠标」）——
+     只是把 90px 的 VIEW / PLAY 大圈收回 12px 小点：不挡图，也能看见指针在哪。 */
+  .lb-open .cursor { width: 12px; height: 12px; }
+  .lb-open .cursor.view::after,
+  .lb-open .cursor.play::after { display: none; }
+  </style>
 </head>
 <body>
+
+<!-- 全站背景视频（沿用屏1 那条"光带"）
+     用户 2026-09-18 澄清：要"全局跟随"的是**这条背景视频**，不是那个流体球（流体已移除）。
+     必须挂在 body 直下 + position:fixed：才能铺满视口、并落到根层叠上下文的负层。
+     放回 .hero__wrap 里会被它的 z-index:2 层叠上下文困住 → 反而盖在后续所有 section 之上。 -->
+<div class="hero__video-bg" id="heroVideoBg" aria-hidden="true">
+  <video src="assets/videos/hero-bg.mp4" autoplay muted loop playsinline preload="auto"></video>
+</div>
 
 <div class="cursor" id="cursor"></div>
 
@@ -730,9 +1742,7 @@
 
   <!-- 01 HERO -->
   <section class="hero" id="hero">
-    <div class="hero__video-bg" aria-hidden="true">
-      <video src="assets/videos/hero-bg.mp4" autoplay muted loop playsinline preload="auto"></video>
-    </div>
+    <!-- 背景视频已上移到 body 直下（#heroVideoBg），做全站固定跟随 -->
     <div class="page hero__wrap">
       <div class="hero__top">
         <div class="hero__title" id="heroTitle">
@@ -764,7 +1774,6 @@
           </svg>
         </div>
         <div class="hero__visual">
-          <div class="hero__fluid" id="heroFluid"></div>
           <div class="hero__circle" id="heroCircle">
             <div class="hero__base"></div>
             <img class="hero__reveal" id="heroReveal" src="assets/avatar.jpg" alt="LI SHUAI 真实照片" />
@@ -794,7 +1803,7 @@
     <!-- 02 SELECTED WORKS / INTERACTIVE VIDEO STAGE -->
     <!-- 02 SELECTED WORKS / INTERACTIVE VIDEO STAGE -->
   <section class="video-stage video-stage--embed" id="work">
-    <iframe class="video-stage__frame" id="stageFrame" src="video-stage.html?embed=1&v=20260903d"
+    <iframe class="video-stage__frame" id="stageFrame" src="video-stage.html?embed=1&v=20261011z"
       title="Selected Works — Interactive Video Stage" loading="lazy"></iframe>
   </section>
   <!-- 03 SKILLS —— 环形技能画廊（屏3）
@@ -805,27 +1814,80 @@
           （如 v=20260912c → v=20260913a），否则浏览器/CDN 会继续用缓存的旧屏3，
           表现为"改了但线上/本地看不到变化"。屏2 也是同样做法（video-stage.html?...&v=...）。 -->
   <section class="skills-embed" id="skills">
-    <iframe class="skills-embed__frame" id="skillsFrame" src="skills-stage.html?v=20260916b"
+    <iframe class="skills-embed__frame" id="skillsFrame" src="skills-stage.html?v=20261014s"
       title="MY SKILLS — 技能与工具" loading="lazy" scrolling="no"></iframe>
   </section>
 
-  <!-- 04 SERVICES -->
-  <section class="section section--light" id="services">
-    <div class="page">
-      <div class="section-head reveal">
-        <div class="section-head__title"><span class="en">Services</span>服务</div>
-        <div class="index-num">03</div>
-      </div>
-      <div class="reveal">
-        <div class="service"><div class="service__num">01</div><div><div class="service__title">BRAND IDENTITY</div><div class="service__cn">品牌视觉识别</div></div><div class="service__arrow">→</div></div>
-        <div class="service"><div class="service__num">02</div><div><div class="service__title">E-COMMERCE VISUAL</div><div class="service__cn">电商视觉</div></div><div class="service__arrow">→</div></div>
-        <div class="service"><div class="service__num">03</div><div><div class="service__title">PACKAGING DESIGN</div><div class="service__cn">包装设计</div></div><div class="service__arrow">→</div></div>
-        <div class="service"><div class="service__num">04</div><div><div class="service__title">CAMPAIGN VISUAL</div><div class="service__cn">营销视觉</div></div><div class="service__arrow">→</div></div>
-        <div class="service"><div class="service__num">05</div><div><div class="service__title">ART DIRECTION</div><div class="service__cn">视觉指导</div></div><div class="service__arrow">→</div></div>
-        <div class="service"><div class="service__num">06</div><div><div class="service__title">AI VISUAL CREATION</div><div class="service__cn">AI视觉创意</div></div><div class="service__arrow">→</div></div>
+  <!-- 04 SERVICES / SELECTED WORKS —— 2026-10-13 接入滚动叙事
+       三段：A 圆柱文字（浅底）→ B 句号长大成通道口 → C 黑底照片隧道，共 420vh 行程。
+       结构与样式来自 _draft-s4-scroll.html（已逐轮验收），脚本拆成 s4-scroll.js 懒加载。
+       ⚠️ 这一屏不是普通 section，三处特意与别屏不同：
+          ① 不带 .section（没有 120px 内边距，叙事要满屏贴边）；
+          ② 导航高亮不能再用 threshold:0.4（420vh 永远达不到 40% 可见，见脚本里的 tallSpy）；
+          ③ three.min.js 603KB 由文件末尾的懒加载器注入，不占首屏（HR 最先看的 hero/屏2/屏3）带宽。
+       ⚠️ 2026-10-13：原来的 6 行服务列表已按用户要求删除，屏4 = 纯滚动叙事。
+          连带清掉两组只服务它的 CSS（`.service` 家族 / `.s4sec__list`）。
+          旧扇卡时代的 `.gw`/调参面板等死代码未动 —— 它们被 `gwStage` 缺失的前置 return 挡住，
+          不可达，删服务列表不影响它们。 -->
+  <section class="section--light s4sec" id="services">
+
+    <div class="s4" id="s4">
+      <div class="s4__sticky" id="sticky">
+
+        <!-- ========== A：3D 圆柱文字 ========== -->
+        <div class="seg seg--text" id="segText">
+          <div class="t3d">
+            <div class="t3d__cyl" id="cyl">
+              <div class="t3d__line">LI SHUAI</div>
+              <div class="t3d__line">SELECTED</div>
+              <div class="t3d__line is-accent">WORKS</div>
+              <div class="t3d__line">2020 — 2026</div>
+              <div class="t3d__line">VISUAL</div>
+              <div class="t3d__line">DESIGNER</div>
+              <div class="t3d__line t3d__dot">.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========== C：黑底照片隧道 ========== -->
+        <div class="seg seg--tunnel" id="segTunnel">
+          <canvas id="tunnel"></canvas>
+          <div class="tun__veil" id="tunVeil"></div>
+          <!-- 悬停浮现：贴合墙上那个格子的提亮版照片 + 跟随指针的小标签 -->
+          <div class="tun__hbox" id="tunHovBox">
+            <div class="tun__hov" id="tunHov"><img id="tunHovImg" alt="" /></div>
+            <div class="tun__tip" id="tunTip">VIEW</div>
+          </div>
+          <div class="tun__mark">
+            <span class="en">Passage</span>
+            <span class="cn">作品集 · 隧道</span>
+          </div>
+        </div>
+
       </div>
     </div>
+
+    <!-- 三段进度指示（只在屏4 可见，JS 控制淡入淡出） -->
+    <div class="s4__rail" id="rail">
+      <i></i><i></i><i></i>
+    </div>
+
+    <!-- 隧道里点开某张照片 → 大图查看（照片从墙上那个格子飞出来，退出时飞回去） -->
+    <div class="lb" id="lightbox" aria-hidden="true">
+      <div class="lb__fly" id="lbFly"><img id="lbFlyImg" alt="" /></div>
+      <button class="lb__close" id="lbClose" type="button" aria-label="关闭">×</button>
+      <figure class="lb__fig">
+        <img class="lb__img" id="lbImg" alt="" />
+        <figcaption class="lb__cap">
+          <span class="lb__name" id="lbName"></span>
+          <span class="lb__idx" id="lbIdx"></span>
+        </figcaption>
+      </figure>
+    </div>
+
   </section>
+
+
 
   <!-- 05 EXPERIENCE -->
   <section class="section section--dark" id="experience">
@@ -966,6 +2028,76 @@
   </div>
 </footer>
 
+
+<!-- ============ 屏4 调试件（不属于正式内容，可随时删）============
+     · 参考底片：按 R 或点左下 REF 切换（默认关）
+     · 标尺：点左下 RULER
+     · 调参面板：右下，13 项，可拖动；正式上线前删掉这一段即可 ============ -->
+<div class="gw__ruler" id="gwRuler">
+  <div class="gw__ruler__vw"></div>
+  <div class="gw__ruler__col"><b>内容区左 56</b><i>内容区右 1368</i></div>
+  <div class="gw__ruler__row" style="top:660px"><b>屏2 内容高 660（aspect 1972/980 @1328 宽）</b></div>
+  <div class="gw__ruler__row" style="top:1320px"><b>屏3 内容高 1020（.skills-embed__frame height:1020px）</b></div>
+</div>
+<button class="gw__rulertoggle" id="gwRulerToggle" type="button">RULER</button>
+
+<img class="gw__ref is-off" id="gwRef" src="_ref-works4.jpg" alt="" aria-hidden="true" />
+<button class="gw__reftoggle is-off" id="gwRefToggle" type="button">REF · OFF</button>
+
+<!-- ============================================================
+     ↓↓↓ 以下是 _draft-works4.html 里屏4 的 HTML 原文 ↓↓↓
+     ============================================================ -->
+  <!-- 04 GRAPHIC WORKS（屏4 改版草稿 · 未上线）
+       方案来源：用户设计稿「图片节点 4 (7).png」的扇形排布
+       用户 2026-09-24 明确的三条：
+         1. 右侧列表 = 「文件夹」（每个分类下有 1–10 个案例），**不写单一案例名**
+         2. 左侧堆叠固定 3 张，且都是**"将要看的"**（下一张 / 下下张 / 下下下张）
+         3. 翻页方向：**整体往右推进**（新主卡从左侧补充上来，旧主卡向右侧移出）
+       明确不要的两样：图二那种两侧斜切的正视卡片、底部那排筛选标签（用户红框划掉了）
+       标题：Graphic Works / 平面作品 —— 与屏2 的「视频」形成动态 vs 平面的对照 -->
+
+<!-- 调参面板（本独立页新增）：调完点「复制参数」把数值发我 -->
+
+<!-- ⚠️ 面板必须是 **body 的直接子级**。
+     之前放在 <aside class="gw__side"> 里面，而那个元素带 transform，
+     而 transform 会把 position:fixed 的**包含块从视口换成该元素** ——
+     结果 top/right 全按右栏算，位置完全不可控（实际落点比设定值偏 56px、底部还溢出视口）。
+     移出来之后 fixed 才真的是相对视口。 -->
+
+
+          <!-- 卡片间距/位置的调节面板 —— 放在右侧栏内、列表下方。
+               这样它和上面的标题、列表**同宽同左缘**，一眼归属于「右侧」；
+               不像之前横跨整页那样，误导人以为下方才是主调节区（用户指出）。 -->
+  <div class="gw__panel" id="gwPanel">
+    <div class="gw__panel-hd">
+      <span>屏4 调参</span>
+      <button id="gwPanelToggle" type="button">–</button>
+    </div>
+    <div class="gw__panel-bd">
+      <div class="gw__row"><label>下方收缩</label><input type=range id=cShrink min=0 max=360 step=5 value=0><i id=vShrink>0</i></div>
+      <div class="gw__row"><label>内容偏移</label><input type=range id=cLift min=-160 max=160 step=5 value=65><i id=vLift>65</i></div>
+      <div class="gw__row"><label>卡片大小</label><input type=range id=cSize  min=40 max=150 step=1 value=111><i id=vSize>111%</i></div>
+      <div class="gw__row"><label>卡片宽</label><input type=range id=cW  min=260 max=820 step=2 value=700><i id=vW>700</i></div>
+      <div class="gw__row"><label>卡片高</label><input type=range id=cH  min=200 max=640 step=2 value=456><i id=vH>456</i></div>
+      <div class="gw__row"><label>卡片垂直</label><input type=range id=cY min=-220 max=220 step=2 value=-46><i id=vY>-46</i></div>
+      <div class="gw__row"><label>底部间距</label><input type=range id=cBarGap min=-150 max=200 step=2 value=-42><i id=vBarGap>-42</i></div>
+      <div class="gw__row"><label>右栏宽</label><input type=range id=cSideW min=200 max=560 step=2 value=412><i id=vSideW>412</i></div>
+      <div class="gw__row"><label>右栏水平</label><input type=range id=cSideX min=-200 max=200 step=2 value=0><i id=vSideX>0</i></div>
+      <div class="gw__row"><label>右栏垂直</label><input type=range id=cSideY min=-300 max=200 step=2 value=-56><i id=vSideY>-56</i></div>
+      <div class="gw__row"><label>透视强度</label><input type=range id=cPersp min=500 max=4000 step=50 value=500><i id=vPersp>500</i></div>
+      <div class="gw__row"><label>堆叠间距</label><input type=range id=cGap   min=-80 max=180 step=2 value=-14><i id=vGap>-14</i></div>
+      <div class="gw__row"><label>斜切角度</label><input type=range id=cRot   min=0 max=60 step=1 value=60><i id=vRot>60°</i></div>
+      <div class="gw__row"><label>主卡位置</label><input type=range id=cPosX  min=0 max=600 step=2 value=102><i id=vPosX>102</i></div>
+      <div class="gw__row"><label>焦散强度</label><input type=range id=cKx min=0 max=200 step=5 value=200><i id=vKx>200%</i></div>
+      <div class="gw__row"><label>卡片厚度</label><input type=range id=cThick min=0 max=14 step=1 value=1><i id=vThick>1</i></div>
+      <div class="gw__row"><label>镜面光边</label><input type=range id=cSpec min=0 max=200 step=5 value=40><i id=vSpec>40%</i></div>
+      <div class="gw__row"><label>卡片阴影</label><input type=range id=cShad min=0 max=100 step=1 value=42><i id=vShad>42%</i></div>
+      <div class="gw__row"><label>阴影大小</label><input type=range id=cShSize min=0 max=200 step=5 value=25><i id=vShSize>25%</i></div>
+      <div class="gw__row"><label>悬停倾斜</label><input type=range id=cTiltA min=0 max=14 step=1 value=7><i id=vTiltA>7°</i></div>
+      <button class="gw__copy" id="gwCopy" type="button">复制参数</button>
+    </div>
+  </div>
+
 <script>
   /* Custom cursor */
   const cursor = document.getElementById('cursor');
@@ -1084,43 +2216,87 @@
       }
       function loop() { drawPath(); if (particles.length >= 2) raf = requestAnimationFrame(loop); else raf = null; }
 
+      /* 在圆内「擦出」照片丝带 —— 桌面 mousemove 与触屏 touchmove 共用同一套逻辑 */
+      function paintAt(clientX, clientY) {
+        const u = toLocal({ clientX, clientY });
+        if (!mouse.init) { mouse.sx = u.x; mouse.sy = u.y; mouse.init = true; }
+        mouse.x = u.x; mouse.y = u.y;
+        mouse.sx += (u.x - mouse.sx) * 0.1;
+        mouse.sy += (u.y - mouse.sy) * 0.1;
+        const ex = u.x - mouse.sx, ey = u.y - mouse.sy;
+        mouse.diff = Math.hypot(ex, ey);
+        if (mouse.diff > 0.1) mouse.a = Math.atan2(ey, ex);
+        // 移动越快丝带越宽；静止时保留最细丝带
+        const dist = Math.min(view.w * 0.22, Math.max(view.w * 0.07, mouse.diff));
+        if (mouse.diff > 0.4) {
+          particles.push(new Brush(mouse.sx, mouse.sy, mouse.a, dist));
+          if (particles.length > 500) particles.shift();
+        }
+        heroCircle.style.setProperty('--mx', u.x + 'px');
+        heroCircle.style.setProperty('--my', u.y + 'px');
+        if (!raf) raf = requestAnimationFrame(loop);
+      }
+
       if (!isTouch) {
-        heroCircle.addEventListener('mousemove', e => {
-          const u = toLocal(e);
-          if (!mouse.init) { mouse.sx = u.x; mouse.sy = u.y; mouse.init = true; }
-          mouse.x = u.x; mouse.y = u.y;
-          mouse.sx += (u.x - mouse.sx) * 0.1;
-          mouse.sy += (u.y - mouse.sy) * 0.1;
-          const ex = u.x - mouse.sx, ey = u.y - mouse.sy;
-          mouse.diff = Math.hypot(ex, ey);
-          if (mouse.diff > 0.1) mouse.a = Math.atan2(ey, ex);
-          // 移动越快丝带越宽；静止时保留最细丝带
-          const dist = Math.min(view.w * 0.22, Math.max(view.w * 0.07, mouse.diff));
-          if (mouse.diff > 0.4) {
-            particles.push(new Brush(mouse.sx, mouse.sy, mouse.a, dist));
-            if (particles.length > 500) particles.shift();
-          }
-          heroCircle.style.setProperty('--mx', u.x + 'px');
-          heroCircle.style.setProperty('--my', u.y + 'px');
-          if (!raf) raf = requestAnimationFrame(loop);
-        }, { passive: true });
+        heroCircle.addEventListener('mousemove', e => paintAt(e.clientX, e.clientY), { passive: true });
       } else {
-        /* 触屏：点按整圆显示照片 */
+        /* 触屏（平板/手机）—— 2026-10-02 第二版。
+           用户原话：「手在圈里只是滑动圈里，其他的不跟随」「就像电脑端鼠标滑动那样」。
+           实现：整条手势由圆接管。touchmove 里 preventDefault() 掐掉浏览器的滚动，
+           页面不再跟着上下晃。要滚页请把手指落在圆**外**（首屏圆外还有大片区域）。
+           ⚠️ touchmove 必须 passive:false 才能 preventDefault —— 旧版是 passive:true，
+              所以纵向划动同时被浏览器拿去滚页，这才是「屏幕跟着上下晃」的根因。
+           ⚠️ touch-action:none 已在 CSS 里写死：浏览器在 touchstart 那一刻就定死这条
+              手势归谁，中途改不回来，不能指望 JS 动态切换。
+           ⚠️ 「整圆显示照片」的开关只在**没划动**的轻点时触发，
+              否则每次擦完丝带抬手都会顺带 toggle 一次。 */
+        let tStart = null, tDragged = false;
+        heroCircle.addEventListener('touchstart', e => {
+          const t = e.touches[0];
+          tStart = { x: t.clientX, y: t.clientY };
+          tDragged = false;
+          mouse.init = false;   // 每次落指重新取起点，免得从上次手指位置「拉」出一条长丝带
+          heroCircle.classList.add('is-touch');
+          paintAt(t.clientX, t.clientY);
+          magnetAt(t.clientX, t.clientY);
+        }, { passive: true });
+        heroCircle.addEventListener('touchmove', e => {
+          const t = e.touches[0];
+          if (!t) return;
+          e.preventDefault();   // ← 掐断浏览器滚动/回弹：页面钉住，只有圆在响应
+          if (tStart && Math.hypot(t.clientX - tStart.x, t.clientY - tStart.y) > 10) tDragged = true;
+          paintAt(t.clientX, t.clientY);
+          magnetAt(t.clientX, t.clientY);
+        }, { passive: false });
+        heroCircle.addEventListener('touchend', () => {
+          heroCircle.classList.remove('is-touch');
+          magnetAt(null);   // 松手归位
+        }, { passive: true });
+        /* 触屏：轻点整圆显示照片（划动过的手势不触发） */
         heroCircle.addEventListener('click', () => {
+          if (tDragged) { tDragged = false; return; }
           revealed = !revealed;
           reveal.style.clipPath = revealed ? 'circle(72% at 50% 50%)' : 'inset(100%)';
         });
       }
-      // 磁吸（近距轻微跟随）
-      document.addEventListener('mousemove', e => {
+      /* 磁吸（近距轻微跟随）—— 抽成函数，桌面 / 触屏共用：
+         桌面由 document mousemove 驱动；触屏由手指的 touchmove 驱动。
+         ⚠️ 触屏**不挂** document mousemove：iOS 在触摸之后会补发一串合成 mouse 事件
+            （mouseover/mousemove/mousedown），那些事件带着滞后的坐标，
+            会让圆在手指抬起后再「自己抖一下」——用户说的「屏幕上下晃动」里就有它一份。 */
+      function magnetAt(clientX, clientY) {
+        if (clientX == null) { heroCircle.style.transform = 'translate(0,0) scale(1)'; return; }
         const rect = heroCircle.getBoundingClientRect();
-        const dx = e.clientX - (rect.left + rect.width / 2);
-        const dy = e.clientY - (rect.top + rect.height / 2);
+        const dx = clientX - (rect.left + rect.width / 2);
+        const dy = clientY - (rect.top + rect.height / 2);
         const dist = Math.sqrt(dx * dx + dy * dy);
         heroCircle.style.transform = dist < 320
           ? `translate(${dx * 0.03}px, ${dy * 0.03}px) scale(1.03)`
           : 'translate(0,0) scale(1)';
-      }, { passive: true });
+      }
+      if (!isTouch) {
+        document.addEventListener('mousemove', e => magnetAt(e.clientX, e.clientY), { passive: true });
+      }
     }
   }
 
@@ -1234,7 +2410,10 @@
   document.querySelectorAll('.reveal').forEach(el => io.observe(el));
 
   /* Nav active link via section observation */
-  const sections = ['work', 'services', 'experience', 'about', 'contact'].map(id => document.getElementById(id));
+  /* ⚠️ 2026-10-13：屏4（#services）接入滚动叙事后高 420vh，
+     threshold:0.4 永远触发不了（视口最多只放得下它的 24%）→ 导航高亮会卡死在上一屏。
+     它改用"视口中线是否落在它里面"判定（见下面的 tallSpy），其余屏逻辑一律不动。 */
+  const sections = ['work', 'experience', 'about', 'contact'].map(id => document.getElementById(id));
   const navLinks = document.querySelectorAll('.nav__links a');
   const spy = new IntersectionObserver((entries) => {
     entries.forEach(e => {
@@ -1244,6 +2423,17 @@
     });
   }, { threshold: 0.4 });
   sections.forEach(s => s && spy.observe(s));
+
+  /* 超高分区（第四屏叙事）单独判定：视口中间那条 10% 的横带落进它就高亮 */
+  const tallSpy = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        navLinks.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + e.target.id));
+      }
+    });
+  }, { rootMargin: '-45% 0px -45% 0px', threshold: 0 });
+  const tallSection = document.getElementById('services');
+  if (tallSection) tallSpy.observe(tallSection);
 
     /* Selected project video */
   const spHero = document.getElementById('spHero');
@@ -1260,14 +2450,41 @@
   (function(){
     var f = document.getElementById('skillsFrame');
     if(!f) return;
+    /* >640px：skills-stage.html（电脑端长页，高度按内容同步）
+       ≤640px：mobile-screen3.html（竖屏版：一屏高 + 底部常驻图标轨道 + 内部滚动）
+       竖屏版高度必须由 CSS 的 100svh 决定，不能写 inline 高度，否则底部轨道会被推出屏幕。 */
+    var DESKTOP = 'skills-stage.html?v=20261014s';
+    var MOBILE  = 'mobile-screen3.html?v=20260919a';   /* ⚠️ 改完 mobile-screen3.html 要把这里版本号改掉 */
+    var mq = window.matchMedia('(max-width: 640px)');
+
+    function pick(){
+      var want = mq.matches ? MOBILE : DESKTOP;
+      if(f.getAttribute('src') !== want){
+        f.removeAttribute('style');        /* 清掉上一次的同步高度，否则切回桌面端会被写死 */
+        f.setAttribute('src', want);
+      }
+    }
+
     function sync(){
+      if(mq.matches){ f.style.height = ''; return; }   /* 手机端：交给 CSS 的 100svh */
       try{
         var d = f.contentDocument;
         if(!d) return;
-        var h = Math.max(d.documentElement.scrollHeight || 0, d.body.scrollHeight || 0);
+        /* ⚠️ 只读 body.scrollHeight —— **不要**再读 documentElement.scrollHeight：
+           后者永远 ≥ iframe 自身的视口高，等于把「上次设进去的高度」又读回来喂给自己。
+           实测：首次沿用 CSS 兜底值 1020 之后，documentElement.scrollHeight 永远返回 1020，
+           而真实内容只有 836 → 循环卡死在 1020，屏3 底部白留 184px 空白
+           （用户 2026-09-22 反馈「第三屏下面这个空白有点大」）。
+           body.scrollHeight 只反映真实内容高（实测 836），不受 iframe 高度影响，能正常收敛。 */
+        var h = (d.body && d.body.scrollHeight) || 0;
         if(h > 300) f.style.height = h + 'px';
       }catch(e){}
     }
+
+    pick();
+    if(mq.addEventListener) mq.addEventListener('change', pick);
+    else if(mq.addListener) mq.addListener(pick);
+
     f.addEventListener('load', function(){
       sync(); setTimeout(sync, 300); setTimeout(sync, 1200);
       /* 屏3 里用滑轨调「图标行高／两行间距」会改变整页高度 → 用 ResizeObserver 自动跟上 */
@@ -1289,8 +2506,8 @@
   (function(){
     var f = document.getElementById('stageFrame');
     if(!f) return;
-    var DESKTOP = 'video-stage.html?embed=1&v=20260903d';
-    var MOBILE  = 'mobile-screen2.html?v=20260917c';   /* ⚠️ 改完 mobile-screen2.html 要把这里版本号改掉 */
+    var DESKTOP = 'video-stage.html?embed=1&v=20261011z';
+    var MOBILE  = 'mobile-screen2.html?v=20260918a';   /* ⚠️ 改完 mobile-screen2.html 要把这里版本号改掉 */
     var mq = window.matchMedia('(max-width: 640px)');
 
     function pick(){
@@ -1321,7 +2538,831 @@
     /* 切回桌面端时把同步高度清掉 */
     if(mq.addEventListener) mq.addEventListener('change', function(){ setTimeout(sync, 0); });
   })();
+
+  /* （原「流体只在屏1 可见」的滚动显隐脚本已删除：
+     流体整体移除，背景改由 #heroVideoBg 那条全站固定视频承担。） */
+
+  /* ---------- 背景视频视差：向下滚时背景跟着滑 ----------
+     用户 2026-09-19：背景原来完全不动（fixed 铺满视口），看着"有种很奇怪的感觉"。
+     做法：容器高度已拉到 150vh（**宽度不变**，视频 object-fit:fill 纵向拉满它），
+     多出来的 50vh 就是滑动余量；这里按滚动进度把它向上推，最多推满 50vh。
+     行程 3 屏 —— 滚过 3 个视口高，视频正好走完多出来的那半屏。 */
+  (function(){
+    var bg = document.getElementById('heroVideoBg');
+    if (!bg) return;
+    var video = bg.querySelector('video');
+    if (!video) return;
+    var ticking = false;
+    function update(){
+      ticking = false;
+      var vh = window.innerHeight;
+      var p = Math.min(1, Math.max(0, window.scrollY / (vh * 3)));   /* 0~1，3 屏走完 */
+      /* 只做纵向位移：容器已高 150vh、视频铺满它，0 → -50vh 正好走完多出来的半屏 */
+      video.style.transform = 'translateY(' + (-p * vh * 0.5).toFixed(1) + 'px)';
+      /* 模糊随滚动渐进增强（用户 2026-09-19）：
+         屏1 顶部 = 0px，滚到屏3 = 100px，中间连续过渡 —— 背景边滚边"褪下去"。
+         目的：把主次让给内容，越往下背景越虚，注意力自然回到技能图上。
+         和位移共用同一个 p，所以两者同步渐变。 */
+      video.style.filter = 'contrast(1.05) brightness(0.5) blur(' + (p * 100).toFixed(1) + 'px)';
+    }
+    window.addEventListener('scroll', function(){
+      if (!ticking) { ticking = true; requestAnimationFrame(update); }
+    }, { passive: true });
+    window.addEventListener('resize', update);
+    update();
+  })();
+
+/* ============================================================
+   屏4 · SELECTED WORKS —— 交互脚本（2026-09-27 合并）
+   ============================================================ */
+
+  /* ---------- 04 GRAPHIC WORKS：扇形卡片轮播（屏4 改版草稿，未上线） ----------
+     ⚠️ 功能层级（用户 2026-09-24 第二版修正 —— 第一版我做错了）：
+       · **右侧列表 = 文件夹**（分类）→ 点击**切换文件夹**
+       · **左侧卡片 = 当前文件夹里的图片** → 箭头在**同一文件夹内**翻下一张
+       · **底部进度条 / 计数 = 当前文件夹内的图片进度**，不是分类进度
+       第一版把「6 个分类」和「6 张卡」做成 1:1，等于每个文件夹只装得下一张图 —— 结构性错误。
+
+     位置映射（环形）：d = 每张图到当前 pi 的「前向距离」
+       d = 0         → 主位（正视、完整，保证案例图看得清）
+       d = 1 / 2 / 3 → 左侧三张「将要看的」
+       d = n-1       → out（刚被推出去的，停在右侧、不可见）
+       d = 4 .. n-2  → wait（尚未上场，停在左侧更远处、不可见）
+     翻页 = 位置编号整体 +1 → 视觉上「整体往右推进」。
+     ⚠️ 看不到跳帧的原因：out 与 wait 的 opacity 都是 0，
+        从 out 绕回 wait 那次瞬移不可见；而 wait → -3 是正常过渡，表现为淡入。 */
+
+  /* 文件夹数据（草稿占位）—— 各文件夹图片数量可以不同，进度条与计数会自动跟着变。
+     真实素材到位后：把 .gw__shot 那个渐变占位换成 <img src="..."> 即可，逻辑不用动。 */
+  var GW_FOLDERS = [
+    { cat:'BRAND IDENTITY', cn:'品牌识别', items:[
+      { logo:'N', name:'NEXORA',   type:'Visual Identity System', year:'2024', svc:'Brand · Vis · Logo',
+        desc:'为科技品牌打造完整的视觉识别系统，以简洁的图形语言与科技感色彩，传递一致且面向未来的品牌形象。' },
+      { logo:'M', name:'MERIDIAN', type:'Fintech Brand System',   year:'2023', svc:'Brand · Logo',
+        desc:'金融科技品牌重塑，用理性的几何秩序建立专业与可信赖的第一印象。' },
+      { logo:'U', name:'URBAN O',  type:'Outdoor Brand System',   year:'2023', svc:'Brand · Vis', bg:'#2A2E22',   /* demo：深橄榄 */
+        desc:'户外品牌视觉系统，以粗粝质感与山野色系呼应产品使用场景。' },
+      { logo:'V', name:'VERDE',    type:'Wellness Identity',      year:'2022', svc:'Brand · Pack', bg:'#E8E2D4',   /* demo：浅米色 */
+        desc:'健康生活方式品牌识别，从标志到包装的一体化视觉输出。' }
+    ]},
+    { cat:'PACKAGING DESIGN', cn:'包装设计', items:[
+      { logo:'L', name:'LUMIÈRE',  type:'Skincare Packaging',     year:'2024', svc:'Packaging · Art',
+        desc:'护肤产品包装与视觉体系，以自然质感与克制留白，建立高端护肤的信任感。' },
+      { logo:'T', name:'TERRA',    type:'Organic Food Packaging', year:'2023', svc:'Packaging · Illu',
+        desc:'有机食品包装，用可回收材质与手绘插画传达自然与诚实。' },
+      { logo:'R', name:'RITUAL',   type:'Tea Gift Set',           year:'2023', svc:'Packaging · Set',
+        desc:'茶叶礼盒结构与视觉一体设计，开盒过程本身就是一次品牌体验。' }
+    ]},
+    { cat:'E-COMMERCE VISUAL', cn:'电商视觉', items:[
+      { logo:'A', name:'AURORA',   type:'E-Commerce Campaign',    year:'2025', svc:'E-Com · Detail',
+        desc:'旗舰店主图与详情页视觉升级，以强对比构图提升点击与转化。' },
+      { logo:'K', name:'KYOTO',    type:'Home Appliance Detail',  year:'2024', svc:'E-Com · Detail',
+        desc:'小家电详情页视觉，用场景化叙事替代参数堆砌，降低决策成本。' },
+      { logo:'B', name:'BLOOM',    type:'Beauty Storefront',      year:'2024', svc:'E-Com · Store',
+        desc:'美妆店铺整体视觉与活动会场设计，统一多个节点的品牌表达。' },
+      { logo:'F', name:'FLUX',     type:'Sportswear Visuals',     year:'2023', svc:'E-Com · KV',
+        desc:'运动服饰电商视觉，以动态构图与高饱和对比强化产品性能感。' },
+      { logo:'P', name:'PURE',     type:'Personal Care',          year:'2022', svc:'E-Com · Detail',
+        desc:'个护产品视觉体系，从主图到内容物呈现的完整规范。' }
+    ]},
+    { cat:'CAMPAIGN VISUAL', cn:'营销视觉', items:[
+      { logo:'S', name:'SUMMER',   type:'Seasonal Collection',    year:'2024', svc:'Campaign · KV',
+        desc:'夏季季节性 Campaign，从主 KV 到全渠道落地物料的一体化输出。' },
+      { logo:'W', name:'WINTER',   type:'Holiday Campaign',       year:'2023', svc:'Campaign · KV',
+        desc:'节日营销视觉，以暖调质感与礼赠情绪贯穿线上线下。' },
+      { logo:'E', name:'ECHO',     type:'Launch Campaign',        year:'2022', svc:'Campaign · Film',
+        desc:'新品发布 Campaign，主视觉与短片联动，统一传播调性。' }
+    ]},
+    { cat:'ART DIRECTION', cn:'艺术指导', items:[
+      { logo:'M', name:'MINIMAL',  type:'Home Living Visual',     year:'2023', svc:'Art Direction',
+        desc:'家居品牌整体视觉调性与拍摄方向把控，让每一块物料讲同一个故事。' },
+      { logo:'C', name:'CANVAS',   type:'Brand Photography',      year:'2023', svc:'Art · Photo',
+        desc:'品牌形象片艺术指导，从场景选择到光影基调的完整把控。' },
+      { logo:'D', name:'DWELL',    type:'Interior Campaign',      year:'2022', svc:'Art · Set',
+        desc:'空间与产品联动的视觉指导，兼顾空间真实感与产品表现力。' },
+      { logo:'H', name:'HALO',     type:'Beauty Art Direction',   year:'2022', svc:'Art · Photo',
+        desc:'美妆产品艺术指导，用材质对比与光影塑造高级感。' }
+    ]},
+    { cat:'AI VISUAL CREATION', cn:'AI 视觉创作', items:[
+      { logo:'N', name:'NEBULA',   type:'AI Concept Visuals',     year:'2025', svc:'AI · Concept',
+        desc:'以 AI 生成完成概念阶段视觉探索，把想象快速变成可讨论的画面。' },
+      { logo:'O', name:'ORBIT',    type:'AI Product Visuals',     year:'2024', svc:'AI · Product',
+        desc:'AI 辅助产品视觉合成，替代部分实拍场景，控制成本与周期。' },
+      { logo:'S', name:'SYNTH',    type:'AI Motion Assets',       year:'2024', svc:'AI · Motion',
+        desc:'AI 生成动态视觉资产，用于社媒短内容的快速批量输出。' }
+    ]}
+  ];
+
+  (function(){
+    var stage  = document.getElementById('gwStage');
+    if(!stage) return;
+    var catsEl = document.getElementById('gwCats');
+    var prog   = document.getElementById('gwProg');
+    var nowEl  = document.getElementById('gwNow');
+    var allEl  = document.getElementById('gwAll');
+
+    /* 左侧可见的叠卡数量。HOLD=2 → 一共 3 张可见（主卡 + 左 2）。
+       用户要求：4 张时左侧太挤太重；3 张刚好。数据再多也只是轮转展示这 3 张。 */
+    var HOLD = 2;
+    var fi = 0, pi = 0;              /* fi = 当前文件夹； pi = 文件夹内当前图片 */
+    var cards = [];
+
+    function items(){ return GW_FOLDERS[fi].items; }
+    function pad(n){ return (n < 10 ? '0' : '') + n; }
+
+    /* ---------- 颜色工具 ----------
+       卡片底色由数据里的 c.bg 决定（= 该案例图的主色，等素材到位后填）。
+       · 焦散色从 c.accent 派生（默认品牌绿 #CCFF00）
+       · 文字色**按底色亮度自动**选：深底→白字，浅底→黑字
+         （这样以后给任何颜色的底都不用单独调文字） */
+    function hex2rgb(h){
+      h = String(h || '').replace('#', '');
+      if(h.length === 3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+      if(h.length !== 6) return [10, 10, 10];
+      return [parseInt(h.substr(0,2),16), parseInt(h.substr(2,2),16), parseInt(h.substr(4,2),16)];
+    }
+    function rgba(h, a){ var c = hex2rgb(h); return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + a + ')'; }
+    function luminance(h){
+      var c = hex2rgb(h);
+      return (0.2126*c[0] + 0.7152*c[1] + 0.0722*c[2]) / 255;
+    }
+    function applyTheme(el, c){
+      var bg     = c.bg     || '#0A0A0A';
+      var accent = c.accent || '#CCFF00';
+      var dark   = luminance(bg) < 0.5;
+      el.style.setProperty('--card-bg', bg);
+      el.style.setProperty('--ck-1',  rgba(accent, dark ? .52 : .40));
+      el.style.setProperty('--ck-2',  rgba(accent, dark ? .32 : .26));
+      el.style.setProperty('--ck-3',  rgba(accent, dark ? .22 : .18));
+      el.style.setProperty('--ck-n1', rgba(accent, dark ? .30 : .22));
+      el.style.setProperty('--ck-n2', rgba(accent, dark ? .20 : .15));
+      el.style.setProperty('--ink',   dark ? '#fff' : '#0A0A0A');
+      el.style.setProperty('--ink-2', dark ? 'rgba(255,255,255,.62)' : 'rgba(10,10,10,.66)');
+      el.style.setProperty('--ink-3', dark ? 'rgba(255,255,255,.44)' : 'rgba(10,10,10,.46)');
+      /* 边缘镜面光的颜色 —— 跟着该卡的 accent 走（深底用亮一些，浅底略收） */
+      el.style.setProperty('--rim', rgba(accent, dark ? .92 : .7));
+    }
+
+    function faceHTML(c){
+      /* .gw__tilt = 卡片本体（底色/圆角/投影/裁切 + hover 倾斜），
+         里面依次是：焦散底 → 文案 → 边缘镜面光。
+         .gw__spec 必须在 .gw__tilt **内部**，倾斜时才会跟着卡片一起动（2026-09-28）。
+         它占 z-index 4：在焦散底与文案之上、厚度带（z-index 6）之下；
+         只占贴边 2px，和文字不重叠。 */
+      return '<div class="gw__tilt">' +
+          '<div class="gw__shot"></div>' +
+          '<div class="gw__face">' +
+          '<div class="gw__logo">' + c.logo + '</div>' +
+          '<div class="gw__pname">' + c.name + '</div>' +
+          '<div class="gw__ptype">' + c.type + '</div>' +
+          '<div class="gw__pdesc">' + c.desc + '</div>' +
+          '<div class="gw__pmeta">' +
+            '<div>YEAR<b>' + c.year + '</b></div>' +
+            '<div>SERVICE<b>' + c.svc + '</b></div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="gw__spec"></div>' +
+      '</div>';
+    }
+
+    /* 按当前文件夹重建整组卡片 */
+    function build(){
+      stage.innerHTML = '';
+      cards = [];
+      items().forEach(function(c, i){
+        var el = document.createElement('article');
+        el.className = 'gw__card';
+        applyTheme(el, c);            /* 底色 / 焦散色 / 文字色 全按数据来 */
+        el.innerHTML = faceHTML(c);
+        /* 点左侧那三张可以直接跳过去（点主卡自身无动作） */
+        el.addEventListener('click', function(){
+          var n = items().length, d = ((i - pi) % n + n) % n;
+          if(d > 0 && d <= HOLD){ pi = i; render(); }
+        });
+        stage.appendChild(el);
+        cards.push(el);
+      });
+    }
+
+    function posOf(i){
+      var n = items().length;
+      var d = ((i - pi) % n + n) % n;
+      if(d === 0) return '0';
+      if(d <= HOLD) return '-' + d;
+      if(d === n - 1) return 'out';
+      return 'wait';
+    }
+
+    function render(){
+      cards.forEach(function(el, i){ el.setAttribute('data-pos', posOf(i)); });
+      [].forEach.call(catsEl.children, function(li, i){
+        li.classList.toggle('is-active', i === fi);
+      });
+      var n = items().length;
+      nowEl.textContent = pad(pi + 1);
+      allEl.textContent = pad(n);
+      prog.style.width = ((pi + 1) / n * 100) + '%';
+    }
+
+    /* 切换文件夹：重建卡片 → 先藏起来 → 下一帧落位，形成淡入而不是闪一下 */
+    function switchFolder(i){
+      fi = i; pi = 0;
+      build();
+      cards.forEach(function(el){ el.style.transition = 'none'; el.style.opacity = '0'; });
+      requestAnimationFrame(function(){
+        cards.forEach(function(el){ el.style.transition = ''; el.style.opacity = ''; });
+        render();
+      });
+    }
+
+    /* 同一文件夹内翻页 */
+    function step(d){
+      var n = items().length;
+      pi = ((pi + d) % n + n) % n;
+      render();
+    }
+
+    document.getElementById('gwNext').addEventListener('click', function(){ step(1); });
+    document.getElementById('gwPrev').addEventListener('click', function(){ step(-1); });
+    [].forEach.call(catsEl.children, function(li, i){
+      li.addEventListener('click', function(){ switchFolder(i); });
+    });
+
+    build(); render();
+  })();
+
+/* ---------- 卡片交互特效（原生复刻 React Bits 的两个组件）----------
+   ① SpecularButton → 边缘镜面光：--rimA 跟着指针转，--specI 按指针远近调亮度
+   ② TiltedCard     → hover 倾斜：--tiltX / --tiltY 由指针在卡内的位置算
+   原版是 React + OGL(WebGL 片元着色器) + motion(spring)，这里用 CSS 变量 + rAF 做等价效果。 */
+(function(){
+  var stage = document.getElementById('gwStage');
+  if(!stage) return;
+
+  var PROX = 260;      /* 触发镜面光的距离（原版 proximity=250）*/
+  var BASE = 0.25;     /* 没靠近时的常亮底 —— 原版是 0（不靠近就完全不亮），
+                          这里给一点，这样页面静置时也能看见这条光边 */
+  var TILT = 7;        /* 最大倾斜角（面板「悬停倾斜」，原版 rotateAmplitude=10）*/
+  var specK = 0.4;     /* 镜面光边强度系数（面板「镜面光边」）*/
+
+  var px = -9999, py = -9999, raf = 0;
+
+  function applyRim(){
+    raf = 0;
+    var list = stage.children;
+    for(var i = 0; i < list.length; i++){
+      var el = list[i];
+      var r = el.getBoundingClientRect();
+      if(r.width < 2) continue;                       /* 隐藏的卡跳过 */
+      var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+      /* conic-gradient 的 0deg 在 12 点、顺时针；atan2 的 0 在 3 点 → 要 +90 */
+      el.style.setProperty('--rimA', (Math.atan2(py - cy, px - cx) * 180 / Math.PI + 90).toFixed(1) + 'deg');
+      /* 指针到卡片的距离 → smoothstep → 亮度（同原版 proximity 的做法）*/
+      var dx = Math.max(r.left - px, 0, px - r.right);
+      var dy = Math.max(r.top - py, 0, py - r.bottom);
+      var t = Math.max(0, 1 - Math.hypot(dx, dy) / PROX);
+      t = t * t * (3 - 2 * t);
+      el.style.setProperty('--specI', ((BASE + (1 - BASE) * t) * specK).toFixed(3));
+    }
+  }
+  function scheduleRim(){ if(!raf) raf = requestAnimationFrame(applyRim); }
+
+  window.addEventListener('pointermove', function(e){ px = e.clientX; py = e.clientY; scheduleRim(); }, {passive: true});
+  window.addEventListener('scroll', scheduleRim, {passive: true});
+  /* 切换分类会重建卡片（新元素没有 --rimA/--specI）→ 用 MutationObserver 补算 */
+  new MutationObserver(scheduleRim).observe(stage, {childList: true});
+  scheduleRim();
+
+  /* ---- hover 倾斜（TiltedCard 的做法：按指针在卡片内的归一化位置算角度）---- */
+  function cardOf(e){
+    var t = e.target;
+    return (t && t.closest) ? t.closest('.gw__card') : null;
+  }
+  stage.addEventListener('pointermove', function(e){
+    var el = cardOf(e);
+    if(!el) return;
+    var r = el.getBoundingClientRect();
+    if(r.width < 2) return;
+    var nx = (e.clientX - r.left) / r.width  - .5;
+    var ny = (e.clientY - r.top ) / r.height - .5;
+    el.style.setProperty('--tiltY', ( nx * 2 * TILT).toFixed(2) + 'deg');
+    el.style.setProperty('--tiltX', (-ny * 2 * TILT).toFixed(2) + 'deg');
+    var w = el.querySelector('.gw__tilt');
+    if(w) w.classList.add('is-tilting');            /* 跟手时用短过渡 */
+  }, {passive: true});
+  stage.addEventListener('pointerout', function(e){
+    var el = cardOf(e);
+    if(!el) return;
+    if(e.relatedTarget && el.contains(e.relatedTarget)) return;   /* 还在卡内就不复位 */
+    el.style.setProperty('--tiltY', '0deg');
+    el.style.setProperty('--tiltX', '0deg');
+    var w = el.querySelector('.gw__tilt');
+    if(w) w.classList.remove('is-tilting');
+  }, {passive: true});
+
+  /* 供调参面板调用 */
+  window.__gwFx = {
+    setSpec: function(v){ specK = v; applyRim(); },
+    setTilt: function(v){ TILT = v; },
+    refresh: scheduleRim
+  };
+})();
+
+/* ---------- 调试件总开关（2026-09-30）----------
+   屏4 的调参面板 / RULER / REF 按钮三样**默认隐藏**（见 CSS 里的
+   `:root:not(.dbg) ...` 规则）。要让它们回来，在网址后面加 `?debug=1` 即可：
+     https://…/index.html?debug=1
+   —— 这样以后想重新调参，不必改代码、也不必重新部署。
+   ⚠️ 用 `#debug=1` 也认（防某些分享链接把 ? 后面的参数截掉）。
+   ⚠️ 这是**纯附加通道**：不带参数时行为与"直接删掉这些调试件"完全一致。 */
+(function(){
+  if(/(^|[?&#])debug=1(&|$|#)/.test(location.search + location.hash)){
+    document.documentElement.classList.add('dbg');
+  }
+})();
+
+/* ---------- 调参面板（本独立页新增）----------
+   数值写进 CSS 变量或直接改 style，拖杆实时生效。
+   ⚠️ 滑块的 value 初始值就是「当前生效值」，改默认值要连它一起改。 */
+(function(){
+  var st    = document.getElementById('gwStage');
+  var panel = document.getElementById('gwPanel');
+  if(!st || !panel) return;
+  var root = document.documentElement;
+
+  var shrink= document.getElementById('cShrink'),vShrink= document.getElementById('vShrink');
+  var lift  = document.getElementById('cLift'),  vLift  = document.getElementById('vLift');
+  var size  = document.getElementById('cSize'),  vSize  = document.getElementById('vSize');
+  var persp = document.getElementById('cPersp'), vPersp = document.getElementById('vPersp');
+  var gap   = document.getElementById('cGap'),   vGap   = document.getElementById('vGap');
+  var rot   = document.getElementById('cRot'),   vRot   = document.getElementById('vRot');
+  var posX  = document.getElementById('cPosX'),  vPosX  = document.getElementById('vPosX');
+  var cW    = document.getElementById('cW'),     vW     = document.getElementById('vW');
+  var cH    = document.getElementById('cH'),     vH     = document.getElementById('vH');
+  var cY    = document.getElementById('cY'),     vY     = document.getElementById('vY');
+  var barGap= document.getElementById('cBarGap'),vBarGap= document.getElementById('vBarGap');
+  var sideW = document.getElementById('cSideW'), vSideW = document.getElementById('vSideW');
+  var sideX = document.getElementById('cSideX'), vSideX = document.getElementById('vSideX');
+  var sideY = document.getElementById('cSideY'), vSideY = document.getElementById('vSideY');
+  var kx    = document.getElementById('cKx'),    vKx    = document.getElementById('vKx');
+  var thick = document.getElementById('cThick'), vThick = document.getElementById('vThick');
+  var spec  = document.getElementById('cSpec'),   vSpec  = document.getElementById('vSpec');
+  var shad  = document.getElementById('cShad'),   vShad  = document.getElementById('vShad');
+  var shSize= document.getElementById('cShSize'), vShSize= document.getElementById('vShSize');
+  var tiltA = document.getElementById('cTiltA'),  vTiltA = document.getElementById('vTiltA');
+
+  /* 屏4 内容（.page）实测高度 → --s4content：给 #services.section 的 min-height 兜底，
+     保证「下方收缩」拉到任何档位都不会裁到内容。
+     .page 是 absolute 定位、高度只由内容撑，改这个变量不会反过来影响它 → 无自反馈。 */
+  var s4page = document.querySelector('#services .page');
+  function measureS4(){
+    if(!s4page) return;
+    var h = Math.round(s4page.getBoundingClientRect().height);
+    if(h <= 0) return;
+    root.style.setProperty('--s4content', h);
+    /* 滑块上限 = 「内容下方原本的留白」(100vh − 内容高)/2 ——
+       再多收就会裁到内容，所以上限跟着视口走（你屏 1344 → 上限 360）。
+       窄屏 ≤1100 不参与收缩，上限不动。 */
+    if(window.innerWidth > 1100){
+      /* 可用上限 = 内容底边到 section 底边之间的空白量：
+         section 高 (vh − navH)，内容中心在 (vh − navH)/2 + lift，内容半高 h/2
+         → 空白 = (vh − navH)/2 − h/2 − lift。再多收就会裁到内容。 */
+      var navH   = parseFloat(getComputedStyle(root).getPropertyValue('--navH')) || 0;
+      var s4lift = parseFloat(getComputedStyle(root).getPropertyValue('--s4lift')) || 0;
+      var cap = Math.max(20, Math.round((window.innerHeight - navH - h) / 2 - s4lift));
+      if(+shrink.max !== cap) shrink.max = cap;
+    }
+    /* 上限变小可能把 value 钳住 → 把它同步回 CSS 变量，避免滑块与画面不一致 */
+    root.style.setProperty('--s4shrink', +shrink.value);
+  }
+
+  function apply(){
+    /* 屏4「下方收缩」N（px）：**只抬下边界，上边界与内容位置一律不动**。
+       写到 :root，由 #services.section 的 height: calc(100vh - var(--s4shrink)*1px) 消费。
+       N=0 → 原来的整屏 100vh；N 越大这屏越矮、下边界越高。
+       内容被钉在 50vh 中心（见 CSS 注释），所以上面一分都不动。 */
+    root.style.setProperty('--s4shrink', +shrink.value);
+    vShrink.textContent = shrink.value;
+    /* 内容垂直微调（px）：直接写 --s4lift，由 .gw 的 top 消费。
+       正值往下、负值往上；默认 0 = 内容中心落在「导航栏以下可视区」的正中。
+       ⚠️ 不改锚点 --navH —— 那 80px 是导航栏真实高度，动了屏4 高度就错了。 */
+    root.style.setProperty('--s4lift', +lift.value);
+    vLift.textContent = lift.value;
+    st.style.zoom = (+size.value / 100);
+    root.style.setProperty('--zoom', +size.value / 100);   /* 供底部横条等外部元素换算 */
+    st.style.perspective = persp.value + 'px';
+    root.style.setProperty('--gapAdd',  +gap.value);
+    root.style.setProperty('--rotBase', +rot.value);
+    root.style.setProperty('--posX',    +posX.value);
+    vSize.textContent  = size.value + '%';
+    vPersp.textContent = persp.value;
+    vGap.textContent   = gap.value;
+    vRot.textContent   = rot.value + '°';
+    vPosX.textContent  = posX.value;
+
+    root.style.setProperty('--cardW',  +cW.value);
+    root.style.setProperty('--cardH',  +cH.value);
+    root.style.setProperty('--cardY',  +cY.value);
+    root.style.setProperty('--barGap', +barGap.value);
+    root.style.setProperty('--sideW',  +sideW.value);
+    root.style.setProperty('--sideX',  +sideX.value);
+    root.style.setProperty('--sideY',  +sideY.value);
+    root.style.setProperty('--kx',     +kx.value / 100);
+    vKx.textContent = kx.value + '%';
+    root.style.setProperty('--thick', +thick.value);
+    vThick.textContent = thick.value;
+    vSpec.textContent  = spec.value + '%';
+    /* 卡片阴影强度：0~100 → alpha 0~1，被 .gw__tilt 的 box-shadow 消费。
+       100% 就是纯黑投影（够强），0% 完全无影。默认 42 与旧版逐像素一致。 */
+    root.style.setProperty('--cardShadow', +shad.value / 100);
+    vShad.textContent = shad.value + '%';
+    /* 阴影大小：0~200 → 尺度系数 0~2，等比缩放 y30 / blur70 / spread-26。
+       100% = 原参数；0% = 缩到零（等同于无影）；200% = 整条阴影放大一倍。 */
+    root.style.setProperty('--shScale', +shSize.value / 100);
+    vShSize.textContent = shSize.value + '%';
+    vTiltA.textContent = tiltA.value + '°';
+    /* 特效参数交给特效脚本（它内部持有 PROX/TILT/specK） */
+    if(window.__gwFx){
+      window.__gwFx.setSpec(+spec.value / 100);
+      window.__gwFx.setTilt(+tiltA.value);
+    }
+    vW.textContent = cW.value;        vH.textContent = cH.value;
+    vY.textContent = cY.value;
+    vBarGap.textContent = barGap.value;
+    vSideW.textContent  = sideW.value; vSideX.textContent = sideX.value;
+    vSideY.textContent  = sideY.value;
+    /* zoom 生效后再量内容高（zoom 会改变 .page 的实测高度） */
+    measureS4();
+  }
+  [shrink, lift, size, persp, gap, rot, posX, cW, cH, cY, barGap, sideW, sideX, sideY, kx, thick, spec, shad, shSize, tiltA].forEach(function(el){ el.addEventListener('input', apply); });
+  apply();
+  /* 视口 / 断点变化后重新量（内容高随宽度断点变）；字体加载完后再量一次更准 */
+  window.addEventListener('resize', measureS4);
+  window.addEventListener('load', measureS4);
+
+  document.getElementById('gwPanelToggle').addEventListener('click', function(){
+    panel.classList.toggle('is-fold');
+    this.textContent = panel.classList.contains('is-fold') ? '+' : '–';
+  });
+
+  document.getElementById('gwCopy').addEventListener('click', function(){
+    var txt = '下方收缩 ' + shrink.value + ' ｜ 内容偏移 ' + lift.value + ' ｜ 卡片 ' + cW.value + 'x' + cH.value + ' · 垂直' + cY.value + ' · 缩放' + size.value + '% ｜ 透视 ' + persp.value
+            + ' ｜ 堆叠间距 ' + gap.value + ' ｜ 斜切 ' + rot.value + '° ｜ 主卡位置 ' + posX.value
+            + ' ｜ 底部间距 ' + barGap.value + ' ｜ 右栏宽 ' + sideW.value + ' ｜ 右栏水平 ' + sideX.value + ' ｜ 右栏垂直 ' + sideY.value
+            + ' ｜ 焦散强度 ' + kx.value + '% ｜ 卡片厚度 ' + thick.value
+            + ' ｜ 镜面光边 ' + spec.value + '% ｜ 卡片阴影 ' + shad.value + '% ｜ 阴影大小 ' + shSize.value + '% ｜ 悬停倾斜 ' + tiltA.value + '°';
+    var btn = this;
+    var done = function(){ btn.textContent='已复制 ✓'; setTimeout(function(){ btn.textContent='复制参数'; },1400); };
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(txt).then(done).catch(function(){ window.prompt('复制这段发我：', txt); });
+    } else { window.prompt('复制这段发我：', txt); }
+  });
+
+  /* ---------- 面板可拖拽（用户要求：位置他自己拖）----------
+     按住标题栏拖动；双击标题栏复位回原位。 */
+  (function(){
+    var hd = panel.querySelector('.gw__panel-hd');
+    if(!hd) return;
+    hd.style.cursor = 'move';
+    hd.title = '按住可拖动 · 双击复位';
+    var dragging = false, sx = 0, sy = 0, ox = 0, oy = 0;
+    hd.addEventListener('mousedown', function(e){
+      if(e.target.tagName === 'BUTTON') return;      /* 别抢折叠按钮 */
+      var r = panel.getBoundingClientRect();
+      dragging = true; sx = e.clientX; sy = e.clientY; ox = r.left; oy = r.top;
+      panel.style.position = 'fixed';
+      panel.style.left = ox + 'px'; panel.style.top = oy + 'px';
+      panel.style.width = r.width + 'px'; panel.style.margin = '0';
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove', function(e){
+      if(!dragging) return;
+      panel.style.left = (ox + e.clientX - sx) + 'px';
+      panel.style.top  = (oy + e.clientY - sy) + 'px';
+    });
+    document.addEventListener('mouseup', function(){ dragging = false; });
+    hd.addEventListener('dblclick', function(){
+      panel.style.position = ''; panel.style.left = ''; panel.style.top = '';
+      panel.style.width = ''; panel.style.margin = '';
+    });
+  })();
+
+  /* 标尺开关 */
+  var rulerEl = document.getElementById('gwRuler');
+  var rulerBtn = document.getElementById('gwRulerToggle');
+  rulerBtn.addEventListener('click', function(){
+    var on = rulerEl.classList.toggle('is-on');
+    rulerBtn.style.background = on ? '#16180f' : 'rgba(255,255,255,.92)';
+    rulerBtn.style.color = on ? '#CCFF00' : '#111';
+  });
+
+  /* 参考图开关 */
+  var refEl = document.getElementById('gwRef'), refBtn = document.getElementById('gwRefToggle');
+  function toggleRef(){
+    var off = refEl.classList.toggle('is-off');
+    refBtn.classList.toggle('is-off', off);
+    refBtn.textContent = off ? 'REF · OFF' : 'REF · ON';
+  }
+  refBtn.addEventListener('click', toggleRef);
+  window.addEventListener('keydown', function(e){
+    if(e.key === 'r' || e.key === 'R') toggleRef();
+  });
+})();
 </script>
 <script type="module" src="metaballs.js"></script>
+
+<!-- ============================================================================
+     DriftWall · 原生 JS 等效实现（2026-10-02）
+     原组件是 React（React Bits），主站无 React 运行时 → 按原算法 1:1 手写。
+     保留的算法细节（别改，改了就不是原效果）：
+       · columnFactor(c) = 1 + variance * (((c*0.6180339887 + 0.35) % 1) * 2 - 1)
+         —— 黄金比伪随机，让每列速度不同但可复现
+       · 列速度 = speed * columnFactor * dirSign * (c 偶数 ? 1 : -1)
+         —— **奇偶列反向**，这才是"漂移"而不是"整块平移"
+       · baseVelocities / offsets 初始化用 copyHeight * ((c*0.37) % 1) → 各列起始相位错开
+       · 位移取模 copyHeight 实现**无缝循环**；每列按容器高复制 copies 份
+       · 惯性：ease = 1 - exp(-dt/tau)，tau = 0.28（运动） / 0.16（停下）
+       · 指针视差：pointerDamped += (target - damped) * (1 - exp(-dt/0.12))
+     ============================================================================ -->
+<script>
+(function () {
+  var root = document.getElementById('dwall');
+  if (!root) return;
+
+  /* ---------- 参数（用户 2026-10-02 给出的那一组，逐字对应原 props） ---------- */
+  var CFG = {
+    columns: 5, tileWidth: 156, tileHeight: 130, gap: 22, radius: 17,
+    tilt: 30, turn: 10, roll: -9, perspective: 1200, depth: 0,
+    speed: 38, direction: 'up', variance: 0.45, parallax: 2,
+    lift: 36, fade: 0.5, dim: 0.7, overlayColor: '#000000'
+  };
+
+  /* ---------- 墙上的图（15 张）----------
+     ⚠️ 素材到位后：给每个 item 加 `image: 'media/xxx.png'` 即可，
+        渲染函数会自动改用 <img>；没 image 的项走渐变占位（当前状态）。
+     ⚠️ 底色必须**全部偏深**：墙挂在 #F4F4F1 浅底上，
+        实测浅色底（#E8E2D4 / #F0F0EC / #F2F2EE）会和背景融成一片白、
+        看起来像"图没加载"——12 张浅块里 6 张是直接消失的。
+        （同一批案例在屏4 的**深底卡片**上没问题，搬到浅色墙就不成立。） */
+  var ITEMS = [
+    { t:'NEXORA',   bg:'#101418' },                        /* N  科技识别  深 */
+    { t:'LUMIÈRE',  bg:'#1A1E24', ck:['#BFD4E8','#7A9CBF','#DCE8F2'] },  /* L  护肤  深蓝灰 */
+    { t:'AURORA',   bg:'#1C1410', ck:['#FFB37A','#FF6B3D','#FFD9A8'] },  /* A  电商  暖橙 */
+    { t:'SUMMER',   bg:'#20261A', ck:['#CCFF00','#8FD400','#E9FF9E'] },  /* S  营销  品牌绿 */
+    { t:'MONO',     bg:'#22221E', ck:['#B8B8AE','#8A8A80','#E4E4DA'] },  /* Art Direction 中性灰 */
+    { t:'URBAN O',  bg:'#2A2E22' },                        /* U  户外深橄榄 */
+    { t:'VERDE',    bg:'#2E2A22', ck:['#D8CCA8','#A89870','#F0E8D0'] },  /* V  健康  暖米深 */
+    { t:'TERRA',    bg:'#3A2E24', ck:['#E0B080','#C08040','#FFDCC0'] },  /* T  有机食品 */
+    { t:'KYOTO',    bg:'#141A22' },                        /* K  家电深 */
+    { t:'FLUX',     bg:'#221016', ck:['#66E0FF','#0099FF','#B0F0FF'] },  /* F  运动 */
+    { t:'AI',       bg:'#181818', ck:['#CCFF00','#66FFD0','#E0FFB0'] },  /* AI 视觉 */
+    { t:'RITUAL',   bg:'#26201A' },                        /* R  茶礼盒 */
+    { t:'PURE',     bg:'#1E2022', ck:['#9FB6BF','#6A8894','#D0E0E6'] },  /* P  个护  深青灰 */
+    { t:'ECHO',     bg:'#101820' },                        /* E  发布 */
+    { t:'BLOOM',    bg:'#2A1E26', ck:['#FF9EDB','#D060B0','#FFD0EE'] }   /* B  美妆 */
+  ];
+
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* 平面缩放系数
+     ⚠️ 修正（2026-10-02）：用户给的 tileWidth=156 / tileHeight=130 是**最终视觉尺寸**，
+        之前用 1.55 把整面墙放大，导致 tile 实测 242×201、网格变得极稀。
+        原组件里 scale 只是给容器做的小修正（其默认 1.18），不是主力缩放手段。
+        这里墙本体 5×(156+22)=890 本来就比容器 827 宽，靠 1.0 附近的微调即可填满。
+        ⚠️ 但必须先实测：数值由覆盖率探针反推，不拍脑袋。 */
+  var SCALE = 1.0;
+
+  function columnFactor(i, va) {
+    var pseudo = ((i * 0.6180339887 + 0.35) % 1) * 2 - 1;
+    return 1 + va * pseudo;
+  }
+  function el(tag, cls) { var e = document.createElement(tag); if (cls) e.className = cls; return e; }
+
+  /* ---------- 分列：items 轮流进 columns 列 ---------- */
+  var columnItems = [];
+  for (var c = 0; c < CFG.columns; c++) columnItems.push([]);
+  ITEMS.forEach(function (it, i) { columnItems[i % CFG.columns].push(it); });
+  columnItems = columnItems.map(function (col) { return col.length ? col : ITEMS.slice(0, 1); });
+
+  /* ---------- 建 DOM ---------- */
+  var plane = el('div', 'dwall__plane');
+  var trackEls = [];
+  var unit = CFG.tileHeight + CFG.gap;
+
+  function tileHTML(item, id, ci) {
+    var inner = '<span class="dwall__inner">';
+    if (item.image) {
+      inner += '<img src="' + item.image + '" alt="' + (item.t || '') + '" loading="lazy" decoding="async" draggable="false">';
+    } else {
+      inner += '<span class="dwall__ph" style="--dw-ph-bg:' + (item.bg || '#1A1A1A') + ';'
+             + (item.ck ? '--ck-1:' + item.ck[0] + ';--ck-2:' + item.ck[1] + ';--ck-3:' + item.ck[2] + ';' : '')
+             + '"></span>';
+    }
+    inner += '<span class="dwall__overlay"></span></span>';
+    return '<div class="dwall__tile" tabindex="0" role="img" aria-label="' + (item.t || 'tile') + '"'
+         + ' data-tile-id="' + id + '" data-col="' + ci + '">' + inner + '</div>';
+  }
+
+  columnItems.forEach(function (col, ci) {
+    var colEl = el('div', 'dwall__col');
+    var track = el('div', 'dwall__track');
+    colEl.appendChild(track);
+    plane.appendChild(colEl);
+    trackEls.push({ el: track, col: col, ci: ci });
+  });
+  root.appendChild(plane);
+
+  /* ---------- 按容器高算「复制份数」——无缝循环的关键 ---------- */
+  var offsets = [], velocities = [], metas = [], baseVel = [];
+  function measure() {
+    var containerH = root.clientHeight || 600;
+    metas = columnItems.map(function (col) {
+      var copyHeight = Math.max(unit, col.length * unit);
+      var copies = Math.max(2, Math.ceil((containerH * 1.6) / copyHeight) + 1);
+      return { copyHeight: copyHeight, copies: copies };
+    });
+    /* 重建每列的 tile（份数变了） */
+    trackEls.forEach(function (t, ci) {
+      var m = metas[ci];
+      var html = '';
+      for (var k = 0; k < m.copies; k++) {
+        t.col.forEach(function (item, ii) { html += tileHTML(item, ci + '-' + k + '-' + ii, ci); });
+      }
+      t.el.innerHTML = html;
+    });
+    /* 初始相位（原组件用 (c*0.37)%1 错开，避免所有列同时同相） */
+    offsets = metas.map(function (m, ci) { return m.copyHeight * ((ci * 0.37) % 1); });
+    velocities = columnItems.map(function () { return 0; });
+
+    var dirSign = CFG.direction === 'up' ? 1 : -1;
+    baseVel = columnItems.map(function (_, ci) {
+      var altSign = ci % 2 === 0 ? 1 : -1;
+      return CFG.speed * columnFactor(ci, CFG.variance) * dirSign * altSign;
+    });
+  }
+  measure();
+  if (window.ResizeObserver) {
+    var ro = new ResizeObserver(function () { measure(); });
+    ro.observe(root);
+  }
+
+  /* ---------- 平面 3D 姿态 ----------
+     ⚠️ 比原组件多两处（都是为了在这块 827×470 的容器里"填满且不断"）：
+        · 平面宽度写死 = 5 列宽（890px）——
+          原组件靠 flex 由内容自然撑开，但轨道是绝对定位的复制层，
+          写成显式宽度才能在 3D 变换前就确定平面尺寸。
+        · rotate 后整体 **向下平移 10px** ——
+          实测墙在容器里偏上（y 591~1040，容器 470~940），下移让上下留白对称。 */
+  function setPlane(px, py) {
+    var colsW = CFG.columns * (CFG.tileWidth + CFG.gap);
+    plane.style.width = colsW + 'px';
+    plane.style.transform =
+      'translate(-50%, -50%) translateY(10px) scale(' + SCALE + ') ' +
+      'rotateX(' + (CFG.tilt + py) + 'deg) rotateY(' + (CFG.turn + px) + 'deg) rotateZ(' + (CFG.roll) + 'deg) ' +
+      'translateZ(' + (-CFG.depth) + 'px)';
+  }
+  setPlane(0, 0);
+
+  /* ---------- 主循环 ---------- */
+  var pointer = { x: 0, y: 0 }, pointerDamped = { x: 0, y: 0 };
+  var hoveredCol = -1, lastTs = null, rafId = null;
+  var maxTilt = CFG.parallax * 8;   /* 原组件就是 parallax*8（单位 deg） */
+
+  function activate(tile) {
+    var id = tile.getAttribute('data-tile-id');
+    hoveredCol = Number(tile.getAttribute('data-col'));
+    var prev = root.querySelector('.dwall__tile.is-active');
+    if (prev && prev !== tile) prev.classList.remove('is-active');
+    tile.classList.add('is-active');
+    return id;
+  }
+  root.addEventListener('pointermove', function (e) {
+    var r = root.getBoundingClientRect();
+    if (CFG.parallax > 0 && !reduced) {
+      pointer.x = (e.clientX - r.left) / r.width - 0.5;
+      pointer.y = (e.clientY - r.top) / r.height - 0.5;
+    }
+    var hit = document.elementFromPoint(e.clientX, e.clientY);
+    var tile = hit && hit.closest ? hit.closest('[data-tile-id]') : null;
+    if (!tile) { hoveredCol = -1; return; }
+    if (tile.classList.contains('is-active')) return;
+    activate(tile);
+  });
+  root.addEventListener('pointerleave', function () {
+    pointer.x = 0; pointer.y = 0; hoveredCol = -1;
+    var prev = root.querySelector('.dwall__tile.is-active');
+    if (prev) prev.classList.remove('is-active');
+  });
+  root.addEventListener('focusin', function (e) {
+    var tile = e.target.closest ? e.target.closest('[data-tile-id]') : null;
+    if (tile) activate(tile);
+  });
+  root.addEventListener('focusout', function () {
+    hoveredCol = -1;
+    var prev = root.querySelector('.dwall__tile.is-active');
+    if (prev) prev.classList.remove('is-active');
+  });
+
+  function frame(ts) {
+    if (lastTs === null) lastTs = ts;
+    var dt = Math.min(0.05, Math.max(0, ts - lastTs) / 1000);
+    lastTs = ts;
+
+    var tx = pointer.x * maxTilt, ty = -pointer.y * maxTilt;
+    var damp = 1 - Math.exp(-dt / 0.12);
+    pointerDamped.x += (tx - pointerDamped.x) * damp;
+    pointerDamped.y += (ty - pointerDamped.y) * damp;
+    setPlane(pointerDamped.x, pointerDamped.y);
+
+    for (var c = 0; c < trackEls.length; c++) {
+      var meta = metas[c]; if (!meta) continue;
+      if (!reduced) {
+        var factor = hoveredCol === c ? 0 : 1;         /* hover 那列停住（原组件行为） */
+        var target = baseVel[c] * factor;
+        var ease = 1 - Math.exp(-dt / (target === 0 ? 0.16 : 0.28));
+        velocities[c] += (target - velocities[c]) * ease;
+        var next = (offsets[c] || 0) + velocities[c] * dt;
+        next = ((next % meta.copyHeight) + meta.copyHeight) % meta.copyHeight;
+        offsets[c] = next;
+        trackEls[c].el.style.transform = 'translate3d(0,' + (-next) + 'px,0)';
+      } else {
+        trackEls[c].el.style.transform = 'translate3d(0,' + (-(offsets[c] || 0)) + 'px,0)';
+      }
+    }
+    rafId = requestAnimationFrame(frame);
+  }
+  rafId = requestAnimationFrame(frame);
+
+  /* 页面不可见时停掉（省电；回来重新对时，避免一次大跳） */
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) {
+      if (rafId) { cancelAnimationFrame(rafId); rafId = null; lastTs = null; }
+    } else if (!rafId) {
+      lastTs = null;
+      rafId = requestAnimationFrame(frame);
+    }
+  });
+})();
+</script>
+
+<!-- 第四屏滚动叙事的重依赖懒加载
+     three.min.js 603KB —— 首屏（HR 最先看的 hero / 屏2 / 屏3）不该为它付带宽，
+     所以在屏4 进入视口前 1.5 屏才开始注入。三层保险：
+       ① IntersectionObserver 提前量  ② 点导航 Services 立刻加载  ③ 8 秒兜底
+     ⚠️ 改 s4-scroll.js 之后，把下面的 ?v= 一起改掉（同屏2/屏3 的缓存规矩）。 -->
+<script>
+(function () {
+  var s4 = document.getElementById('s4');
+  if (!s4) return;
+  var done = false;
+  function load() {
+    if (done) return;
+    done = true;
+    var three = document.createElement('script');
+    three.src = 'assets/vendor/three.min.js';
+    three.onload = function () {
+      var app = document.createElement('script');
+      app.src = 's4-scroll.js?v=20261013i';
+      document.body.appendChild(app);
+    };
+    three.onerror = function () { done = false; };   /* 失败允许 8 秒兜底再试一次 */
+    document.body.appendChild(three);
+  }
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) { load(); io.disconnect(); } });
+    }, { rootMargin: '150% 0px 150% 0px' });
+    io.observe(s4);
+  } else {
+    load();
+  }
+  var link = document.querySelector('.nav__links a[href="#services"]');
+  if (link) link.addEventListener('click', load);
+  setTimeout(load, 8000);
+})();
+</script>
+<script>
+  /* ⚡ 手机性能（2026-10-16）：视频离开视野自动暂停（手机解码视频极贵；实测滚到屏 5~8 时
+     主页面仍有 1 个视频在后台播放）。离开即暂停、回来自动续播（只恢复"本来在播"的）。
+     ⚠️⚠️ 血泪教训：这段代码曾经被误插进上面的 <style> 里 —— 既是死代码（不会执行），
+        又会搅乱 CSS 解析（紧跟其后的 .page 限宽规则被当成垃圾吞掉 → 全站内容满宽）。
+        任何 JS 都必须待在 <script> 里。 */
+  (function () {
+    var vids = Array.prototype.slice.call(document.querySelectorAll('video'));
+    if (!vids.length || !('IntersectionObserver' in window)) return;
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        var v = e.target;
+        if (e.isIntersecting) {
+          if (v.dataset.wasPlaying === '1') { v.dataset.wasPlaying = ''; v.play().catch(function () {}); }
+        } else {
+          v.dataset.wasPlaying = v.paused ? '' : '1';
+          if (!v.paused) v.pause();
+        }
+      });
+    }, { rootMargin: '25% 0px' });
+    vids.forEach(function (v) { io.observe(v); });
+  })();
+</script>
 </body>
 </html>

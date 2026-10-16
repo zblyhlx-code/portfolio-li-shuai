@@ -30,7 +30,10 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
-  background: var(--bg-deep);
+  /* 改成透明：让主站的背景视频透进来。
+     用户 2026-09-18：屏2 这个 iframe 原来是不透明黑框，把背景视频挡在外面了
+     （框外能看到光带、框内是纯黑）。原值 var(--bg-deep) = #111111 实色。 */
+  background: transparent;
   color: var(--text);
   font-family: var(--font-en);
   -webkit-font-smoothing: antialiased;
@@ -72,6 +75,25 @@ body {
 }
 
 /*
+  文案层（.stage-copy）：与 .stage-overlay 同一套 1972×798 设计稿坐标系与缩放，
+  但 z-index 刻意压到 .stage(z:1) 之下 —— 用户 2026-09-19：
+  大卡片放大时要把「VIDEO SHOWCASE」等文字盖住，而不是文字压在视频上。
+  pointer-events:none 免得挡住卡片点击，只有 EXPLORE MORE 按钮单独放开。
+*/
+.stage-copy {
+  position: absolute;
+  width: 1972px;
+  height: 798px;
+  left: 50%;
+  top: 50%;
+  margin-left: -986px;   /* -1972/2 */
+  margin-top: -399px;    /* -798/2 */
+  transform-origin: center center;
+  pointer-events: none;
+  z-index: 0;            /* 低于 .stage 的 z-index:1 */
+}
+
+/*
   文字/装饰层：原本是 inset:0（视口坐标系），窄屏时视口变矮，
   intro/info/foot 三个绝对定位块会挤在一起重叠。
   改成和 .stage 同一套 1972×798 设计稿坐标系 + 居中，
@@ -98,7 +120,8 @@ body {
   height: 100%;
   margin: 0 auto;
 }
-.stage-overlay .intro__cta,
+/* 文案层里只有 EXPLORE MORE 需要可点（其余文案不该挡卡片）；控件层里只有声音栏需要可点 */
+.stage-copy .intro__cta,
 .stage-overlay .sound { pointer-events: auto; }
 
 /* ============ 顶部导航（独立浏览时显示，嵌入主页时隐藏） ============ */
@@ -225,6 +248,11 @@ body.embed .site-nav { display: none; }
   transform-style: preserve-3d;
   transform-origin: center center;
   will-change: transform, opacity;
+  /* 2026-10-15 屏2 进出场：4 张小卡随滚动从屏幕两侧滑入/滑出（可逆）。
+     位移由 video-stage.js 直接写 inline `style.translate`（不用 CSS 变量 —— Chromium 对
+     translate 属性里的 var() 支持不完整，实测算出 none）。按规范 translate 作用在最外层
+     （translate → rotate → scale → transform）=「画廊级」位移：不被 GSAP 的 scale 缩小、
+     不受卡片 3D 旋转扭曲，与 GSAP 的 transform 完全两条通道、零冲突。 */
 }
 
 .video-card__float {
@@ -232,6 +260,13 @@ body.embed .site-nav { display: none; }
   inset: 0;
   border-radius: 16px;
   overflow: hidden;
+  /* ⚠️ 这行**必须保留**（2026-10-02 实测踩坑，别删）：
+     我曾以为它是多余的（float 内部全是平面元素）就删掉了，结果**卡片渲染几何整体变了 2%**
+     （card0 449×263 → 439×256，4 次采样稳定复现，不是抖动）——SLOTS 是用户精调的参数，
+     不允许被这样改动，已完整回退。Chrome 下它真实参与 3D 复合，不是空属性。
+     ⚠️ iPad / Safari 的坑另见下方 `.video-card video` 的 border-radius ——
+        WebKit 在 preserve-3d 元素上会忽略 overflow:hidden 的裁切，
+        **不能靠删这行解决**，要用「让内层元素自己带圆角」的办法。 */
   transform-style: preserve-3d;
   background: #141414;
   border: 1px solid rgba(255, 255, 255, 0.07);
@@ -244,6 +279,10 @@ body.embed .site-nav { display: none; }
   left: 0; right: 0; bottom: 0;
   height: 60px;
   background: rgba(0,0,0,0.8);
+  /* 只圆**下面两个角**（顶部保持直角，否则黑带顶边会露出两个缺口 —— 那是桌面回归）。
+     底部圆角与父级裁切结果一致，所以桌面看不出差别；
+     但 iPad 上父级裁切失效时，它能保证黑带底角不露出直角。 */
+  border-radius: 0 0 16px 16px;
   pointer-events: none;
   z-index: 3;
   transform: translateY(100%);
@@ -255,7 +294,14 @@ body.embed .site-nav { display: none; }
   opacity: 1;
   transition: transform 0.45s var(--ease), opacity 0.4s ease;   /* 进入：从下方缓慢升起 */
 }
-.video-card video { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* ★ 圆角修复（2026-10-02，iPad/平板问题）——
+   border-radius: inherit 让**视频画面自己**也带圆角，不依赖父级的 overflow 裁切。
+   根因：WebKit（iPad / Safari）在 `transform-style: preserve-3d` 的元素上**会忽略
+   overflow:hidden 的裁切**（Chrome 正常裁切，所以桌面一直看不出来）。
+   于是直角视频画面溢出到圆角之外 → 视觉上整个卡片变成直角（用户 2026-10-02 反馈）。
+   让叶子元素自己圆角是最干净的解法：**不改任何布局/几何**（border-radius 不参与布局），
+   桌面端因为视频本来就被父级裁在圆角内，看不出任何差别。 */
+.video-card video { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: inherit; }
 
 .video-card__sheen {
   position: absolute;
@@ -869,3 +915,80 @@ body.embed .site-nav { display: none; }
 }
 /* 拖动中：整页光标统一为抓取态 */
 .video-card.dbg-drag.is-dragging { cursor: grabbing !important; }
+
+/* ============================================================
+   出场调节器（2026-10-15 用户要求）
+   右下角浮动按钮 + 面板：调 出屏距离 / 抛洒旋转 / 抛洒缩放，
+   「回到固定位置」一键把 4 张小卡冻结在 SLOTS 精调原位。
+   ============================================================ */
+.en-fab {
+  position: fixed; right: 18px; bottom: 18px; z-index: 9998;
+  padding: 9px 14px;
+  border: 1px solid rgba(255, 255, 255, .14); border-radius: 999px;
+  background: rgba(20, 20, 20, .82); color: #fff;
+  font: 600 12px/1 "Fira Sans", system-ui, sans-serif; letter-spacing: .04em;
+  cursor: pointer; backdrop-filter: blur(8px);
+}
+.en-fab:hover { border-color: rgba(204, 255, 0, .55); color: var(--accent); }
+.en-panel {
+  position: fixed; right: 18px; bottom: 62px; z-index: 9998; width: 244px;
+  padding: 14px 14px 12px;
+  border: 1px solid rgba(255, 255, 255, .12); border-radius: 14px;
+  background: rgba(16, 16, 16, .94); backdrop-filter: blur(10px);
+  color: #fff; font: 400 12px/1.5 "Fira Sans", system-ui, sans-serif;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .55);
+}
+.en-panel[hidden] { display: none; }
+.en-panel__hd {
+  display: flex; justify-content: space-between; align-items: center;
+  font-weight: 700; font-size: 12px; letter-spacing: .06em;
+  margin-bottom: 12px; color: var(--accent);
+}
+.en-panel__hd button {
+  background: none; border: 0; color: rgba(255, 255, 255, .5);
+  font-size: 17px; line-height: 1; cursor: pointer; padding: 0 3px;
+}
+.en-panel__hd button:hover { color: #fff; }
+.en-row { display: block; margin-bottom: 11px; }
+.en-row b { float: right; font-weight: 600; color: var(--accent); font-variant-numeric: tabular-nums; }
+.en-row input { width: 100%; margin-top: 7px; accent-color: var(--accent); }
+.en-btns { display: flex; gap: 8px; margin-top: 4px; }
+.en-btn {
+  flex: 1; padding: 8px 0;
+  border: 1px solid rgba(255, 255, 255, .16); border-radius: 8px;
+  background: transparent; color: #fff;
+  font: 600 11px/1 "Fira Sans", system-ui, sans-serif; cursor: pointer;
+}
+.en-btn:hover { border-color: rgba(204, 255, 0, .5); color: var(--accent); }
+.en-btn--go { background: var(--accent); border-color: var(--accent); color: #111; }
+.en-btn--go:hover { background: #b8e600; color: #111; }
+.en-btn--go.is-on { background: #fff; border-color: #fff; color: #111; }
+.en-btn--copy { border-color: rgba(204, 255, 0, .45); color: var(--accent); }
+.en-btn--copy:hover { background: rgba(204, 255, 0, .12); }
+.en-seg {
+  display: flex; margin: 2px 0 12px;
+  border: 1px solid rgba(255, 255, 255, .16); border-radius: 8px; overflow: hidden;
+}
+.en-seg__b {
+  flex: 1; padding: 7px 0; border: 0; background: transparent;
+  color: rgba(255, 255, 255, .55);
+  font: 600 11px/1 "Fira Sans", system-ui, sans-serif; cursor: pointer;
+}
+.en-seg__b + .en-seg__b { border-left: 1px solid rgba(255, 255, 255, .12); }
+.en-seg__b:hover { color: #fff; }
+.en-seg__b.is-on { background: var(--accent); color: #111; }
+/* 抛洒效果开关（性能 A/B 用） */
+.en-chk {
+  display: flex; align-items: center; gap: 7px; margin: 2px 0 10px;
+  color: rgba(255, 255, 255, .82); cursor: pointer;
+}
+.en-chk input { accent-color: var(--accent); width: 14px; height: 14px; margin: 0; }
+/* 复制兜底：剪贴板被拒时显示的只读文本框（内容自动全选，直接 Ctrl+C） */
+.en-ta {
+  display: none; width: 100%; height: 112px; margin-top: 9px; padding: 7px 8px;
+  border: 1px solid rgba(204, 255, 0, .4); border-radius: 8px;
+  background: rgba(0, 0, 0, .5); color: #fff;
+  font: 10px/1.45 ui-monospace, Menlo, Consolas, monospace;
+  resize: vertical; box-sizing: border-box;
+}
+.en-tip { margin-top: 11px; font-size: 10.5px; line-height: 1.55; color: rgba(255, 255, 255, .42); }
