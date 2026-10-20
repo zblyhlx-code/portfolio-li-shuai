@@ -56,6 +56,26 @@
   var segText = document.getElementById('segText');
   var segTunnel = document.getElementById('segTunnel');
   var tunMark = document.querySelector('.tun__mark');
+  var tunMarkA = document.getElementById('tunMarkA');   /* Passage（前段） */
+  var tunMarkB = document.getElementById('tunMarkB');   /* EXPERIENCE（末段放大穿过） */
+  var jumpVeil = document.getElementById('jumpVeil');   /* 跨 section 的跳转黑幕 */
+  var xpSection = document.getElementById('experience');
+  var s4Sticky = document.getElementById('sticky');     /* 隧道 sticky 容器（加 .is-dark 开底部渐隐） */
+  /* 文字放大倍数（可调）：默认 60 倍；?edit=1 时面板可见，实时改 ZOOM_MAX */
+  var ZOOM_MAX = (window.__zoomMax != null ? window.__zoomMax : 449);   /* 面板可覆盖 */                                   /* 实际最大 = ZOOM_MAX + 1 = 60× */
+  (function initTune(){
+    var panel = document.getElementById('ztune');
+    var range = document.getElementById('ztuneRange');
+    var val = document.getElementById('ztuneVal');
+    if (!panel || !range || !val) return;
+    if (/[?&]edit=1/.test(location.search)) panel.classList.add('is-on');
+    range.value = ZOOM_MAX;
+    val.textContent = (ZOOM_MAX + 1) + '×';
+    range.addEventListener('input', function () {
+      ZOOM_MAX = +range.value;
+      val.textContent = (ZOOM_MAX + 1) + '×';
+    });
+  })();
   var tunVeil = document.getElementById('tunVeil');
   var rail = document.getElementById('rail');
   var railDots = rail ? rail.querySelectorAll('i') : [];
@@ -1074,6 +1094,10 @@
     var aP = clamp((p - A0) / (A1 - A0), 0, 1);
     if (s4InView) renderText(aP);            // 离屏不写那 9 行 transform（省下大量样式重算）
 
+    /* 隧道底部渐隐（2026-10-19）：C 段是黑底隧道，滚出视口时底部会留一条走廊残影，
+       和第五屏同屏很抢戏 —— C 段开始后给 sticky 加 .is-dark，底部 28vh 渐隐到纯黑。 */
+    if (s4Sticky) s4Sticky.classList.toggle('is-dark', p > 0.58);
+
     /* --- B：句号 → 通道口 -------------------------------------------------
        起点是 A 段末尾停在画面正中的那个句号（22px 正圆），唯一的驱动量是"窗口的尺寸"。
        窗口中心钉在画面正中，而走廊的灭点也正好在正中（实测灭点 = 视口中心），
@@ -1140,12 +1164,89 @@
        62px 时彻底消失 —— 那一刻窗口已经是句号的 3 倍，所以看不出是换了个东西。
        绑时间的话会出现"句号先没了、小点才冒出来"的空档。 */
     segText.style.opacity = (1 - clamp((dotWin - TUN_DOT_D) / 40, 0, 1)).toFixed(3);
-    /* 「Passage 作品集 · 隧道」——必须等窗口大到"整块标题都落在窗口内"才浮现。
+    /* 「Passage 作品集 · 隧道」（前段）——必须等窗口大到"整块标题都落在窗口内"才浮现。
        ⚠️ 实测踩过：阈值太小时标题会被窗口边缘横向切断、还是半透明的灰字，很难看。
           这里按【窗口尺寸 / 覆盖全屏所需尺寸】给阈值 ——
           圆窗看半径比，矩形窗口顶到边的是左右两边，但决定标题横向空间的是高度，
-          所以统一用高度口径，0.30 起淡入、0.58 起全显。 */
-    tunMark.style.opacity = clamp((growR - 0.30) / 0.28, 0, 1).toFixed(3);
+          所以统一用高度口径，0.30 起淡入、0.58 起全显。
+
+       ⚡ 2026-10-17 用户要求：「隧道快到结束时候文字才变成 EXPERIENCE，然后放大，直接进第五屏」：
+          双层交叉淡化 ——
+            A（Passage）走完隧道大部分行程，p 0.84 起淡出；
+            B（EXPERIENCE）0.855 起淡入，0.87 起放大（pow 2.0 × 48 倍），0.965 起淡出 → 黑底接经历屏。
+          这样"隧道前进"和"文字变大"是同一件事，穿越感自然。 */
+    var markBase = clamp((growR - 0.30) / 0.28, 0, 1);
+    if (tunMarkA) {
+      /* ⚠️ 2026-10-19：A 的淡出提前到 0.78~0.795，和黑幕起黑（0.80）同步 ——
+         原来是 0.84，导致黑幕已全黑时 EXPERIENCE 还没登场，出现"黑屏没字"的空窗。 */
+      tunMarkA.style.opacity = Math.min(markBase, 1 - clamp((p - 0.66) / 0.015, 0, 1)).toFixed(3);
+    }
+    if (tunMarkB) {
+      /* B 同理提前：0.795~0.81 淡入（紧接 A 消失），与黑幕扩散同一段行程 */
+      var inB = clamp((p - 0.675) / 0.015, 0, 1);
+      /* ⚡ 2026-10-17 用户要求：「放大直接衔接第五屏，不要放大后再往下滚一段」——
+         把放大区间钉在隧道的最后一段（0.93 → 1.00）：放大走完 = section 结束 = 第五屏开始，
+         中间不再留"放大完了还得滚"的空行程。 */
+      /* ⚡ 2026-10-19 用户：「**到这个位置文字放到最大**」（截图 = 第五屏完全显示）——
+         所以放大不能再以隧道进度收尾（那样第五屏出现时字早没了）。
+         改成由 **第五屏到视口的距离** 驱动：xpTop 1400（隧道末段）→ 0（第五屏到顶）全程放大，
+         **第五屏就位的瞬间正好放到 450 倍**；同时文字 opacity 跟着黑幕一起淡出，
+         所以"放到最大"和"第五屏显现"是同一刻，不会挡住内容。 */
+      var zoomP = clamp((1400 - (xpSection ? xpSection.getBoundingClientRect().top : 1400)) / 1400, 0, 1);
+      /* ⚡ 2026-10-19 用户：「还不够大，要大到穿越过去」——
+         35 倍时还能看出是字母（虽然只剩局部）。**60 倍** → 只剩纯白色块，
+         彻底看不出字形，才是"穿过去"。
+         ⚠️ 60 倍一定糊，但那时画面只剩色块，糊已不可辨。 */
+      /* ⚡ 2026-10-19 用户：「还是突然放大又缓慢」——
+           根因是【线性倍数】。人眼对尺寸是对数感知：1→2 倍觉得翻倍，200→201 倍毫无感觉。
+           所以改用【指数曲线】：zs = (ZOOM_MAX+1)^zoomP。
+           这样每滚同样的距离，视觉上"放大同样多"，全程匀速、没有任何突变。 */
+      /* ⚠️ 每帧读 window.__zoomMax —— 面板拖动后要立刻生效（只读一次的话改了不认） */
+      var zs = Math.pow((window.__zoomMax != null ? window.__zoomMax : 449) + 1, zoomP);
+      /* B 在最后一段淡入；撑满（p≈0.99 时 9.4 倍已覆盖全屏）之后再用 0.015 的区间淡出 ——
+         这一淡 = 从"满屏白字"过渡到"第五屏"，就是用户要的"放大后直接是第五屏"。 */
+      /* ⚠️ 2026-10-17 用户：「这个不要透明，变大到整屏背景直接变黑就跳到第五屏」——
+         字母【全程 opacity 1】（不再淡出，淡出会露出隧道，看着"没穿过去"）；
+         由下面那层黑幕负责收口：黑幕一压满，画面就是 #111，第五屏从同一颜色里接上。 */
+      tunMarkB.style.opacity = Math.min(inB, markBase < 0.01 ? 1 : markBase, Math.max(0, Math.min(1, ((xpSection ? xpSection.getBoundingClientRect().top : 9999) - 20) / 180))).toFixed(3);
+      /* ⚠️ 纯 scale，不带 translate —— 保证放大时严格原地（见 CSS 注释） */
+      tunMarkB.style.transform = 'scale(' + zs.toFixed(3) + ')';
+    }
+    /* ⚡ 2026-10-19：文字的收尾要跟着黑幕（fade）。黑幕还看得见时字不能消失，
+       黑幕淡完了字才一起走 —— 否则会出现"字没了但隧道画面还在"的残影。 */
+    var xpTopNow = xpSection ? xpSection.getBoundingClientRect().top : 1e9;
+    var veilFade = clamp(xpTopNow / 400, 0, 1);
+    if (tunMark) tunMark.style.opacity = (s4InView || veilFade > 0.02) ? '1' : '0';
+
+    /* 黑幕（用户方案 2026-10-19）：
+       层级 —— 隧道 < 黑幕(340) < 大字(360)，所以黑幕盖住隧道和第五屏，大字压在最上面。
+       ⚠️ 时机是关键：第五屏因为 margin-top:-35vh，在隧道 p≈0.90 就开始露头，
+          所以黑幕必须【在它露头之前就纯黑】→ p 0.84 开始扩、0.90 前必须扩满。
+       揭开：第五屏滚到视口上方 55%→20% 期间收缩（此时它已进入视野，该看内容了）。 */
+    if (jumpVeil && xpSection) {
+      var xpTop = xpSection.getBoundingClientRect().top;
+      /* ⚠️ 实测：circle 的百分比是"对角线一半"，100% 只到四边中点、盖不住四角 —— 必须 >100%。
+         且第五屏有 margin-top:-35vh，隧道末尾它的 top 已只剩 ~500px，
+         所以收缩区间要用实测值（120~520）而不是 vh 比例。 */
+      /* ⚠️ 2026-10-19 用户截图：字的空隙里透出了第五屏 —— 因为黑幕收缩得太早。
+         现在收缩只在【第五屏完全进入视口（xpTop 500 → 0）】这一段发生：
+         文字 60 倍冲出视野时（xpTop≈500）黑幕仍是全黑，绝不给第五屏留缝。 */
+      /* ⚠️ 2026-10-19 用户：「开始时候不用修改，现在已经看不到旁边了」——
+         之前 0.80 就起黑，隧道还没走完两侧就被盖住。
+         推迟到 **0.90 起、0.945 全黑**：此时隧道已接近尽头（还能看到推进感），
+         而第五屏要到 p≈0.95 才露头 → 全黑仍赶在它出现之前完成。 */
+      /* ⚡ 2026-10-19 用户：「背景先黑，再文字变大」——
+         黑幕提前到 0.84 起、0.87 全黑；文字放大推后到 0.87 起。
+         这样"字变大"全程都发生在纯黑底上，不会压在隧道画面上。 */
+      var tunnelDark = clamp((p - 0.72) / 0.03, 0, 1);
+      /* ⚠️ 2026-10-19 用户：「黑屏不要缩成一个圆，直接快速淡化」——
+         所以 circle 半径只增不减（扩散阶段用），消失改用 opacity 整体淡化。
+         时机：第五屏刚进入视口（xpTop 400→0）就淡完，滚到中间时早该看见内容了。 */
+      var fade = clamp((xpTop - 50) / 250, 0, 1);
+      var veilR = tunnelDark * 170;
+      jumpVeil.style.opacity = fade.toFixed(3);
+      jumpVeil.style.clipPath = 'circle(' + veilR.toFixed(1) + '% at 50% 50%)';
+    }
 
     /* --- C：隧道推进 --- */
     var cP = clamp((p - C0) / (C1 - C0), 0, 1);

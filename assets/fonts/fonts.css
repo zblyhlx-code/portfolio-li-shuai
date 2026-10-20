@@ -119,3 +119,19 @@
   font-display: swap;
   src: url('./climate-crisis-latin-400-normal.woff2') format('woff2');
 }
+
+/* Inter 细字重（2026-10-19 新增）：年份大字要"很细"，原来最细只有 300 */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100;
+  font-display: swap;
+  src: url('./inter-latin-100-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 200;
+  font-display: swap;
+  src: url('./inter-latin-200-normal.woff2') format('woff2');
+}

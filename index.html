@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="no-js xp-light">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -8,7 +8,7 @@
 <!-- 字体自托管：原 Google Fonts CDN 国内加载失败会回退系统字体，改为本地 woff2（见 assets/fonts/fonts.css） -->
 <link rel="preload" href="assets/fonts/fira-sans-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
 <link rel="preload" href="assets/fonts/lexend-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin />
-<link href="assets/fonts/fonts.css" rel="stylesheet" />
+<link href="assets/fonts/fonts.css?v=20261019b" rel="stylesheet" />
 <style>
   :root {
     --bg-primary: #111111;
@@ -85,8 +85,7 @@
   }
   @media (pointer: coarse) { .cursor { display: none; } }
 
-  /* ---------- Layout helpers ---------- */
-  .page { max-width: 1440px; margin: 0 auto; padding: 0 var(--margin); }
+  /* ---------- Layout helpers ---------- */  .page { max-width: 1440px; margin: 0 auto; padding: 0 var(--margin); }
   .section { padding-top: 120px; padding-bottom: 120px; }
   .section--light { background: var(--bg-light); color: var(--text-dark); }
   /* 黑色屏一律改透明 → 让 body 的 #111111 底 + 全屏固定的 Metaballs 流体透出来，
@@ -347,7 +346,7 @@
     position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
     clip-path: inset(100%);
     pointer-events: none;
-    will-change: clip-path;
+    will-change: clip-path, opacity;
   }
   /* 跟随鼠标的绿色光标圆点（呼应参考 pen 的 #88f901）*/
   .hero__lens {
@@ -630,6 +629,17 @@
   .about__left .big { font-size: 56px; font-weight: 700; font-family: var(--font-cn); line-height: 1.05; }
   .about__right .p1 { font-size: 24px; line-height: 1.6; font-family: var(--font-cn); }
   .about__right .p2 { font-size: 18px; line-height: 1.7; color: var(--text-muted); font-family: var(--font-cn); margin-top: 24px; }
+  /* ⚠️ 2026-10-20 用户：音乐只是爱好，用更小的字放在最后，不抢主体 */
+  /* 能力清单：b 做小标签，行距舒展 */
+  .about__right p.p2 b {
+    display: inline-block; min-width: 52px; margin-right: 10px;
+    color: #111; font-weight: 700;   /* 白底上用固定深色，别用主题变量 */
+  }
+  .about__right p.p3 {
+    margin-top: 22px; padding-top: 16px;
+    border-top: 1px solid rgba(0, 0, 0, .12);
+    font-size: 13px; line-height: 1.8; color: var(--text-muted);
+  }
   .about__stats { display: flex; gap: 24px; margin-top: 40px; flex-wrap: wrap; }
   .stat .num { font-size: 48px; font-weight: 700; color: var(--text-dark); line-height: 1; }
   .stat .label { font-size: 12px; font-weight: 500; color: var(--text-muted); letter-spacing: 0.04em; margin-top: 8px; }
@@ -678,9 +688,20 @@
   .contact__title .line.accent { color: var(--accent); }
   .contact__avail { font-size: 18px; font-weight: 500; color: var(--text-muted); margin-top: 40px; letter-spacing: 0.02em; }
   .contact__links { display: flex; gap: 48px; margin-top: 40px; flex-wrap: wrap; }
-  .contact__col .k { font-size: 11px; font-weight: 500; color: var(--text-muted); letter-spacing: 0.04em; }
-  .contact__col .v { font-size: 18px; font-weight: 500; margin-top: 8px; }
+  /* ⚠️ 2026-10-20 用户：最后三行有的高有的低 —— 根因是 <a class="v"> 是 inline、<div class="v"> 是 block，基线不同。
+     统一：每列 flex 纵向、标签固定高度、值一律 block 且不换行。 */
+  .contact__col { display: flex; flex-direction: column; }
+  .contact__col .k {
+    font-size: 11px; font-weight: 500; color: var(--text-muted);
+    letter-spacing: 0.04em; height: 15px; line-height: 15px;
+  }
+  .contact__col .v {
+    display: block; margin-top: 8px;
+    font-size: 18px; font-weight: 500; line-height: 1.4;
+    white-space: nowrap;
+  }
   .contact__col .v:hover { color: var(--accent); }
+  .contact__col .v--sm { font-size: 15px; }   /* 音乐列文字长，缩一号保持不换行 */
 
   /* ---------- Footer ---------- */
   .footer {
@@ -1498,6 +1519,16 @@
   position:sticky;top:0;height:100vh;overflow:hidden;
   background:var(--bg-light);
 }
+/* ⚠️ 2026-10-19 用户：「刷到第五屏时候上面这个动画隧道很抢戏」——
+   隧道滚出视口时，section 底部会露出一条走廊残影，和第五屏同屏很难看。
+   在 sticky 容器底部加一层【黑色渐隐】，C 段（黑底隧道）时打开 → 滚出时底部已经是纯黑。 */
+.s4__sticky::after{
+  content:''; position:absolute; left:0; right:0; bottom:0; height:28vh;
+  background:linear-gradient(to bottom, rgba(17,17,17,0), #111 78%);
+  pointer-events:none; z-index:6;
+  opacity:0; transition:opacity .5s ease;
+}
+.s4__sticky.is-dark::after{ opacity:1; }
 .seg{
   position:absolute;inset:0;
   display:flex;align-items:center;justify-content:center;
@@ -1553,9 +1584,79 @@
   background:radial-gradient(ellipse at 50% 50%, rgba(17,17,17,0) 52%, rgba(17,17,17,.35) 82%, rgba(17,17,17,.7) 100%);
 }
 .tun__mark{
-  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-  text-align:center;pointer-events:none;z-index:2;
+  /* ⚠️ 2026-10-19 用户方案：文字必须【压在全屏黑幕之上】并且始终 100% 不透明，
+     所以改成 body 级 fixed 层（不再受隧道容器层级限制），黑幕从中心扩散时文字仍然清楚。
+     位置由 s4-scroll.js 控制 opacity（隧道离开即隐）。 */
+  position:fixed; inset:0; z-index:360;
+  display:grid; place-items:center;
+  text-align:center;pointer-events:none;
+  opacity:0;
 }
+.tun__mark-a,.tun__mark-b{ grid-area:1 / 1; width:max-content; }   /* 两层重叠在同一格 */
+/* ⚠️ 2026-10-19 用户：「放大时文字位置应该在屏幕居中」——
+   中文行（经历）原本是 block，把英文顶得上移了半个行高，放大后就明显不居中。
+   改成绝对定位（脱离文档流、不占位）→ EXPERIENCE 自身严格居中。 */
+.tun__mark .cn{
+  position:absolute; left:50%; bottom:-0.5em; transform:translateX(-50%);
+  white-space:nowrap;
+}
+.tun__mark-b{
+  /* ⚠️ 2026-10-17：只用 scale 放大，transform 里绝不掺 translate ——
+     之前 translate(-50%,-50%)+scale 的组合会让放大中心漂移，看起来"文字跳到前方"。
+     grid 居中后，origin 就是元素自身中心，放大严格原地。 */
+  transform-origin: 50% 50%;
+  will-change: opacity;   /* ⚠️ 2026-10-19 去掉 transform：它会让浏览器把文字缓存成位图，放大时拉伸 → 糊；去掉后每帧重绘，字始终锐利（代价是 GPU 压力略增）。 */
+}
+/* ⚠️ 用户实测参考视频后确认的机制：「放大穿过字母之间的缝隙」——
+   缝隙越宽越像真的，0.10em 把缝拉到两倍多。
+   ⚠️ 2026-10-19 用户：「文字开始是和中间隧道文字一样大的，不是一出来就大一圈」——
+   所以 B 层【不放大字号】，与 A 层同为 clamp(28px,4.4vw,60px)；尺寸变化全部交给 JS 的 scale。 */
+.tun__mark-b .en{
+  letter-spacing: 0.10em;
+}
+/* ⚠️ EXPERIENCE 必须【实心白】、不用 difference 混合 ——
+   difference 是半透明反相，放大撑满时隧道还会从字里透出来，看着"没进去"。
+   A（Passage）保持原来的 difference 质感不变。 */
+.tun__mark-b .en{ mix-blend-mode: normal; color: #fff; }
+/* 收口黑幕（2026-10-17 用户方案）：隧道末尾文字放大 → 全屏压黑 → 保持到第五屏到位 → 淡出揭示。
+   ⚠️ 用 fixed 全屏层而不是文字层的 ::after —— 因为黑幕必须【跨 section 存在】，
+      才能盖住"隧道结束 → 第五屏进入"这段用户不该看见的滚动。 */
+.jumpveil{
+  /* 2026-10-19 用户方案：不从"全屏 opacity"淡入，而是【从屏幕中心一块黑色圆形扩展开】，
+     像隧道窗口张开那样把四周连同下面的第五屏一起盖住。 */
+  position: fixed; inset: 0; z-index: 340;
+  background: var(--bg-primary);
+  clip-path: circle(0% at 50% 50%);
+  pointer-events: none;
+  will-change: clip-path, opacity;
+}
+/* 文字放大调参面板：默认隐藏，?edit=1 才出现（用户要求"无限大的滑轨"控制文字大小） */
+.ztune{
+  position:fixed; right:18px; bottom:18px; z-index:500;
+  display:none; width:250px; max-height:82vh; overflow-y:auto; padding:14px 16px;
+  background:rgba(16,16,16,.94); border:1px solid rgba(255,255,255,.14);
+  border-radius:12px; backdrop-filter:blur(10px);
+  font-family:var(--font-en); color:#ddd; font-size:12px;
+}
+.ztune.is-on{ display:block; }
+.ztune__h{ font-weight:700; letter-spacing:.08em; margin-bottom:10px; color:var(--accent); }
+.ztune__row{ display:flex; align-items:center; gap:10px; }
+.ztune__row span{ flex:0 0 56px; color:#999; }
+.ztune__row input{ flex:1; accent-color:var(--accent); }
+.ztune__row b{ flex:0 0 46px; text-align:right; color:#fff; }
+.ztune__hint{ margin-top:8px; font-size:11px; color:#777; }
+.ztune__out{
+  margin-top:10px; padding:8px 10px; border-radius:6px;
+  background:rgba(204,255,0,.08); border:1px solid rgba(204,255,0,.22);
+  font-family:Consolas,monospace; font-size:11px; line-height:1.6; color:var(--accent);
+  word-break:break-all; user-select:all;
+}
+.ztune__copy{
+  margin-top:8px; width:100%; padding:7px 0; border-radius:6px; cursor:pointer;
+  border:1px solid rgba(204,255,0,.4); background:rgba(204,255,0,.12);
+  color:var(--accent); font-size:11px; letter-spacing:.08em;
+}
+.ztune__copy:hover{ background:rgba(204,255,0,.2); }
 .tun__mark .en{
   display:block;font-family:var(--font-display);font-weight:800;
   font-size:clamp(28px,4.4vw,60px);letter-spacing:-.02em;
@@ -1695,7 +1796,224 @@
   .lb-open .cursor { width: 12px; height: 12px; }
   .lb-open .cursor.view::after,
   .lb-open .cursor.play::after { display: none; }
-  </style>
+  /* ---------- 04.5 ZOOM THROUGH TEXT（已废弃 2026-10-17 下午）
+     用户澄清：不要独立过渡段，而是把隧道里那个标题文字改成 EXPERIENCE 并在隧道末尾放大穿过
+     （实现在 s4-scroll.js 的 tunMark 处）。这里保留注释占位，避免样式索引错乱。 */
+  /* ---------- 05 EXPERIENCE：Capsule 经历（2026-10-17 改版）----------
+     ⚠️ 字母初始紧贴中线（各偏移 ±0.34em），进屏后由 JS 加 .is-open → 向两侧滑开露出胶囊。
+     胶囊 = 3:1 圆角矩形（border-radius:999px），视频 object-fit:cover。 */
+  /* ⚠️ 2026-10-19 用户截图：第五屏和隧道末尾重叠了（红框里隧道残影还在）——
+     原因是 .xp 用了 margin-top:-35vh 上移。已改回 0：第五屏必须从隧道【完全结束之后】才开始。
+     靠"黑幕盖住接缝"来实现"直接跳过去"的观感，而不是靠两屏重叠。 */
+  /* ⚠️ 2026-10-19 用户三点：
+     ① 胶囊窄一些（980 → var(--cap-w, 780)）
+     ② 年份不用宽字体（Lexend 800 太宽 → Fira Sans 600，数字更瘦）
+     ③ 加调参面板控制【数字字号】和【胶囊宽度】 */
+  /* ⚠️ 2026-10-20 用户：「第五屏就不能都露出来」——
+   屏4（VIDEO SHOWCASE）是整屏一屏装下的，第五屏原来 padding 150+140、stage 520，
+   总高超过 100vh 导致底部被切。这里把上下留白和年份区高度一起压缩，保证一屏看完：
+   110 + 小标14 + 25 + 大标题72 + 12 + 描述48 + stage420 + 年份按钮 ≈ 800px（视口 1080 有富余）。 */
+  .xp { position: relative; margin-top: 0; padding: var(--xp-pad-top, 240px) 0 60px; background: transparent; }
+  /* ⚠️ 2026-10-20 标题重排（照屏3）：小标 → 大字 → 描述，三层一组，左对齐。 */
+  .xp__head {
+    max-width: 1440px; margin: 0 auto; padding: 0 var(--margin) 8px;
+  }
+  .xp__kicker {
+    font-family: var(--font-en); font-size: 12px; font-weight: 500;
+    letter-spacing: .14em; text-transform: uppercase;
+    color: var(--text-primary);
+  }
+  .xp__kicker i { font-style: normal; color: var(--text-muted); margin: 0 8px; }
+  .xp__title {
+    margin: 25px 0 0; line-height: 1; color: var(--text-primary);
+    display: flex; align-items: baseline; gap: 18px;
+  }
+  /* 英文主标题：与屏3「MY SKILLS」同级（clamp 到 72px），700 字重、收紧字距 */
+  .xp__title .en {
+    font-family: var(--font-en); font-size: clamp(38px, 5vw, 72px);
+    font-weight: 700; letter-spacing: -.02em;
+  }
+  /* 中文副标：小一号，弱化，靠基线对齐 */
+  .xp__title .cn {
+    font-family: var(--font-cn, var(--font-display));
+    font-size: clamp(20px, 2vw, 28px); font-weight: 500;
+    color: var(--text-secondary); letter-spacing: .04em;
+  }
+  /* ⚠️ 2026-10-20 用户：描述移到最底一行左侧，年份按钮在右侧 —— 标题区腾空，年份区自然上提 */
+  .xp__foot {
+    max-width: 1440px; margin: 0 auto; padding: 0 var(--margin);
+    display: flex; align-items: flex-end; justify-content: space-between; gap: 40px;
+  }
+  .xp__desc {
+    margin: 0; max-width: 520px;
+    font-size: 13px; line-height: 1.85; color: var(--text-secondary);
+  }
+  .xp__stage {
+    position: relative;
+    max-width: 1440px; margin: 10px auto 0; padding: 0 var(--margin);
+    height: var(--xp-stage-h, 460px);
+    display: grid; place-items: center;
+  }
+  /* ⚠️ 2026-10-19 用户澄清：**一个年份被视频劈开** —— 左 20 / 胶囊 / 右 16，
+     三段【同一水平线】。所以字号可以做大（只有 2 位数），垂直用 translateY(-50%) 精确居中。 */
+  .xp__letter {
+    position: absolute; top: 50%;
+    font-family: 'Inter', var(--font-en); font-weight: var(--year-wt, 100);
+    font-size: var(--year-fs, 290px); line-height: 1;
+    letter-spacing: -0.04em; white-space: nowrap;
+    color: var(--text-primary);
+    pointer-events: none; z-index: 3; will-change: transform;
+    transform: translateY(-50%);
+    /* ⚠️ 2026-10-20 用户：「第一步不要了，就打开效果就好」——
+       去掉数字升起（clip-path），只保留"胶囊展开 + 数字让开"这一下。 */
+    transition: transform 1.15s cubic-bezier(.16,1,.3,1), opacity .6s ease;
+  }
+  .xp__letter--l { right: calc(50% + min(50%, calc(var(--cap-w, 780px) / 2)) + 26px); }
+  .xp__letter--r { left: calc(50% + min(50%, calc(var(--cap-w, 780px) / 2)) + 26px); }
+  /* 进屏：两半先向中间"挤"一点再归位（参考视频的节奏） */
+  .xp__stage .xp__letter--l { transform: translateY(-50%) translateX(var(--xp-gather, 300px)); opacity: .92; }
+  .xp__stage .xp__letter--r { transform: translateY(-50%) translateX(calc(var(--xp-gather, 300px) * -1)); opacity: .92; }
+  .xp__stage.is-open .xp__letter--l { transform: translateY(-50%) translateX(0); opacity: 1; }
+  .xp__stage.is-open .xp__letter--r { transform: translateY(-50%) translateX(0); opacity: 1; }
+
+  .xp__capsule {
+    position: relative; z-index: 2; display: block;
+    width: min(100%, var(--cap-w, 670px)); height: var(--cap-h, 384px);
+    border: 0; padding: 0; cursor: pointer;
+    border-radius: 999px; overflow: hidden;
+    background: #0d0d0d;
+    box-shadow: 0 var(--cap-sh-y, 4px) var(--cap-sh, 15px) rgba(0, 0, 0, var(--cap-sh-o, .6));
+    /* ⚠️ 2026-10-20 照参考视频做的入场：先是一根竖线，再横向展开成胶囊（文字同时让开） */
+    transition: width 1.1s cubic-bezier(.22,1,.36,1),
+                border-radius .8s cubic-bezier(.22,1,.36,1),
+                transform .5s cubic-bezier(.16,1,.3,1),
+                box-shadow .5s;
+  }
+  /* 未进屏 / 刚进屏：缩成一根竖线 */
+  .xp__stage:not(.is-open) .xp__capsule {
+    width: 3px; border-radius: 50%; box-shadow: none;
+  }
+  .xp__capsule:hover { transform: scale(1.012); box-shadow: 0 calc(var(--cap-sh-y, 4px) * 1.2) calc(var(--cap-sh, 15px) * 1.22) rgba(0, 0, 0, var(--cap-sh-o, .6)); }
+  .xp__capsule::after {          /* 底部压暗，保证年份/提示可读 */
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,.55), rgba(0,0,0,0) 45%);
+    pointer-events: none;
+  }
+  /* ⚠️ 2026-10-20 用户：胶囊里的画面要能上下调（object-position 的 Y） */
+  .xp__video { width: 100%; height: 100%; object-fit: cover; object-position: center var(--cap-img-y, 50%); display: block; }
+  .xp__cap-year {
+    position: absolute; left: 6%; bottom: 12%; z-index: 2;
+    font-family: var(--font-display); font-weight: 800;
+    font-size: clamp(24px, 3vw, 46px); letter-spacing: .02em;
+    color: #fff; text-shadow: 0 2px 18px rgba(0,0,0,.6);
+  }
+  .xp__cap-hint {
+    position: absolute; right: 6%; bottom: 14%; z-index: 2;
+    font-family: var(--font-en); font-size: 12px; letter-spacing: .22em;
+    color: rgba(255,255,255,.75);
+  }
+
+  .xp__years {
+    margin: var(--xp-tabs-gap, 40px) 0 0; flex: 0 0 auto;
+    display: flex; gap: 10px; flex-wrap: wrap;
+  }
+  .xp__yr {
+    padding: 9px 18px; border: 1px solid rgba(255,255,255,.18); border-radius: 999px;
+    background: transparent; color: rgba(255,255,255,.55);
+    font-family: var(--font-en); font-size: 13px; letter-spacing: .1em;
+    cursor: pointer; transition: all .25s ease;
+  }
+  .xp__yr:hover { color: #fff; border-color: rgba(255,255,255,.45); }
+  .xp__yr.is-on { background: var(--accent); border-color: var(--accent); color: var(--text-dark); font-weight: 700; }
+
+  /* 详情浮层：左视频（55%）+ 右介绍（45%） */
+  .xp__modal {
+    position: fixed; inset: 0; z-index: 400;
+    display: flex; align-items: center; justify-content: center;
+    padding: 4vh 4vw;
+    background: rgba(8, 8, 8, .96);
+    opacity: 0; visibility: hidden;
+    transition: opacity .32s ease, visibility 0s linear .32s;
+  }
+  .xp__modal.on { opacity: 1; visibility: visible; transition: opacity .32s ease, visibility 0s; }
+  .xp__modalbox {
+    display: grid; grid-template-columns: 55fr 45fr;
+    gap: 0; width: 100%; max-width: 1320px; height: min(78vh, 760px);
+    border-radius: 16px; overflow: hidden;
+    background: #0d0d0d;
+    transform: translateY(18px) scale(.985);
+    transition: transform .5s cubic-bezier(.16,1,.3,1);
+  }
+  .xp__modal.on .xp__modalbox { transform: none; }
+  .xp__modal-video { position: relative; background: #000; overflow: hidden; }
+  .xp__video2 { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .xp__modal-info {
+    padding: clamp(24px, 3.4vw, 52px);
+    display: flex; flex-direction: column; justify-content: center; gap: 18px;
+  }
+  .xp__modal-year {
+    font-family: var(--font-display); font-weight: 800;
+    font-size: clamp(40px, 5vw, 74px); line-height: 1;
+    color: var(--accent);
+  }
+  .xp__modal-title {
+    margin: 0; font-family: var(--font-cn); font-weight: 700;
+    font-size: clamp(20px, 2vw, 28px); line-height: 1.35; color: var(--text-primary);
+  }
+  .xp__modal-desc {
+    margin: 0; font-family: var(--font-cn);
+    font-size: 15px; line-height: 1.9; color: rgba(255,255,255,.62);
+  }
+  .xp__modal-close {
+    align-self: flex-start; margin-top: 10px;
+    padding: 10px 20px; border-radius: 999px;
+    border: 1px solid rgba(255,255,255,.24); background: transparent;
+    color: rgba(255,255,255,.8); font-family: var(--font-en); font-size: 12px;
+    letter-spacing: .12em; cursor: pointer; transition: all .25s ease;
+  }
+  .xp__modal-close:hover { border-color: var(--accent); color: var(--accent); }
+  /* 浮层打开时锁滚动（补偿滚动条宽度，避免页面横向"抻"一下） */
+  .xp-open { overflow: hidden; }
+  .xp-open body { padding-right: var(--sbw, 0px); }
+  @media (max-width: 900px) {
+    .xp__modalbox { grid-template-columns: 1fr; grid-template-rows: 42% 1fr; height: min(88vh, 800px); }
+    .xp__letter { font-size: clamp(110px, 30vw, 200px); }
+    .xp__stage { height: clamp(200px, 52vw, 320px); }
+    .xp__capsule { aspect-ratio: 2.4 / 1; }
+  }
+
+/* ⚠️ 2026-10-20 用户要对比白底：?light=1 时第五屏整块转浅色 */
+html.xp-light .xp{ background:#f5f3ee; }
+html.xp-light .xp__kicker{ color:#111; }
+html.xp-light .xp__kicker i{ color:#999; }
+html.xp-light .xp__letter{ color:#111; }
+html.xp-light .xp__desc{ color:#5a5a5a; }
+html.xp-light .xp__yr{ border-color:rgba(0,0,0,.18); color:rgba(0,0,0,.5); }
+html.xp-light .xp__yr.is-on{ background:#111; border-color:#111; color:#fff; }
+html.xp-light .xp__cap-hint{ color:#333; background:rgba(255,255,255,.85); }
+
+/* ⚠️ 2026-10-20 用户要能点按钮切换白/深（?light=1 之外的手动开关）—— 左下浮动圆钮，上生产前删 */
+.xp-theme{
+  position:fixed; left:18px; bottom:18px; z-index:501;
+  width:46px; height:46px; border-radius:50%; cursor:pointer;
+  border:1px solid rgba(255,255,255,.24); background:rgba(20,20,20,.9);
+  color:#fff; font-size:17px; line-height:1;
+  display:flex; align-items:center; justify-content:center;
+  backdrop-filter:blur(8px); transition:transform .2s ease, background .2s ease;
+}
+.xp-theme:hover{ transform:scale(1.08); background:rgba(204,255,0,.18); border-color:var(--accent); color:var(--accent); }
+
+/* ⚠️ 2026-10-20 用户：点导航跳转后画面高度不对（内容顶到固定导航下面）。
+   根因：全站没有 scroll-margin-top —— 锚点滚动会把元素顶边对齐视口顶，正好被 80px 高的固定导航盖住。
+   这里统一给带 id 的 section 留出「导航高 + 呼吸」= 104px。 */
+section[id], .section[id], main > section {
+  scroll-margin-top: 104px;
+}
+/* iframe 那一屏（skills）本身是 iframe，锚点落在 iframe 元素上，同样需要留白 */
+#skills { scroll-margin-top: 104px; }
+/* 隧道屏（#services）是 420vh 的叙事段，锚点应落在它真正"开始讲故事"的位置之后 */
+#services { scroll-margin-top: 0; }
+</style>
 </head>
 <body>
 
@@ -1858,10 +2176,6 @@
             <div class="tun__hov" id="tunHov"><img id="tunHovImg" alt="" /></div>
             <div class="tun__tip" id="tunTip">VIEW</div>
           </div>
-          <div class="tun__mark">
-            <span class="en">Passage</span>
-            <span class="cn">作品集 · 隧道</span>
-          </div>
         </div>
 
       </div>
@@ -1890,32 +2204,57 @@
 
 
   <!-- 05 EXPERIENCE -->
-  <section class="section section--dark" id="experience">
-    <div class="page">
-      <div class="section-head reveal">
-        <div class="section-head__title"><span class="en">Experience</span>经历</div>
-        <div class="index-num">04</div>
-      </div>
-      <div class="reveal">
-        <div class="exp__item">
-          <div class="exp__year muted">2016</div>
-          <div class="exp__desc">室内 / 空间设计 · Interior / Spatial Design</div>
-        </div>
-        <div class="exp__item">
-          <div class="exp__year muted">2019</div>
-          <div class="exp__desc">达城闻庆北京建筑工程 · 建筑设计</div>
-        </div>
-        <div class="exp__item">
-          <div class="exp__year bright">2022</div>
-          <div class="exp__desc">北京腾达远志科技 · 电商视觉设计</div>
-        </div>
-        <div class="exp__item">
-          <div class="exp__year accent">2026</div>
-          <div class="exp__desc">独立视觉设计师 · Independent Visual Designer / AI MV Creator</div>
-        </div>
+  <!-- 05 EXPERIENCE —— Capsule 经历（2026-10-17 改版）
+       Capsule Hero 风格：巨型字母 L / S 进屏时向两侧分开 → 露出胶囊视频；
+       点胶囊 → 视频放大到【左半屏】、右侧滑入该段介绍。
+       ⚠️ 视频先用 media/ 的现成素材占位，用户实拍后替换 xpData[].src 即可。 -->
+  <section class="xp" id="experience">
+    <!-- ⚠️ 2026-10-20 用户：「标题的文字高度和内容重新编排，看其他屏的标题高度和小标题」——
+         照屏3（MY SKILLS）那套：编号+英文小标 / 中文大字 / 一段描述，三层一组。 -->
+    <!-- ⚠️ 2026-10-20 用户：「算了不要标题，只要标题上面的（小标）就好了」——
+         去掉 MY EXPERIENCE 大标题，只留 04 / EXPERIENCE 这一行。 -->
+    <div class="xp__head">
+      <div class="xp__kicker">04 <i>/</i> EXPERIENCE</div>
+    </div>
+
+    <div class="xp__stage" id="xpStage">
+      <!-- 2026-10-19 用户澄清：不是"2016 + 2026"两个年份，而是【一个年份被视频劈开】：
+           左边 20、中间胶囊、右边 16，三段同一水平线。切换年份时左右两半跟着变。 -->
+      <span class="xp__letter xp__letter--l" id="xpYearL" aria-hidden="true">20</span>
+      <span class="xp__letter xp__letter--r" id="xpYearR" aria-hidden="true">16</span>
+      <button class="xp__capsule" id="xpCapsule" type="button" aria-label="展开这段经历的介绍">
+        <video class="xp__video" id="xpVideo" muted playsinline loop preload="metadata"></video>
+        <span class="xp__cap-hint">点击展开</span>
+      </button>
+    </div>
+
+    <!-- ⚠️ 2026-10-20 用户：描述移到最下面一行，年份按钮放右侧；标题区腾空后年份区自然上提 -->
+    <div class="xp__foot">
+      <p class="xp__desc" id="xpDesc">从室内与空间设计起步，建立对尺度、材质和光的判断。</p>
+      <div class="xp__years" id="xpYears">
+      <button class="xp__yr is-on" data-i="0" type="button">2016</button>
+      <button class="xp__yr" data-i="1" type="button">2019</button>
+      <button class="xp__yr" data-i="2" type="button">2022</button>
+      <button class="xp__yr" data-i="3" type="button">2026</button>
       </div>
     </div>
   </section>
+
+  <!-- 经历详情浮层：左视频 / 右介绍 -->
+  <div class="xp__modal" id="xpModal" aria-hidden="true">
+    <div class="xp__modalbox">
+      <div class="xp__modal-video">
+        <video class="xp__video2" id="xpVideo2" muted playsinline loop preload="metadata"></video>
+      </div>
+      <div class="xp__modal-info">
+        <div class="xp__modal-year" id="xpModalYear">2016</div>
+        <h3 class="xp__modal-title" id="xpModalTitle">室内 / 空间设计</h3>
+        <p class="xp__modal-desc" id="xpModalDesc"></p>
+        <button class="xp__modal-close" id="xpModalClose" type="button">关闭 ×</button>
+      </div>
+    </div>
+  </div>
+
 
   <!-- 06 ABOUT -->
   <section class="section section--light" id="about">
@@ -1926,8 +2265,9 @@
           <div class="big">关于我</div>
         </div>
         <div class="about__right reveal">
-          <p class="p1">我是李帅，一名独立视觉设计师，同时也是原创音乐人（艺名：阿柠乐）。从建筑设计到电商视觉，再到 AI 影像与音乐 MV，我一直用视觉语言讲述真实的故事。</p>
-          <p class="p2">多年商业设计经验覆盖品牌视觉、电商详情页、视频广告、包装设计等领域。我相信好的设计不只是好看，更要解决问题、传递情绪、建立信任。现在专注于 AI 生成影像与商业视觉的结合，为品牌创造有记忆点的视觉体验。</p>
+          <p class="p1">视觉设计 5 年，做电商与品牌视觉。擅长把产品拍不出、画不出的质感做出来——光影、材质、细节，让画面自己会说话。</p>
+          <p class="p2"><b>电商</b>　详情页、主图、大促会场、活动页，理解转化逻辑，不只是把页面排好看。<br><b>平面</b>　海报、画册、品牌物料，从设计到印前输出独立完成。<br><b>动态</b>　AI 影像生成与动效，能做产品演示、动态主图与短视频。<br><b>工具</b>　Photoshop / Illustrator / After Effects / AI 生成工具</p>
+          <p class="p3">业余写歌，艺名阿柠乐。音乐是爱好，也是理解节奏与情绪的另一条路径。</p>
           <div class="about__stats">
             <div class="stat"><div class="num">4Y+</div><div class="label">零外包独立交付</div></div>
             <div class="stat"><div class="num">60%+</div><div class="label">AI 工作流提效</div></div>
@@ -1935,53 +2275,6 @@
             <div class="stat"><div class="num">双11/618</div><div class="label">大促视觉经验</div></div>
           </div>
 
-          <div class="music-card">
-            <div class="music-card__cover">
-              <img src="assets/pahei-cover.jpg" alt="怕黑的人">
-            </div>
-            <div>
-              <div class="music-card__title">《怕黑的人》</div>
-              <div class="music-card__meta">作词 / 作曲 · 李帅 · 艺名：阿柠乐</div>
-              <p class="music-card__desc">关于爱情里把自己弄丢了，又希望可以找回那个爱哭爱笑的自己。QQ音乐、汽水音乐、网易云音乐均可收听。</p>
-              <audio controls preload="metadata">
-                <source src="assets/pahei-de-ren.mp3" type="audio/mpeg">
-                您的浏览器不支持音频播放。
-              </audio>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- 07 SELECTED PROJECT -->
-  <section class="section section--secondary">
-    <div class="page">
-      <div class="sp__head reveal">
-        <div>
-          <div class="eyebrow">SELECTED PROJECT</div>
-          <div class="big">重点案例</div>
-        </div>
-        <a class="sp__view" href="project.html">VIEW CASE <span class="arrow">→</span></a>
-      </div>
-      <div class="sp__hero reveal" id="spHero">
-        <video muted loop playsinline preload="metadata" id="spVideo">
-          <source src="assets/maybach-ad.mp4" type="video/mp4">
-        </video>
-        <div class="overlay"><span>MAYBACH</span></div>
-      </div>
-      <div class="sp__info reveal">
-        <div>
-          <div class="num">01</div>
-          <div class="title">迈巴赫视频广告</div>
-        </div>
-        <div>
-          <p class="desc">为迈巴赫打造的高端品牌视频，以电影级运镜与光影呈现极致工艺与尊贵气场，营造从容不迫的豪华叙事。</p>
-          <div class="sp__meta">
-            <div><div class="k">YEAR</div><div class="v">2024</div></div>
-            <div><div class="k">CATEGORY</div><div class="v">Campaign / Automotive</div></div>
-            <div><div class="k">ROLE</div><div class="v">Art Direction / Visual Design</div></div>
-          </div>
         </div>
       </div>
     </div>
@@ -2001,7 +2294,7 @@
         <div class="contact__col"><div class="k">EMAIL</div><a class="v" href="mailto:hello@lishuai.design">hello@lishuai.design</a></div>
         <div class="contact__col"><div class="k">PHONE</div><div class="v">+86 138 0000 0000</div></div>
         <div class="contact__col"><div class="k">WECHAT</div><div class="v">lishuai_design</div></div>
-        <div class="contact__col"><div class="k">MUSIC</div><a class="v" href="https://y.qq.com/n/ryqq_v2/profile/like/song" target="_blank">QQ音乐 / 汽水音乐 / 网易云 · 阿柠乐</a></div>
+        <div class="contact__col"><div class="k">MUSIC</div><a class="v v--sm" href="https://y.qq.com/n/ryqq_v2/profile/like/song" target="_blank">QQ音乐 / 网易云 · 阿柠乐</a></div>
       </div>
     </div>
   </section>
@@ -3322,7 +3615,7 @@
     three.src = 'assets/vendor/three.min.js';
     three.onload = function () {
       var app = document.createElement('script');
-      app.src = 's4-scroll.js?v=20261013i';
+      app.src = 's4-scroll.js?v=20261019y';
       document.body.appendChild(app);
     };
     three.onerror = function () { done = false; };   /* 失败允许 8 秒兜底再试一次 */
@@ -3341,6 +3634,93 @@
   setTimeout(load, 8000);
 })();
 </script>
+  <!-- ⚠️ 2026-10-19：隧道标题层必须放在隧道 DOM【之外】。
+       之前在 .s4/.s4__sticky 内部，虽然是 position:fixed，但祖先有 transform →
+       fixed 退化成相对祖先定位，结果文字仍在 3D 场景内部、被走廊墙挡住（EXPERIENCE 中间缺字）。
+       现在搬到 body 级：隧道 < 黑幕(340) < 文字(360)，且不受任何 3D 变换影响。 -->
+  <div class="tun__mark" id="tunMark">
+    <!-- 前段：Passage（隧道推进时的标题）-->
+    <div class="tun__mark-a" id="tunMarkA">
+      <span class="en">Passage</span>
+      <span class="cn">作品集 · 隧道</span>
+    </div>
+    <!-- 末段：EXPERIENCE（快到结束时淡入并放大，穿过去进第五屏）-->
+    <div class="tun__mark-b" id="tunMarkB">
+      <span class="en">EXPERIENCE</span>
+      <span class="cn">经历</span>
+    </div>
+  </div>
+
+  <!-- 文字放大调参面板（2026-10-19 用户要求）：?edit=1 打开，实时调"最大放大倍数" -->
+  <button class="xp-theme" id="xpTheme" type="button" title="切换第五屏配色（白底 / 深色）">◐</button>
+
+  <div class="ztune" id="ztune">
+    <div class="ztune__h">视觉调参</div>
+    <label class="ztune__row">
+      <span>最大倍数</span>
+      <input type="range" id="ztuneRange" min="1" max="800" step="1" value="449">
+      <b id="ztuneVal">450</b>
+    </label>
+    <label class="ztune__row">
+      <span>胶囊宽</span>
+      <input type="range" id="ztCapW" min="380" max="1100" step="10" value="670">
+      <b id="ztCapWv">670</b>
+    </label>
+    <label class="ztune__row">
+      <span>胶囊高</span>
+      <input type="range" id="ztCapH" min="120" max="520" step="4" value="384">
+      <b id="ztCapHv">384</b>
+    </label>
+    <label class="ztune__row">
+      <span>数字字号</span>
+      <input type="range" id="ztYearFs" min="10" max="500" step="2" value="290">
+      <b id="ztYearFsv">290</b>
+    </label>
+    <label class="ztune__row">
+      <span>数字字重</span>
+      <input type="range" id="ztYearWt" min="100" max="400" step="10" value="100">
+      <b id="ztYearWtv">600</b>
+    </label>
+    <label class="ztune__row">
+      <span>画面上下</span>
+      <input type="range" id="ztImgY" min="0" max="100" step="1" value="50">
+      <b id="ztImgYv">50%</b>
+    </label>
+    <label class="ztune__row">
+      <span>阴影上下</span>
+      <input type="range" id="ztShY" min="-40" max="140" step="2" value="4">
+      <b id="ztShYv">4</b>
+    </label>
+    <label class="ztune__row">
+      <span>胶囊阴影</span>
+      <input type="range" id="ztCapSh" min="0" max="220" step="5" value="15">
+      <b id="ztCapShv">15</b>
+    </label>
+    <label class="ztune__row">
+      <span>标题上距</span>
+      <input type="range" id="ztPadTop" min="60" max="320" step="5" value="240">
+      <b id="ztPadTopv">240</b>
+    </label>
+    <label class="ztune__row">
+      <span>年份区高</span>
+      <input type="range" id="ztStageH" min="260" max="620" step="10" value="460">
+      <b id="ztStageHv">460</b>
+    </label>
+    <label class="ztune__row">
+      <span>按钮上距</span>
+      <input type="range" id="ztTabsGap" min="0" max="120" step="5" value="40">
+      <b id="ztTabsGapv">40</b>
+    </label>
+    <div class="ztune__out" id="ztOut">—</div>
+    <button class="ztune__copy" id="ztCopy" type="button">复制数值</button>
+  </div>
+
+  <!-- 跳转黑幕（2026-10-17 用户方案）：
+       隧道末尾文字放大时压满全屏 → 保持全黑（期间用户继续滚但看不见）→
+       第五屏滚到视口中心后淡出 → 观感就是"直接跳到第五屏"。
+       ⚠️ fixed + pointer-events:none，不参与布局也不挡点击。 -->
+  <div class="jumpveil" id="jumpVeil" aria-hidden="true"></div>
+
 <script>
   /* ⚡ 手机性能（2026-10-16）：视频离开视野自动暂停（手机解码视频极贵；实测滚到屏 5~8 时
      主页面仍有 1 个视频在后台播放）。离开即暂停、回来自动续播（只恢复"本来在播"的）。
@@ -3362,6 +3742,230 @@
       });
     }, { rootMargin: '25% 0px' });
     vids.forEach(function (v) { io.observe(v); });
+  })();
+</script>
+<script>
+  /* ⚡ ZOOM THROUGH TEXT（2026-10-17）—— 隧道 → 经历 的过渡
+     大字随滚动放大，从字母缝隙穿出去，缝隙撑满整屏后接上黑底的「经历」屏。
+     ⚠️ 性能：用 IntersectionObserver 只在可见时跑 rAF；离屏立即停（手机端友好）。
+     ⚠️ 只写 transform/opacity（合成层），不碰布局属性。
+     ⚠️ 必须待在 <script> 里 —— 上次把 JS 插进 <style> 的教训（CSS 解析被搅乱）。 */
+  (function () {
+    var sec = document.getElementById('zoomtext');
+    var word = document.getElementById('ztWord');
+    var hint = document.getElementById('ztHint');
+    if (!sec || !word) return;
+
+    var active = false, raf = 0, lastP = -1;
+
+    function tick() {
+      raf = 0;
+      if (!active) return;
+      var r = sec.getBoundingClientRect();
+      var total = sec.offsetHeight - window.innerHeight;
+      var p = total > 0 ? Math.min(1, Math.max(0, -r.top / total)) : 0;
+
+      if (Math.abs(p - lastP) > 0.0008) {          /* 值没变就不写样式 */
+        lastP = p;
+        /* 0 → 0.62：放大（1 → 34 倍，约 5 个数量级的视觉冲击）；
+           0.50 起开始淡出：让"缝隙"彻底接管画面，避免字边毛刺。
+           缓动用 pow：前段慢、后段陡然加速 —— 才有"被吸进去"的体感。 */
+        var g = Math.pow(Math.min(1, p / 0.62), 2.1);
+        var sc = 1 + g * 33;
+        word.style.transform = 'scale(' + sc.toFixed(3) + ')';
+        var fade = Math.max(0, Math.min(1, (p - 0.46) / 0.16));
+        word.style.opacity = (1 - fade).toFixed(3);
+        if (hint) hint.style.opacity = Math.max(0, 0.5 - p * 2.2).toFixed(3);
+      }
+      raf = requestAnimationFrame(tick);
+    }
+
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (es) {
+        active = es[0].isIntersecting;
+        if (active && !raf) raf = requestAnimationFrame(tick);
+      }, { rootMargin: '15% 0px' }).observe(sec);
+    } else {
+      active = true; raf = requestAnimationFrame(tick);
+    }
+  })();
+</script>
+<script>
+  /* ⚡ EXPERIENCE Capsule（2026-10-17 改版）
+     - 进屏 → 巨型字母 L/S 向两侧分开，露出胶囊视频
+     - 年份按钮 → 换胶囊里的视频
+     - 点胶囊 → 浮层：左视频 + 右介绍（点背景 / ESC / 关闭按钮退出）
+     ⚠️ 视频先用 media/ 与 assets/ 的现成素材占位；用户实拍后只改 XP[].src 和文案即可。
+     ⚠️ 必须待在 <script> 里（血的教训：JS 插进 <style> 会搅乱 CSS 解析）。 */
+  (function () {
+    var XP = [
+      { year: '2016', src: 'media/lumion.mp4',      title: '室内 / 空间设计', desc: '从室内与空间设计起步，建立对尺度、材质和光的判断。' },
+      { year: '2019', src: 'media/autocad.mp4',     title: '建筑设计 · 达城闻庆北京建筑工程', desc: '进入建筑设计领域，参与方案与施工图，习惯用技术语言表达空间。' },
+      { year: '2022', src: 'media/illustrator.mp4', title: '电商视觉设计 · 北京腾达远志科技', desc: '转向电商视觉，做品牌与商品的图像表达，开始大量产出商业视觉作品。' },
+      { year: '2026', src: 'assets/mv-final.mp4',   title: '独立视觉设计师 / AI MV Creator', desc: '以独立身份工作，做品牌视觉与 AI 影像创作，把设计经验带进动态叙事。' }
+    ];
+    var cur = 0;
+    var stage = document.getElementById('xpStage');
+    var cap = document.getElementById('xpCapsule');
+    var vid = document.getElementById('xpVideo');
+    var capYear = document.getElementById('xpCapYear');
+    /* 年份"被视频劈开"的两半（2026-10-19）：切年份时左右同步更新 */
+    var xpDesc = document.getElementById('xpDesc');   /* 简介随年份自动切换 */
+    var yearL = document.getElementById('xpYearL');
+    var yearR = document.getElementById('xpYearR');
+    var years = document.getElementById('xpYears');
+    var modal = document.getElementById('xpModal');
+    var mVideo = document.getElementById('xpVideo2');
+    var mYear = document.getElementById('xpModalYear');
+    var mTitle = document.getElementById('xpModalTitle');
+    var mDesc = document.getElementById('xpModalDesc');
+    var closeBtn = document.getElementById('xpModalClose');
+    if (!stage || !cap || !vid || !years || !modal) return;
+
+    function playV(v) { var p = v.play(); if (p && p.catch) p.catch(function () {}); }
+
+    function setItem(i) {
+      cur = Math.max(0, Math.min(XP.length - 1, i));
+      var it = XP[cur];
+      vid.src = it.src; vid.load(); playV(vid);
+      if (capYear) capYear.textContent = it.year;
+      if (xpDesc) xpDesc.textContent = it.desc;
+      if (yearL) yearL.textContent = it.year.slice(0, 2);
+      if (yearR) yearR.textContent = it.year.slice(2);
+      Array.prototype.forEach.call(years.querySelectorAll('.xp__yr'), function (b) {
+        b.classList.toggle('is-on', +b.dataset.i === cur);
+      });
+      if (modal.classList.contains('on')) fillModal();
+    }
+    function fillModal() {
+      var it = XP[cur];
+      mVideo.src = it.src; mVideo.load(); playV(mVideo);
+      mYear.textContent = it.year;
+      mTitle.textContent = it.title;
+      mDesc.textContent = it.desc;
+    }
+    function openModal() {
+      fillModal();
+      modal.classList.add('on');
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('xp-open');
+    }
+    function closeModal() {
+      modal.classList.remove('on');
+      modal.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('xp-open');
+      mVideo.pause();
+    }
+
+    years.addEventListener('click', function (e) {
+      var b = e.target.closest ? e.target.closest('.xp__yr') : null;
+      if (b) setItem(+b.dataset.i);
+    });
+    cap.addEventListener('click', openModal);
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && modal.classList.contains('on')) closeModal();
+    });
+
+    /* 字母分开：进屏时触发（离屏收回 + 暂停视频，省资源） */
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver(function (es) {
+        es.forEach(function (en) {
+          if (en.isIntersecting) { stage.classList.add('is-open'); if (vid.paused) playV(vid); }
+          else { stage.classList.remove('is-open'); vid.pause(); }
+        });
+      }, { threshold: 0.3 }).observe(stage);
+    } else {
+      stage.classList.add('is-open');
+    }
+
+    setItem(0);
+  })();
+</script>
+<script>
+  /* 视觉调参面板（2026-10-19）：5 个滑块 —— 放大倍数 / 胶囊宽·高 / 数字字号·字宽；
+     底部实时汇总当前数值，一键复制（用户习惯：调完把数值发回给我固化）。
+     ⚠️ 必须内联（不能放懒加载的 s4-scroll.js，否则打开页面看不到面板）。 */
+  (function () {
+    var root = document.documentElement;
+    var S = { zoom: 449, capW: 670, capH: 384, yearFs: 290, yearWt: 100, padTop: 240, stageH: 460, tabsGap: 40, capSh: 15, imgY: 50, shY: 4 };
+    var out = document.getElementById('ztOut');
+    var copyBtn = document.getElementById('ztCopy');
+    var panel = document.getElementById('ztune');
+    if (panel && /[?&]edit=1/.test(location.search)) panel.classList.add('is-on');
+    /* 左下圆钮：点一下切换第五屏白底 / 深色（用户要能手动点） */
+    var themeBtn = document.getElementById('xpTheme');
+    if (themeBtn) {
+      themeBtn.addEventListener('click', function () {
+        root.classList.toggle('xp-light');
+        themeBtn.textContent = root.classList.contains('xp-light') ? '◑' : '◐';
+      });
+      if (root.classList.contains('xp-light')) themeBtn.textContent = '◑';
+    }
+    /* ?light=1 → 第五屏白底试色 */
+    if (/[?&]light=1/.test(location.search)) root.classList.add('xp-light');
+
+    var map = [
+      ['ztuneRange', 'zoom',   'ztuneVal',  function (v) { return v + 1; }],
+      ['ztCapW',     'capW',   'ztCapWv',   null],
+      ['ztCapH',     'capH',   'ztCapHv',   null],
+      ['ztYearFs',   'yearFs', 'ztYearFsv', null],
+      ['ztYearWt',   'yearWt', 'ztYearWtv', null],
+      ['ztImgY',     'imgY',   'ztImgYv',   function (v) { return v + '%'; }],
+      ['ztShY',      'shY',    'ztShYv',    null],
+      ['ztCapSh',    'capSh',  'ztCapShv',  null],
+      ['ztPadTop',   'padTop', 'ztPadTopv', null],
+      ['ztStageH',   'stageH', 'ztStageHv', null],
+      ['ztTabsGap',  'tabsGap','ztTabsGapv', null]
+    ];
+
+    function apply() {
+      root.style.setProperty('--cap-img-y', S.imgY + '%');
+      root.style.setProperty('--cap-sh-y', S.shY + 'px');
+      root.style.setProperty('--cap-sh', S.capSh + 'px');
+      root.style.setProperty('--xp-pad-top', S.padTop + 'px');
+      root.style.setProperty('--xp-stage-h', S.stageH + 'px');
+      root.style.setProperty('--xp-tabs-gap', S.tabsGap + 'px');
+      root.style.setProperty('--cap-w', S.capW + 'px');
+      root.style.setProperty('--cap-h', S.capH + 'px');
+      Array.prototype.forEach.call(document.querySelectorAll('.xp__letter'), function (el) {
+        el.style.fontSize = S.yearFs + 'px';
+        el.style.fontWeight = S.yearWt;
+      });
+      window.__zoomMax = S.zoom;             /* s4-scroll.js 读取它 */
+      if (out) {
+        out.textContent = '放大 ' + (S.zoom + 1) + '× · 胶囊 ' + S.capW + '×' + S.capH +
+                          ' · 字号 ' + S.yearFs + ' · 字重 ' + S.yearWt +
+                          ' · 上距 ' + S.padTop + ' · 区高 ' + S.stageH + ' · 钮距 ' + S.tabsGap + ' · 阴影 ' + S.capSh + ' · 阴影Y ' + S.shY + ' · 画面上 ' + S.imgY + '%';
+      }
+    }
+
+    map.forEach(function (m) {
+      var input = document.getElementById(m[0]);
+      var label = document.getElementById(m[2]);
+      if (!input) return;
+      input.value = S[m[1]];
+      if (label) label.textContent = m[3] ? m[3](S[m[1]]) : S[m[1]];
+      input.addEventListener('input', function () {
+        S[m[1]] = +input.value;
+        if (label) label.textContent = m[3] ? m[3](S[m[1]]) : S[m[1]];
+        apply();
+      });
+    });
+
+    if (copyBtn) {
+      copyBtn.addEventListener('click', function () {
+        var txt = '放大 ' + (S.zoom + 1) + '× · 胶囊 ' + S.capW + '×' + S.capH +
+                  ' · 字号 ' + S.yearFs + ' · 字重 ' + S.yearWt +
+                  ' · 上距 ' + S.padTop + ' · 区高 ' + S.stageH + ' · 钮距 ' + S.tabsGap + ' · 阴影 ' + S.capSh + ' · 阴影Y ' + S.shY + ' · 画面上 ' + S.imgY + '%';
+        if (navigator.clipboard) navigator.clipboard.writeText(txt);
+        copyBtn.textContent = '已复制 ✓';
+        setTimeout(function () { copyBtn.textContent = '复制数值'; }, 1200);
+      });
+    }
+
+    apply();
   })();
 </script>
 </body>
