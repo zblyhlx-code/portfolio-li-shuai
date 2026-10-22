@@ -1992,16 +1992,6 @@ html.xp-light .xp__yr{ border-color:rgba(0,0,0,.18); color:rgba(0,0,0,.5); }
 html.xp-light .xp__yr.is-on{ background:#111; border-color:#111; color:#fff; }
 html.xp-light .xp__cap-hint{ color:#333; background:rgba(255,255,255,.85); }
 
-/* ⚠️ 2026-10-20 用户要能点按钮切换白/深（?light=1 之外的手动开关）—— 左下浮动圆钮，上生产前删 */
-.xp-theme{
-  position:fixed; left:18px; bottom:18px; z-index:501;
-  width:46px; height:46px; border-radius:50%; cursor:pointer;
-  border:1px solid rgba(255,255,255,.24); background:rgba(20,20,20,.9);
-  color:#fff; font-size:17px; line-height:1;
-  display:flex; align-items:center; justify-content:center;
-  backdrop-filter:blur(8px); transition:transform .2s ease, background .2s ease;
-}
-.xp-theme:hover{ transform:scale(1.08); background:rgba(204,255,0,.18); border-color:var(--accent); color:var(--accent); }
 
 /* ⚠️ 2026-10-20 用户：点导航跳转后画面高度不对（内容顶到固定导航下面）。
    根因：全站没有 scroll-margin-top —— 锚点滚动会把元素顶边对齐视口顶，正好被 80px 高的固定导航盖住。
@@ -2013,6 +2003,18 @@ section[id], .section[id], main > section {
 #skills { scroll-margin-top: 104px; }
 /* 隧道屏（#services）是 420vh 的叙事段，锚点应落在它真正"开始讲故事"的位置之后 */
 #services { scroll-margin-top: 0; }
+
+/* ⚠️ 2026-10-20 清掉屏4「扇形卡片时代」遗留的调试件（用户：「测试的也弄一下」）。
+   这些元素仍被 gwStage 老代码引用（156 处），直接删 HTML 有联动风险，
+   所以用 display:none 彻底隐藏 —— 视觉上干净，逻辑不受影响。 */
+.gw__ruler,
+.gw__rulertoggle,
+.gw__ref,
+.gw__reftoggle,
+.gw__panel,
+.gw__side {
+  display: none !important;
+}
 </style>
 </head>
 <body>
@@ -2265,8 +2267,8 @@ section[id], .section[id], main > section {
           <div class="big">关于我</div>
         </div>
         <div class="about__right reveal">
-          <p class="p1">视觉设计 5 年，做电商与品牌视觉。擅长把产品拍不出、画不出的质感做出来——光影、材质、细节，让画面自己会说话。</p>
-          <p class="p2"><b>电商</b>　详情页、主图、大促会场、活动页，理解转化逻辑，不只是把页面排好看。<br><b>平面</b>　海报、画册、品牌物料，从设计到印前输出独立完成。<br><b>动态</b>　AI 影像生成与动效，能做产品演示、动态主图与短视频。<br><b>工具</b>　Photoshop / Illustrator / After Effects / AI 生成工具</p>
+          <p class="p1">我做电商视觉，只对两个结果负责：<b>点进来</b>，和<b>买下去</b>。图好看是过程，让人愿意点、愿意付钱才是交付。</p>
+          <p class="p2"><b>主图</b>　卖点提到第一眼，对比拉满。在瀑布流里，0.3 秒决定他停不停。<br><b>详情页</b>　按顾客的犹豫顺序铺信息——先解决"值不值"，再解决"信不信"，最后才是"现在买不买"。<br><b>大促</b>　会场氛围、价格锚点、紧迫感，用视觉推着人下单，而不只是换个背景色。<br><b>工具</b>　Photoshop / Illustrator / After Effects / AI 生成工具</p>
           <p class="p3">业余写歌，艺名阿柠乐。音乐是爱好，也是理解节奏与情绪的另一条路径。</p>
           <div class="about__stats">
             <div class="stat"><div class="num">4Y+</div><div class="label">零外包独立交付</div></div>
@@ -3652,8 +3654,6 @@ section[id], .section[id], main > section {
   </div>
 
   <!-- 文字放大调参面板（2026-10-19 用户要求）：?edit=1 打开，实时调"最大放大倍数" -->
-  <button class="xp-theme" id="xpTheme" type="button" title="切换第五屏配色（白底 / 深色）">◐</button>
-
   <div class="ztune" id="ztune">
     <div class="ztune__h">视觉调参</div>
     <label class="ztune__row">
@@ -3894,15 +3894,6 @@ section[id], .section[id], main > section {
     var copyBtn = document.getElementById('ztCopy');
     var panel = document.getElementById('ztune');
     if (panel && /[?&]edit=1/.test(location.search)) panel.classList.add('is-on');
-    /* 左下圆钮：点一下切换第五屏白底 / 深色（用户要能手动点） */
-    var themeBtn = document.getElementById('xpTheme');
-    if (themeBtn) {
-      themeBtn.addEventListener('click', function () {
-        root.classList.toggle('xp-light');
-        themeBtn.textContent = root.classList.contains('xp-light') ? '◑' : '◐';
-      });
-      if (root.classList.contains('xp-light')) themeBtn.textContent = '◑';
-    }
     /* ?light=1 → 第五屏白底试色 */
     if (/[?&]light=1/.test(location.search)) root.classList.add('xp-light');
 
